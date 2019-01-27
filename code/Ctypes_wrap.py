@@ -11,13 +11,15 @@ def flatsregC():
     func = dll.flatsreg_main
     func.restype = None
     
-    func.argtypes = [ndpointer(ctypes.c_float, flags="C_CONTIGUOUS"),#input                
+    func.argtypes = [ndpointer(ctypes.c_ushort, flags="C_CONTIGUOUS"),  # input flat
+                ndpointer(ctypes.c_ushort, flags="C_CONTIGUOUS"),  # input projection
                 ctypes.c_int, # x
                 ctypes.c_int, # y
                 ctypes.c_int, # x1
                 ctypes.c_int, # y1
+                ctypes.c_int, # drift window size
                 ctypes.c_int, # dimX
-                ctypes.c_int, # dimY                
+                ctypes.c_int, # dimY
                 ndpointer(ctypes.c_float, flags="C_CONTIGUOUS")] # output
     return func
 
