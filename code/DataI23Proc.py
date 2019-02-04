@@ -36,7 +36,7 @@ plt.title('Normalised projection')
 # Reconstructing normalised data
 N_size = 1000
 detectHoriz, anglesNum, slices = np.shape(data_norm)
-det_y_crop = [i for i in range(0,detectHoriz-58)]
+det_y_crop = [i for i in range(200,detectHoriz-258)]
 
 RectoolsDIR = RecToolsDIR(DetectorsDimH = np.size(det_y_crop),  # DetectorsDimH # detector dimension (horizontal)
                     DetectorsDimV = None,  # DetectorsDimV # detector dimension (vertical) for 3D case only
@@ -48,6 +48,32 @@ FBP = RectoolsDIR.FBP(np.transpose(data_norm[det_y_crop,:,0]))
 plt.figure()
 plt.imshow(FBP, vmin=0, vmax=0.003, cmap="gray")
 plt.title('FBP reconstruction')
+plt.show()
+#%%
+from tomorec.methodsIR import RecToolsIR
+# set parameters and initiate a class object
+Rectools = RecToolsIR(DetectorsDimH = np.size(det_y_crop),  # DetectorsDimH # detector dimension (horizontal)
+                    DetectorsDimV = None,  # DetectorsDimV # detector dimension (vertical) for 3D case only
+                    AnglesVec = angles_rad, # array of angles in radians
+                    ObjSize = N_size, # a scalar to define reconstructed object dimensions
+                    datafidelity='PWLS',# data fidelity, choose LS, PWLS, GH (wip), Student (wip)
+                    OS_number = 12, # the number of subsets, NONE/(or > 1) ~ classical / ordered subsets
+                    tolerance = 1e-08, # tolerance to stop outer iterations earlier
+                    device='gpu')
+
+lc = Rectools.powermethod(np.transpose(data_raw[det_y_crop,:,0])/np.max(data_raw[det_y_crop,:,0])) # calculate Lipschitz constant (run once to initialise)
+
+#%%
+RecFISTA_os_pwls = Rectools.FISTA(np.transpose(data_norm[det_y_crop,:,0]), \
+								  np.transpose(data_raw[det_y_crop,:,0])/np.max(data_raw[det_y_crop,:,0]),\
+                              regularisation = 'FGP_TV', \
+                              regularisation_parameter = 0.000001,\
+                              regularisation_iterations = 200,\
+                             iterationsFISTA = 15, \
+                             lipschitz_const = lc)
+plt.figure()
+plt.imshow(RecFISTA_os_pwls, vmin=0, vmax=0.003, cmap="gray")
+plt.title('FISTA-TV reconstruction') 
 plt.show()
 #%%
 import h5py

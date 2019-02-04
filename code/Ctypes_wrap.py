@@ -10,7 +10,7 @@ def flatsregC():
     dll = ctypes.CDLL('c_function/flatsreg_core.so', mode=ctypes.RTLD_GLOBAL)
     func = dll.flatsreg_main
     func.restype = None
-    
+
     func.argtypes = [ndpointer(ctypes.c_ushort, flags="C_CONTIGUOUS"),  # input flat
                 ndpointer(ctypes.c_ushort, flags="C_CONTIGUOUS"),  # input projection
                 ctypes.c_int, # x
@@ -20,6 +20,6 @@ def flatsregC():
                 ctypes.c_int, # drift window size
                 ctypes.c_int, # dimX
                 ctypes.c_int, # dimY
+                ctypes.c_int, # flats number
                 ndpointer(ctypes.c_float, flags="C_CONTIGUOUS")] # output
     return func
-
