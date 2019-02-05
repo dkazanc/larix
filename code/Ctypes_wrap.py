@@ -12,6 +12,7 @@ def flatsregC():
     func.restype = None
 
     func.argtypes = [ndpointer(ctypes.c_ushort, flags="C_CONTIGUOUS"),  # input flat
+                ndpointer(ctypes.c_ushort, flags="C_CONTIGUOUS"),  # input dark
                 ndpointer(ctypes.c_ushort, flags="C_CONTIGUOUS"),  # input projection
                 ctypes.c_int, # x
                 ctypes.c_int, # y
@@ -21,5 +22,7 @@ def flatsregC():
                 ctypes.c_int, # dimX
                 ctypes.c_int, # dimY
                 ctypes.c_int, # flats number
-                ndpointer(ctypes.c_float, flags="C_CONTIGUOUS")] # output
+                ndpointer(ctypes.c_float, flags="C_CONTIGUOUS"), # vector of errors
+                ndpointer(ctypes.c_float, flags="C_CONTIGUOUS"), # not corrected proj
+                ndpointer(ctypes.c_float, flags="C_CONTIGUOUS")] # corrected projection
     return func
