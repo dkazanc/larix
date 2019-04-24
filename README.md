@@ -1,2 +1,2 @@
-# flatsmatch
-Flats drifting correction algorithms
+# i23 reconstruction and segmentation routines
+

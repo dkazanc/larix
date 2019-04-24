@@ -1,0 +1,28 @@
+package:
+  name: i23-seg
+  version: {{i23seg_VERSION}}
+
+build:
+  preserve_egg_dir: False
+  number: 0
+  script_env:
+    - i23seg_VERSION
+
+requirements:
+  build:
+    - python
+    - numpy {{ numpy }}
+    - setuptools
+    - cython
+    - cmake
+
+  run:
+    - {{ pin_compatible('numpy', max_pin='x.x') }}
+    - python
+    - numpy
+    - libgcc-ng # [unix]
+
+about:
+  home: https://github.com/dkazanc
+  license:  Apache 2 license
+  summary: 'i23 segmentation module'
