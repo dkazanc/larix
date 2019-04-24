@@ -4,7 +4,6 @@ Visual Analytics and Imaging System Group of the Science Technology
 Facilities Council, STFC
 
 Copyright 2019 Daniil Kazantsev
-Copyright 2019 Srikanth Nagella, Edoardo Pasca
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,7 +22,6 @@ limitations under the License.
 #include <stdio.h>
 #include "omp.h"
 #include "utils.h"
-#include "CCPiDefines.h"
 
 /* A method to ensure connectivity within regions of the segmented image/volume. Here we assume
  * that the MASK has been obtained using some classification/segmentation method such as k-means or gaussian
@@ -47,10 +45,10 @@ limitations under the License.
 #ifdef __cplusplus
 extern "C" {
 #endif
-CCPI_EXPORT float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
-CCPI_EXPORT float OutiersRemoval2D(unsigned char *MASK, unsigned char *MASK_upd, long i, long j, long dimX, long dimY);
-CCPI_EXPORT float Mask_update2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, long i, long j, int CorrectionWindow, long dimX, long dimY);
-CCPI_EXPORT int bresenham2D(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, int class_switcher, long dimX, long dimY);
+float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
+float OutiersRemoval2D(unsigned char *MASK, unsigned char *MASK_upd, long i, long j, long dimX, long dimY);
+float Mask_update2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, long i, long j, int CorrectionWindow, long dimX, long dimY);
+int bresenham2D(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, int class_switcher, long dimX, long dimY);
 #ifdef __cplusplus
 }
 #endif

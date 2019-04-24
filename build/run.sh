@@ -6,7 +6,7 @@ rm -r ../build_proj
 mkdir ../build_proj
 cd ../build_proj/
 #make clean
-export i23seg_VERSION=0.01
+export i23seg_VERSION=0.1
 # install Python modules without CUDA
 cmake ../ -DBUILD_PYTHON_WRAPPER=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./install
 make install

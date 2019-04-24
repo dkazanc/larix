@@ -18,7 +18,7 @@ message("CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}")
 set(CMAKE_BUILD_TYPE "Release")
 
 if(WIN32)
-  set (FLAGS "/DWIN32 /EHsc /openmp /DCCPiCore_EXPORTS")
+  set (FLAGS "/DWIN32 /EHsc /openmp ")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:MSVCRT.lib")
   
   set (EXTRA_LIBRARIES)
@@ -26,7 +26,7 @@ if(WIN32)
   message("library lib: ${LIBRARY_LIB}")
   
 elseif(UNIX)
-   set (FLAGS "-fopenmp -O2 -funsigned-char -Wall  -Wl,--no-undefined  -DCCPiReconstructionIterative_EXPORTS -std=c++0x")  
+   set (FLAGS "-fopenmp -O2 -funsigned-char -Wall  -Wl,--no-undefined -std=c++0x")  
    set (EXTRA_LIBRARIES 
 		"gomp"
 		)
@@ -60,7 +60,7 @@ if (PYTHONINTERP_FOUND)
       add_custom_command(OUTPUT ${OUTPUT}
                        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src
                        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/i23 ${CMAKE_CURRENT_BINARY_DIR}/i23
-                       COMMAND ${CMAKE_COMMAND} -E env i23seg_VERSION=${CIL_VERSION}
+                       COMMAND ${CMAKE_COMMAND} -E env i23seg_VERSION=${i23seg_VERSION}
                                                        PREFIX=${CMAKE_SOURCE_DIR}/src/Core
                                                        LIBRARY_INC=${CMAKE_SOURCE_DIR}/src/Core
                                                        LIBRARY_LIB=${CMAKE_BINARY_DIR}/src/Core
@@ -73,7 +73,7 @@ if (PYTHONINTERP_FOUND)
         add_custom_command(OUTPUT ${OUTPUT}
                        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src
                        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/i23 ${CMAKE_CURRENT_BINARY_DIR}/i23
-                       COMMAND ${CMAKE_COMMAND} -E env i23seg_VERSION=${CIL_VERSION}
+                       COMMAND ${CMAKE_COMMAND} -E env i23seg_VERSION=${i23seg_VERSION}
                                                        PREFIX=${CMAKE_SOURCE_DIR}/src/Core
                                                        LIBRARY_INC=${CMAKE_SOURCE_DIR}/src/Core
                                                        LIBRARY_LIB=${CMAKE_BINARY_DIR}/src/Core/${CMAKE_BUILD_TYPE}
@@ -84,7 +84,7 @@ if (PYTHONINTERP_FOUND)
         add_custom_command(OUTPUT ${OUTPUT}
                        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src
                        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/i23 ${CMAKE_CURRENT_BINARY_DIR}/i23
-                       COMMAND ${CMAKE_COMMAND} -E env i23seg_VERSION=${CIL_VERSION}
+                       COMMAND ${CMAKE_COMMAND} -E env i23seg_VERSION=${i23seg_VERSION}
                                                        PREFIX=${CMAKE_SOURCE_DIR}/src/Core
                                                        LIBRARY_INC=${CMAKE_SOURCE_DIR}/src/Core
                                                        LIBRARY_LIB=${CMAKE_BINARY_DIR}/src/Core

@@ -16,8 +16,8 @@ project(i23seg)
 #https://stackoverflow.com/questions/13298504/using-cmake-with-setup-py
 
 # The version number.
-set (RGL_VERSION_MAJOR 1)
-set (RGL_VERSION_MINOR 0)
+#set (RGL_VERSION_MAJOR 1)
+#set (RGL_VERSION_MINOR 0)
 
 
 set (i23seg_VERSION $ENV{i23seg_VERSION} CACHE INTERNAL "i23 segmentation modules" FORCE)

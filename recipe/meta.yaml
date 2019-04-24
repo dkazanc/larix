@@ -2,11 +2,13 @@ package:
   name: i23-seg
   version: {{i23seg_VERSION}}
 
+
 build:
   preserve_egg_dir: False
   number: 0
   script_env:
     - i23seg_VERSION
+
 
 requirements:
   build:
