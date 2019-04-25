@@ -21,14 +21,14 @@ cdef extern float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, 
 #****************************************************************#
 #********Mask (segmented image) correction module **************#
 #****************************************************************#
-def MASK_CORR_CPU(maskData, select_classes, total_classesNum, CorrectionWindow, iterationsNumb):
+def MASK_CORR(maskData, select_classes, total_classesNum, CorrectionWindow, iterationsNumb):
     select_classes_ar = np.uint8(np.array(select_classes)) # convert a tuple to array
     if maskData.ndim == 2:
-        return MASK_CORR_CPU_2D(maskData, select_classes_ar, total_classesNum, CorrectionWindow, iterationsNumb)
+        return MASK_CORR_2D(maskData, select_classes_ar, total_classesNum, CorrectionWindow, iterationsNumb)
     elif maskData.ndim == 3:
         return 0
 
-def MASK_CORR_CPU_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
+def MASK_CORR_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
                     np.ndarray[np.uint8_t, ndim=1, mode="c"] select_classes_ar,
                      int total_classesNum,
                      int CorrectionWindow,
