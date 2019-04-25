@@ -30,23 +30,19 @@ mask = np.load("upd_mask.npy")
 mask_input = mask.copy()
 total_classesNum = 5
 
-"""
-pars = {'maskdata' : upd_mask_input,\
-        'classes_names': ('liquor','air','loop'),\
+
+pars = {'maskdata' : mask_input,\
+        'class_names': ('liquor','air','loop'),\
         'total_classesNum': total_classesNum,\
         'restricted_combinations': (('loop','air','loop'), 
                                     ('crystal','air','crystal')),\
         'CorrectionWindow' : 10,\
         'iterationsNumb' : 25}
-"""
-pars = {'maskdata' : mask_input,\
-        'class_names': ('liquor','air','loop'),\
-        'total_classesNum': total_classesNum,\
-        'CorrectionWindow' : 10,\
-        'iterationsNumb' : 5}
 
-(upd_mask_input,correct_matrix) = MASK_CORR(pars['maskdata'], pars['class_names'], \
-                pars['total_classesNum'], pars['CorrectionWindow'], pars['iterationsNumb'])
+
+(upd_mask_input, correct_matrix) = MASK_CORR(pars['maskdata'], pars['class_names'], \
+                pars['total_classesNum'], pars['restricted_combinations'],\
+                pars['CorrectionWindow'], pars['iterationsNumb'])
 
 plt.figure()
 plt.rcParams.update({'font.size': 21})

@@ -15,13 +15,14 @@ import cython
 import numpy as np
 cimport numpy as np
 
-cdef extern Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
+cdef extern float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
 ##############################################################################
 #****************************************************************#
 #********Mask (segmented image) correction module **************#
 #****************************************************************#
-def MASK_CORR(maskData, class_names, total_classesNum, CorrectionWindow, iterationsNumb):
-    #select_classes_ar = np.uint8(np.array(select_classes)) # convert a tuple to array
+def MASK_CORR(maskData, class_names, total_classesNum, restricted_combinations, CorrectionWindow, iterationsNumb):
+    #select_classes_ar = np.uint8(np.array([3, 0, 1])) # convert a tuple to array
+    
     # get main classes to work with
     select_classes_ar = np.array([])
     for obj in class_names:
@@ -36,8 +37,7 @@ def MASK_CORR(maskData, class_names, total_classesNum, CorrectionWindow, iterati
         if (str(obj) is 'artifacts'):
             select_classes_ar = np.append(select_classes_ar,4)
     select_classes_ar = np.uint8(select_classes_ar)
-    print(select_classes_ar)
-    """
+
     # get restricted combinations of 3 items in each combination
     combinations_classes_ar = np.array([])
     for obj in restricted_combinations:
@@ -54,7 +54,7 @@ def MASK_CORR(maskData, class_names, total_classesNum, CorrectionWindow, iterati
                 combinations_classes_ar = np.append(combinations_classes_ar,4)
     combinations_classes_ar = np.uint8(combinations_classes_ar)
     total_amount_combinations = combinations_classes_ar.size/int(3)
-    """
+    print(combinations_classes_ar)
     if maskData.ndim == 2:
         return MASK_CORR_2D(maskData, select_classes_ar, total_classesNum, CorrectionWindow, iterationsNumb)
     elif maskData.ndim == 3:
