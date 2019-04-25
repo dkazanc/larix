@@ -22,13 +22,14 @@ cdef extern float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, 
 #********Mask (segmented image) correction module **************#
 #****************************************************************#
 def MASK_CORR_CPU(maskData, select_classes, total_classesNum, CorrectionWindow, iterationsNumb):
+    select_classes_ar = np.uint8(np.array(select_classes)) # convert a tuple to array
     if maskData.ndim == 2:
-        return MASK_CORR_CPU_2D(maskData, select_classes, total_classesNum, CorrectionWindow, iterationsNumb)
+        return MASK_CORR_CPU_2D(maskData, select_classes_ar, total_classesNum, CorrectionWindow, iterationsNumb)
     elif maskData.ndim == 3:
         return 0
 
 def MASK_CORR_CPU_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
-                    np.ndarray[np.uint8_t, ndim=1, mode="c"] select_classes,
+                    np.ndarray[np.uint8_t, ndim=1, mode="c"] select_classes_ar,
                      int total_classesNum,
                      int CorrectionWindow,
                      int iterationsNumb):
@@ -37,7 +38,7 @@ def MASK_CORR_CPU_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
     dims[0] = maskData.shape[0]
     dims[1] = maskData.shape[1]
 
-    select_classes_length = select_classes.shape[0]
+    select_classes_length = select_classes_ar.shape[0]
 
     cdef np.ndarray[np.uint8_t, ndim=2, mode="c"] mask_upd = \
             np.zeros([dims[0],dims[1]], dtype='uint8')
@@ -45,6 +46,6 @@ def MASK_CORR_CPU_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
             np.zeros([dims[0],dims[1]], dtype='uint8')
 
     # Run the function to process given MASK
-    Mask_merge_main(&maskData[0,0], &mask_upd[0,0], &corr_regions[0,0], &select_classes[0], select_classes_length,
+    Mask_merge_main(&maskData[0,0], &mask_upd[0,0], &corr_regions[0,0], &select_classes_ar[0], select_classes_length,
     total_classesNum, CorrectionWindow, iterationsNumb, dims[1], dims[0], 1)
     return (mask_upd,corr_regions)

@@ -13,12 +13,6 @@
 cmake_minimum_required (VERSION 3.0)
 
 project(i23seg)
-#https://stackoverflow.com/questions/13298504/using-cmake-with-setup-py
-
-# The version number.
-#set (RGL_VERSION_MAJOR 1)
-#set (RGL_VERSION_MINOR 0)
-
 
 set (i23seg_VERSION $ENV{i23seg_VERSION} CACHE INTERNAL "i23 segmentation modules" FORCE)
 message(STATUS "i23seg_VERSION set to " ${i23seg_VERSION})
@@ -26,14 +20,6 @@ message(STATUS "i23seg_VERSION set to " ${i23seg_VERSION})
 # set the Python variables for the Conda environment
 option (BUILD_PYTHON_WRAPPER "Build Python Wrappers" ON)
 option (CONDA_BUILD "Conda Build" OFF)
-
-set(MATLAB_DEST_DIR "" CACHE PATH "Directory of the Matlab wrappers")
-if (MATLAB_DEST_DIR)
-set(MATLAB_DEST "${MATLAB_DEST_DIR}")
-else() 
-set(MATLAB_DEST "${CMAKE_INSTALL_PREFIX}/matlab")
-endif()
-message(STATUS "Matlab wrappers will be installed in " ${MATLAB_DEST})
 
 set(PYTHON_DEST_DIR "" CACHE PATH "Directory of the Python wrappers")
 if (PYTHON_DEST_DIR)

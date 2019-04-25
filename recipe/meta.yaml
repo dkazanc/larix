@@ -13,18 +13,17 @@ build:
 requirements:
   build:
     - python
-    - numpy {{ numpy }}
+    - numpy
     - setuptools
     - cython
     - cmake
 
   run:
-    - {{ pin_compatible('numpy', max_pin='x.x') }}
     - python
     - numpy
     - libgcc-ng # [unix]
 
 about:
-  home: https://github.com/dkazanc
+  home: https://github.com/dkazanc/i23seg
   license:  Apache 2 license
   summary: 'i23 segmentation module'
