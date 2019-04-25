@@ -15,14 +15,46 @@ import cython
 import numpy as np
 cimport numpy as np
 
-cdef extern float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
-
+cdef extern Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
 ##############################################################################
 #****************************************************************#
 #********Mask (segmented image) correction module **************#
 #****************************************************************#
-def MASK_CORR(maskData, select_classes, total_classesNum, CorrectionWindow, iterationsNumb):
-    select_classes_ar = np.uint8(np.array(select_classes)) # convert a tuple to array
+def MASK_CORR(maskData, class_names, total_classesNum, CorrectionWindow, iterationsNumb):
+    #select_classes_ar = np.uint8(np.array(select_classes)) # convert a tuple to array
+    # get main classes to work with
+    select_classes_ar = np.array([])
+    for obj in class_names:
+        if (str(obj) is 'air'):
+            select_classes_ar = np.append(select_classes_ar,0)
+        if (str(obj) is 'loop'):
+            select_classes_ar = np.append(select_classes_ar,1)
+        if (str(obj) is 'crystal'):
+            select_classes_ar = np.append(select_classes_ar,2)
+        if (str(obj) is 'liquor'):
+            select_classes_ar = np.append(select_classes_ar,3)
+        if (str(obj) is 'artifacts'):
+            select_classes_ar = np.append(select_classes_ar,4)
+    select_classes_ar = np.uint8(select_classes_ar)
+    print(select_classes_ar)
+    """
+    # get restricted combinations of 3 items in each combination
+    combinations_classes_ar = np.array([])
+    for obj in restricted_combinations:
+        for name in obj:
+            if (str(name) is 'air'):
+                combinations_classes_ar = np.append(combinations_classes_ar,0)
+            if (str(name) is 'loop'):
+                combinations_classes_ar = np.append(combinations_classes_ar,1)
+            if (str(name) is 'crystal'):
+                combinations_classes_ar = np.append(combinations_classes_ar,2)
+            if (str(name) is 'liquor'):
+                combinations_classes_ar = np.append(combinations_classes_ar,3)
+            if (str(name) is 'artifacts'):
+                combinations_classes_ar = np.append(combinations_classes_ar,4)
+    combinations_classes_ar = np.uint8(combinations_classes_ar)
+    total_amount_combinations = combinations_classes_ar.size/int(3)
+    """
     if maskData.ndim == 2:
         return MASK_CORR_2D(maskData, select_classes_ar, total_classesNum, CorrectionWindow, iterationsNumb)
     elif maskData.ndim == 3:
@@ -46,6 +78,8 @@ def MASK_CORR_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
             np.zeros([dims[0],dims[1]], dtype='uint8')
 
     # Run the function to process given MASK
-    Mask_merge_main(&maskData[0,0], &mask_upd[0,0], &corr_regions[0,0], &select_classes_ar[0], select_classes_length,
-    total_classesNum, CorrectionWindow, iterationsNumb, dims[1], dims[0], 1)
+    Mask_merge_main(&maskData[0,0], &mask_upd[0,0], 
+                    &corr_regions[0,0], &select_classes_ar[0], select_classes_length, 
+                    total_classesNum, CorrectionWindow, 
+                    iterationsNumb, dims[1], dims[0], 1)
     return (mask_upd,corr_regions)

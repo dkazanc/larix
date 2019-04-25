@@ -1,18 +1,21 @@
 # Run Reconstruction script first
 #%%
+# GMM classification and segmentation
+
 import numpy as np
 from i23.methods.segmentation import MASK_CORR
 import matplotlib.pyplot as plt
 from sklearn.mixture import GaussianMixture
-#N_size = 700
-inputdata = RecFISTA.reshape(N_size**2, 1)/np.max(RecFISTA)
-total_classesNum = 5
+
+slices, NxSize, NySize = np.shape(RecFISTA)
+inputdata = RecFISTA.reshape(slices*NxSize*NySize, 1)/np.max(RecFISTA)
+classes_number = 5
 #hist, bin_edges = np.histogram(inputdata, bins=100)
 classif = GaussianMixture(n_components=classes_number, covariance_type="tied")
 classif.fit(inputdata)
 cluster = classif.predict(inputdata)
 segm = classif.means_[cluster]
-segm = segm.reshape(N_size, N_size)
+segm = segm.reshape(slices, NxSize, NySize)
 mask = segm.astype(np.float64) / np.max(segm)
 mask = 255 * mask # Now scale by 255
 mask = mask.astype(np.uint8) # we obtain the mask 
@@ -20,40 +23,28 @@ mask = mask.astype(np.uint8) # we obtain the mask
 plt.figure()
 plt.rcParams.update({'font.size': 21})
 plt.title('GMM segmented (clustered) image')
-plt.imshow(mask)
-
+plt.imshow(mask[10,:,:])
+# np.save('13068_GMM_100slices.npy', mask)
 #%%
-import numpy as np
-import matplotlib.pyplot as plt
 # Now we process the mask 
-mask = np.load("upd_mask.npy")
-mask_input = mask.copy()
-total_classesNum = 5
+np.load('/scratch/DATA_TEMP/13068_GMM_100slices.npy')
+upd_mask_input = mask[10,:,:].copy()
+classes_number = 5
 
-"""
 pars = {'maskdata' : upd_mask_input,\
-        'classes_names': ('liquor','air','loop'),\
-        'total_classesNum': total_classesNum,\
-        'restricted_combinations': (('loop','air','loop'), 
-                                    ('crystal','air','crystal')),\
+        'classes_names': (3,0,1),\
+        'total_classesNum': classes_number,\
         'CorrectionWindow' : 10,\
         'iterationsNumb' : 25}
-"""
-pars = {'maskdata' : mask_input,\
-        'class_names': ('liquor','air','loop'),\
-        'total_classesNum': total_classesNum,\
-        'CorrectionWindow' : 10,\
-        'iterationsNumb' : 5}
 
-(upd_mask_input,correct_matrix) = MASK_CORR(pars['maskdata'], pars['class_names'], \
-                pars['total_classesNum'], pars['CorrectionWindow'], pars['iterationsNumb'])
+(upd_mask_input,correct_matrix) = MASK_CORR(pars['maskdata'], pars['select_classes'],
+pars['total_classesNum'], pars['CorrectionWindow'], pars['iterationsNumb'])
 
 plt.figure()
 plt.rcParams.update({'font.size': 21})
 plt.title('Segmented image (postproc GMM)')
 plt.imshow(upd_mask_input)
 #%%
-
 """
 reg_param_scalar = 0.0001
 reg_param = np.float32(correct_matrix)/np.float32(np.max(correct_matrix))*reg_param_scalar
@@ -69,6 +60,5 @@ kernel /= kernel.sum()   # kernel should sum to 1!  :)
 
 # convolve 2d the kernel with each channel
 reg_param_smooth = scipy.signal.convolve2d(reg_param, kernel, mode='same')
-
 """
 

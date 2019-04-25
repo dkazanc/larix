@@ -173,13 +173,13 @@ float Mask_update2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned 
             j1 = j+j_m;
             if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
               if ((MASK_temp[j*dimX+i] == ClassesList[1]) && (MASK_temp[j1*dimX+i1] == ClassesList[3])) {
-              /* points A and B belong to different classes (specifically 1 (loop) and 3 (liquer))! We consider
-              the combination 1 -> 2 -> 3 (loop->crystal->liquer) is not plausable.  */
+              /* points A and B belong to different classes (specifically 1 (loop) and 3 (liquor))! We consider
+              the combination 1 -> 2 -> 3 (loop->crystal->liquor) is not plausable.  */
               bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 1, (long)(dimX), (long)(dimY));
               }
               if ((MASK_temp[j*dimX+i] == ClassesList[0]) && (MASK_temp[j1*dimX+i1] == ClassesList[3])) {
-              /* improbabale combination 0 -> 4 -> 3 (air->artifacts->liquer): 4 -> 3  or
-                 improbabale (!) combination 0 -> 1 -> 3 (air->loop->liquer): 1 -> 3  */
+              /* improbabale combination 0 -> 4 -> 3 (air->artifacts->liquor): 4 -> 3  or
+                 improbabale (!) combination 0 -> 1 -> 3 (air->loop->liquor): 1 -> 3  */
               bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 2, (long)(dimX), (long)(dimY));
               }
               if ((MASK_temp[j*dimX+i] == ClassesList[0]) && (MASK_temp[j1*dimX+i1] == ClassesList[1])) {
@@ -263,8 +263,8 @@ int bresenham2D(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char
                            if (MASK[x_n*dimX+y_n] == ClassesList[2]) MASK_upd[x_n*dimX+y_n] = ClassesList[1];
                         }
                         if (class_switcher == 2) {
-                          /* improbabale combination 0 -> 4 -> 3 (air->artifacts->liquer): 4 -> 3  or
-                             improbabale (!) combination 0 -> 1 -> 3 (air->loop->liquer): 1 -> 3  */
+                          /* improbabale combination 0 -> 4 -> 3 (air->artifacts->liquor): 4 -> 3  or
+                             improbabale (!) combination 0 -> 1 -> 3 (air->loop->liquor): 1 -> 3  */
                            if ((MASK[x_n*dimX+y_n] == ClassesList[4]) || (MASK[x_n*dimX+y_n] == ClassesList[1])) MASK_upd[x_n*dimX+y_n] = ClassesList[3];
                         }
                         if (class_switcher == 3) {
@@ -290,8 +290,8 @@ int bresenham2D(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char
                           if (MASK[y_n*dimX+x_n] == ClassesList[2]) MASK_upd[y_n*dimX+x_n] = ClassesList[1];
                         }
                         if (class_switcher == 2) {
-                          /* improbabale combination 0 -> 4 -> 3 (air->artifacts->liquer): 4 -> 3  or
-                             improbabale (!) combination 0 -> 1 -> 3 (air->loop->liquer): 1 -> 3  */
+                          /* improbabale combination 0 -> 4 -> 3 (air->artifacts->liquor): 4 -> 3  or
+                             improbabale (!) combination 0 -> 1 -> 3 (air->loop->liquor): 1 -> 3  */
                            if ((MASK[x_n*dimX+y_n] == ClassesList[4]) || (MASK[x_n*dimX+y_n] == ClassesList[1])) MASK_upd[y_n*dimX+x_n] = ClassesList[3];
                         }
                         if (class_switcher == 3) {
