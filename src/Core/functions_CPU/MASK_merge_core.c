@@ -43,7 +43,7 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
     long i,j,k,l;
     int counterG, switcher;
     long DimTotal;
-    unsigned char *MASK_temp, *ClassesList, CurrClass, temp;
+    unsigned char *MASK_temp, *ClassesList, CurrClass, temp, class1, class2, class3;
     DimTotal = (long)(dimX*dimY*dimZ);
 
     /* defines the list for all classes in the mask */
@@ -105,21 +105,33 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
         for(j=0; j<dimY; j++) {
       /* The class of the central pixel has not changed, i.e. the central pixel is not an outlier -> continue */
       if (MASK_temp[j*dimX+i] == MASK[j*dimX+i]) {
-	    /* !One needs to work with a specific class to avoid overlaps! It is
-        crucial to establish relevant classes first (given as an input in SelClassesList) */
+	/* !One needs to work with a specific class to avoid overlaps! It is
+	     crucial to establish relevant classes first (given as an input in SelClassesList) */
        if (MASK_temp[j*dimX+i] == ClassesList[SelClassesList[l]]) {
-        /* i = 258; j = 165; */
-        Mask_update2D(MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, i, j, CorrectionWindow, (long)(dimX), (long)(dimY));
-        }}
+        Mask_update_main2D(MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, i, j, CorrectionWindow, (long)(dimX), (long)(dimY));
+       	  }}
       }}
       /* copy the updated mask */
-      copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));
-        }
+      copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));     
+       } /*SelClassesList_length*/
+       /* Main classes have been processed. Working with implausable combinations */
+	/* loop over combinations of 3 */
+       for(l=0; l<tot_combinations; l++) {
+	 class1 = ComboClasses[l*3];
+	 class2 = ComboClasses[l*3+1];
+	 class3 = ComboClasses[l*3+2];
+	 #pragma omp parallel for shared(MASK_temp,MASK_upd, l, class1, class2, class3) private(i,j)
+	     for(i=0; i<dimX; i++) {
+	             for(j=0; j<dimY; j++) { 
+		        Mask_update_combo2D(MASK_temp, MASK_upd, ClassesList, class1, class2, class3, i, j, CorrectionWindow, (long)(dimX), (long)(dimY));        
+		}}		        
+         /* copy the updated mask */
+         copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));            
+       }       
       }
     }
     else {
     /********************** PERFORM 3D MASK PROCESSING ************************/
-
 
     }
     free(MASK_temp);
@@ -146,6 +158,62 @@ float OutiersRemoval2D(unsigned char *MASK, unsigned char *MASK_upd, long i, lon
       return *MASK_upd;
 }
 
+float Mask_update_main2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, long i, long j, int CorrectionWindow, long dimX, long dimY)
+{
+  long i_m, j_m, i1, j1, CounterOtherClass;
+
+  /* STEP2: in a larger neighbourhood check that the other class is present  */
+  CounterOtherClass = 0;
+  for(i_m=-CorrectionWindow; i_m<=CorrectionWindow; i_m++) {
+      for(j_m=-CorrectionWindow; j_m<=CorrectionWindow; j_m++) {
+        i1 = i+i_m;
+        j1 = j+j_m;
+        if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
+          if (MASK_temp[j*dimX+i] != MASK_temp[j1*dimX+i1]) CounterOtherClass++;
+        }
+      }}
+      if (CounterOtherClass > 0) {
+      /* the other class is present in the vicinity of CorrectionWindow, continue to STEP 3 */
+      /*
+      STEP 3: Loop through all neighbours in CorrectionWindow and check the spatial connection.
+      Meaning that we're instrested if there are any classes between points A and B that
+      does not belong to A and B (A,B \in C)
+      */
+      for(i_m=-CorrectionWindow; i_m<=CorrectionWindow; i_m++) {
+          for(j_m=-CorrectionWindow; j_m<=CorrectionWindow; j_m++) {
+            i1 = i+i_m;
+            j1 = j+j_m;
+            if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
+              if ((MASK_temp[j*dimX+i] == ClassesList[1]) && (MASK_temp[j1*dimX+i1] == ClassesList[3])) {
+              /* points A and B belong to different classes (specifically 1 (loop) and 3 (liquor))! We consider
+              the combination 1 -> 2 -> 3 (loop->crystal->liquor) is not plausable.  */
+              bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 1, (long)(dimX), (long)(dimY));
+              }
+              if ((MASK_temp[j*dimX+i] == ClassesList[0]) && (MASK_temp[j1*dimX+i1] == ClassesList[3])) {
+              /* improbabale combination 0 -> 4 -> 3 (air->artifacts->liquor): 4 -> 3  or
+                 improbabale (!) combination 0 -> 1 -> 3 (air->loop->liquor): 1 -> 3  */
+              bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 2, (long)(dimX), (long)(dimY));
+              }
+              if ((MASK_temp[j*dimX+i] == ClassesList[0]) && (MASK_temp[j1*dimX+i1] == ClassesList[1])) {
+              /* improbabale combination 0 -> 4 -> 1 (air->artifacts->loop): 4 -> 1 or
+                 improbabale combination 0 -> 2 -> 1 (air->crystal->loop): 2 -> 1 or  */
+              bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 3, (long)(dimX), (long)(dimY));
+              }
+              if ((MASK_temp[j*dimX+i] == ClassesList[0]) && (MASK_temp[j1*dimX+i1] == ClassesList[2])) {
+              /* improbabale combination 0 -> 1 -> 2 (air->loop->crystal): 1 -> 2 */
+              bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 4, (long)(dimX), (long)(dimY));
+              }
+              if (MASK_temp[j*dimX+i] == MASK_temp[j1*dimX+i1]) {
+               /* A and B points belong to the same class, do STEP 4*/
+               /* STEP 4: Run the Bresenham line algorithm between A and B points
+               and convert all points on the way to the class of A. */
+              bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 0, (long)(dimX), (long)(dimY));
+             }
+            }
+          }}
+      }
+  return *MASK_upd;
+}
 float Mask_update2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, long i, long j, int CorrectionWindow, long dimX, long dimY)
 {
   long i_m, j_m, i1, j1, CounterOtherClass;
@@ -200,7 +268,7 @@ float Mask_update2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned 
             }
           }}
       }
-  return 0;
+  return *MASK_upd;
 }
 int bresenham2D(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, int class_switcher, long dimX, long dimY)
 {
