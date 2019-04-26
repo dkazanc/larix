@@ -38,7 +38,7 @@
  * changed are highlighted and the changes have been counted
  */
 
-float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ)
+float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, unsigned char *ComboClasses, int tot_combinations, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ)
 {
     long i,j,k,l;
     int counterG, switcher;
@@ -124,7 +124,7 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
     }
     free(MASK_temp);
     free(ClassesList);
-    return 0;
+    return *MASK_upd;
 }
 /********************************************************************/
 /***************************2D Functions*****************************/
