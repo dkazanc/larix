@@ -26,11 +26,12 @@
  * and correct the mask. We check the connectivity using the bresenham line algorithm within the non-local window
  * surrounding the pixel of interest.
  *
- * Input Parameters:
- * 1. MASK [0:255], the result of some classification algorithm (information-based preferably)
- * 2. The list of classes (e.g. [3,4]) to apply the method. The given order matters.
- * 3. The total number of classes in the MASK.
- * 4. The size of the Correction Window inside which the method works.
+ * Input Parameters (from Python):
+ * 1. MASK [0:255], the result of some classification algorithm (information-based preferably, Gaussian Mixtures works quite well)
+ * 2. The list of classes needs to be processed. The order matters, e.g. (air, crystal)
+ * 3. The list of improbable combinations of classes, such as: (class_start, class_middle, class_end, class_substiture)
+ * 4. The size of the Correction Window (neighbourhood window)
+ * 5. The number of iterations
 
  * Output:
  * 1. MASK_upd - the UPDATED MASK where some regions have been corrected (merged) or removed
@@ -40,7 +41,7 @@
 
 float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, unsigned char *ComboClasses, int tot_combinations, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ)
 {
-    long i,j,k,l;
+    long i,j,k,l,n;
     int counterG, switcher;
     long DimTotal;
     unsigned char *MASK_temp, *ClassesList, CurrClass, temp, class_start, class_mid, class_end, class_substitute;
@@ -81,7 +82,6 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
 
     /* copy given MASK to MASK_upd*/
     copyIm_unchar(MASK, MASK_upd, (long)(dimX), (long)(dimY), (long)(dimZ));
-
 	
     if (dimZ == 1) {
      /********************** PERFORM 2D MASK PROCESSING ************************/
@@ -112,7 +112,8 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
       }}
       /* copy the updated mask */
       copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));     
-      } /*SelClassesList_length*/
+      }
+       /*SelClassesList_length*/
        /* Main classes have been processed. Working with implausable combinations */
        /* loop over the combinations of 3 */      
        for(l=0; l<tot_combinations; l++) {
@@ -133,15 +134,38 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
     else {
     /********************** PERFORM 3D MASK PROCESSING ************************/
     /* start iterations */
+    for(l=0; l<iterationsNumb; l++) {   
     #pragma omp parallel for shared(MASK,MASK_upd) private(i,j,k)
     for(i=0; i<dimX; i++) {
         for(j=0; j<dimY; j++) {
            for(k=0; k<dimZ; k++) {
     /* STEP1: in a smaller neighbourhood check that the current pixel is NOT an outlier */
     OutiersRemoval3D(MASK, MASK_upd, i, j, k, (long)(dimX), (long)(dimY), (long)(dimZ));
-    }}}
-    }   
-    
+		    }}}
+    /* copy the updated MASK (clean of outliers) */
+    copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));
+
+    // printf("[%u][%u][%u]\n", ClassesList[0], ClassesList[1], ClassesList[2]);
+    for(n=0; n<SelClassesList_length; n++) {
+    /*printf("[%u]\n", ClassesList[SelClassesList[l]]);*/
+    #pragma omp parallel for shared(MASK_temp,MASK_upd,l,n) private(i,j,k)
+    for(i=0; i<dimX; i++) {
+        for(j=0; j<dimY; j++) {
+           for(k=0; k<dimZ; k++) {
+      /* The class of the central pixel has not changed, i.e. the central pixel is not an outlier -> continue */
+      if (MASK_temp[(dimX*dimY)*k + j*dimX+i] == MASK[(dimX*dimY)*k + j*dimX+i]) {
+	/* !One needs to work with a specific class to avoid overlaps! It is
+	     crucial to establish relevant classes first (given as an input in SelClassesList) */
+       if (MASK_temp[(dimX*dimY)*k + j*dimX+i] == ClassesList[SelClassesList[n]]) {
+        Mask_update_main3D(MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, i, j, k, CorrectionWindow, (long)(dimX), (long)(dimY), (long)(dimZ));
+       	  }}
+      }}}
+      /* copy the updated mask */
+      copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));     
+      }
+
+	    } /* iterations terminated*/      
+    }    
     free(MASK_temp);
     free(ClassesList);
     return *MASK_upd;
@@ -404,8 +428,44 @@ float OutiersRemoval3D(unsigned char *MASK, unsigned char *MASK_upd, long i, lon
           if (MASK[(dimX*dimY)*k + j*dimX+i] != MASK[(dimX*dimY)*k1 + j1*dimX+i1]) counter++;
         }
       }}}
-      if (counter >= 26) MASK_upd[(dimX*dimY)*k + j*dimX+i] = MASK[(dimX*dimY)*k1 + j1*dimX+i1];
+      if (counter >= 25) MASK_upd[(dimX*dimY)*k + j*dimX+i] = MASK[(dimX*dimY)*k1 + j1*dimX+i1];
       return *MASK_upd;
 }
+float Mask_update_main3D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, long i, long j, long k, int CorrectionWindow, long dimX, long dimY, long dimZ)
+{
+  long i_m, j_m, k_m, i1, j1, k1, CounterOtherClass;
 
+  /* STEP2: in a larger neighbourhood check that the other class is present in the neighbourhood */
+  CounterOtherClass = 0;
+  for(i_m=-CorrectionWindow; i_m<=CorrectionWindow; i_m++) {
+      for(j_m=-CorrectionWindow; j_m<=CorrectionWindow; j_m++) {
+        i1 = i+i_m;
+        j1 = j+j_m;
+        if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
+          if (MASK_temp[j*dimX+i] != MASK_temp[j1*dimX+i1]) CounterOtherClass++;
+        }
+      }}
+      if (CounterOtherClass > 0) {
+      /* the other class is present in the vicinity of CorrectionWindow, continue to STEP 3 */
+      /*
+      STEP 3: Loop through all neighbours in CorrectionWindow and check the spatial connection.
+      Meaning that we're instrested if there are any classes between points A and B that
+      does not belong to A and B (A,B \in C)
+      */
+      for(i_m=-CorrectionWindow; i_m<=CorrectionWindow; i_m++) {
+          for(j_m=-CorrectionWindow; j_m<=CorrectionWindow; j_m++) {
+            i1 = i+i_m;
+            j1 = j+j_m;
+            if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
+              if (MASK_temp[j*dimX+i] == MASK_temp[j1*dimX+i1]) {
+               /* A and B points belong to the same class, do STEP 4*/
+               /* STEP 4: Run the Bresenham line algorithm between A and B points
+               and convert all points on the way to the class of A. */
+              bresenham2D_main(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, (long)(dimX), (long)(dimY));
+             }
+            }
+          }}
+      }
+  return *MASK_upd;
+}
 

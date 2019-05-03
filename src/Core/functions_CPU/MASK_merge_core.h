@@ -29,11 +29,12 @@ limitations under the License.
  * and correct the mask. We check the connectivity using the bresenham line algorithm within the non-local window
  * surrounding the pixel of interest.
  *
- * Input Parameters:
- * 1. MASK [0:255], the result of some classification algorithm (information-based preferably)
- * 2. The list of classes (e.g. [3,4]) to apply the method. The given order matters.
- * 3. The total number of classes in the MASK.
- * 4. The size of the Correction Window inside which the method works.
+ * Input Parameters (from Python):
+ * 1. MASK [0:255], the result of some classification algorithm (information-based preferably, Gaussian Mixtures works quite well)
+ * 2. The list of classes needs to be processed. The order matters, e.g. (air, crystal)
+ * 3. The list of improbable combinations of classes, such as: (class_start, class_middle, class_end, class_substiture)
+ * 4. The size of the Correction Window (neighbourhood window)
+ * 5. The number of iterations
 
  * Output:
  * 1. MASK_upd - the UPDATED MASK where some regions have been corrected (merged) or removed
