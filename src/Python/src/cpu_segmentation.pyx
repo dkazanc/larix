@@ -71,7 +71,7 @@ def MASK_CORR_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
     dims[1] = maskData.shape[1]
 
     select_classes_length = select_classes_ar.shape[0]
-    tot_combinations = (int)(combo_classes_ar.shape[0]/int(3))
+    tot_combinations = (int)(combo_classes_ar.shape[0]/int(4))
 
     cdef np.ndarray[np.uint8_t, ndim=2, mode="c"] mask_upd = \
             np.zeros([dims[0],dims[1]], dtype='uint8')

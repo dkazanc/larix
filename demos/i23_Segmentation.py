@@ -30,15 +30,17 @@ mask = np.load("upd_mask.npy")
 mask_input = mask.copy()
 total_classesNum = 5
 
-
 pars = {'maskdata' : mask_input,\
         'class_names': ('liquor','air','loop'),\
         'total_classesNum': total_classesNum,\
-        'restricted_combinations': (('loop','air','loop'), 
-                                    ('crystal','air','crystal')),\
+        'restricted_combinations': (('loop','crystal','liquor','loop'),
+                                    ('air','artifacts','liquor','liquor'),
+                                    ('air','loop','liquor','liquor'),
+                                    ('air','artifacts','loop','loop'),
+                                    ('air','crystal','loop','loop'),
+                                    ('air','loop','crystal','crystal')),\
         'CorrectionWindow' : 10,\
-        'iterationsNumb' : 20}
-
+        'iterationsNumb' : 6}
 
 upd_mask_input = MASK_CORR(pars['maskdata'], pars['class_names'], \
                 pars['total_classesNum'], pars['restricted_combinations'],\
@@ -49,6 +51,14 @@ plt.rcParams.update({'font.size': 21})
 plt.title('Segmented image (postproc GMM)')
 plt.imshow(upd_mask_input)
 #%%
+"""
+        'restricted_combinations': (('loop','crystal','liquor','loop'),
+                                    ('air','artifacts','liquor','liquor'),
+                                    ('air','loop','liquor','liquor'),
+                                    ('air','artifacts','loop','loop'),
+                                    ('air','crystal','loop','loop'),
+                                    ('air','loop','crystal','crystal')),\
+"""
 
 """
 reg_param_scalar = 0.0001

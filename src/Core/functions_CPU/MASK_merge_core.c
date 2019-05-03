@@ -43,7 +43,7 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
     long i,j,k,l;
     int counterG, switcher;
     long DimTotal;
-    unsigned char *MASK_temp, *ClassesList, CurrClass, temp, class1, class2, class3;
+    unsigned char *MASK_temp, *ClassesList, CurrClass, temp, class_start, class_mid, class_end, class_substitute;
     DimTotal = (long)(dimX*dimY*dimZ);
 
     /* defines the list for all classes in the mask */
@@ -118,18 +118,17 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
        /* loop over the combinations of 3 */
       
        for(l=0; l<tot_combinations; l++) {
-	 class1 = ComboClasses[l*3];
-	 class2 = ComboClasses[l*3+1];
-	 class3 = ComboClasses[l*3+2];
-	 printf("[%u][%u][%u]\n", class1, class2, class3);
-	 /*
-	 #pragma omp parallel for shared(MASK_temp,MASK_upd, l, class1, class2, class3) private(i,j)
+	 class_start = ComboClasses[l*4]; /* current class */
+	 class_mid = ComboClasses[l*4+1]; /* class in-between */
+	 class_end = ComboClasses[l*4+2]; /* neighbour class */
+	 class_substitute = ComboClasses[l*4+3]; /* class to replace class_mid with */
+	 /*printf("[%i][%u][%u][%u][%u]\n", l, class_start, class_mid, class_end, class_substitute);*/
+	 #pragma omp parallel for shared(MASK_temp,MASK_upd, l, class_start, class_mid, class_end, class_substitute) private(i,j)
 	     for(i=0; i<dimX; i++) {
 	             for(j=0; j<dimY; j++) { 
-		        Mask_update_combo2D(MASK_temp, MASK_upd, ClassesList, class1, class2, class3, i, j, CorrectionWindow, (long)(dimX), (long)(dimY));        
+	        Mask_update_combo2D(MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, class_start, class_mid, class_end, class_substitute, i, j, CorrectionWindow, (long)(dimX), (long)(dimY));        
 		}}		        
-         copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));            
-         */
+         copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));          
        }             
       }
     }
@@ -165,7 +164,7 @@ float Mask_update_main2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsi
 {
   long i_m, j_m, i1, j1, CounterOtherClass;
 
-  /* STEP2: in a larger neighbourhood check that the other class is present  */
+  /* STEP2: in a larger neighbourhood check that the other class is present in the neighbourhood */
   CounterOtherClass = 0;
   for(i_m=-CorrectionWindow; i_m<=CorrectionWindow; i_m++) {
       for(j_m=-CorrectionWindow; j_m<=CorrectionWindow; j_m++) {
@@ -191,7 +190,7 @@ float Mask_update_main2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsi
                /* A and B points belong to the same class, do STEP 4*/
                /* STEP 4: Run the Bresenham line algorithm between A and B points
                and convert all points on the way to the class of A. */
-              bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 0, (long)(dimX), (long)(dimY));
+              bresenham2D_main(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, (long)(dimX), (long)(dimY));
              }
             }
           }}
@@ -199,11 +198,11 @@ float Mask_update_main2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsi
   return *MASK_upd;
 }
 
-float Mask_update_combo2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, unsigned char class1, unsigned char class2, unsigned char class3, long i, long j, int CorrectionWindow, long dimX, long dimY)
+float Mask_update_combo2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, unsigned char class_start, unsigned char class_mid, unsigned char class_end, unsigned char class_substitute, long i, long j, int CorrectionWindow, long dimX, long dimY)
 {
   long i_m, j_m, i1, j1, CounterOtherClass;
 
-  /* STEP2: in a larger neighbourhood check that the other class is present  */
+  /* STEP2: in a larger neighbourhood check that the other class is present in the neighbourhood  */
   CounterOtherClass = 0;
   for(i_m=-CorrectionWindow; i_m<=CorrectionWindow; i_m++) {
       for(j_m=-CorrectionWindow; j_m<=CorrectionWindow; j_m++) {
@@ -216,40 +215,25 @@ float Mask_update_combo2D(unsigned char *MASK_temp, unsigned char *MASK_upd, uns
       if (CounterOtherClass > 0) {
       /* the other class is present in the vicinity of CorrectionWindow, continue to STEP 3 */
       /*
-      STEP 3: Loop through all neighbours in CorrectionWindow and check the spatial connection.
-      Meaning that we're instrested if there are any classes between points A and B that
-      does not belong to A and B (A,B \in C)
+      STEP 3: Loop through all neighbours in CorrectionWindow and check the spatial connections.
+      Check that if there are any classes between points A and B that does not belong to A and B (A,B \in C)
       */
       for(i_m=-CorrectionWindow; i_m<=CorrectionWindow; i_m++) {
           for(j_m=-CorrectionWindow; j_m<=CorrectionWindow; j_m++) {
             i1 = i+i_m;
             j1 = j+j_m;
-            if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
-              if ((MASK_temp[j*dimX+i] == ClassesList[1]) && (MASK_temp[j1*dimX+i1] == ClassesList[3])) {
-              /* points A and B belong to different classes (specifically 1 (loop) and 3 (liquor))! We consider
-              the combination 1 -> 2 -> 3 (loop->crystal->liquor) is not plausable.  */
-              bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 1, (long)(dimX), (long)(dimY));
-              }
-              if ((MASK_temp[j*dimX+i] == ClassesList[0]) && (MASK_temp[j1*dimX+i1] == ClassesList[3])) {
-              /* improbabale combination 0 -> 4 -> 3 (air->artifacts->liquor): 4 -> 3  or
-                 improbabale (!) combination 0 -> 1 -> 3 (air->loop->liquor): 1 -> 3  */
-              bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 2, (long)(dimX), (long)(dimY));
-              }
-              if ((MASK_temp[j*dimX+i] == ClassesList[0]) && (MASK_temp[j1*dimX+i1] == ClassesList[1])) {
-              /* improbabale combination 0 -> 4 -> 1 (air->artifacts->loop): 4 -> 1 or
-                 improbabale combination 0 -> 2 -> 1 (air->crystal->loop): 2 -> 1 or  */
-              bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 3, (long)(dimX), (long)(dimY));
-              }
-              if ((MASK_temp[j*dimX+i] == ClassesList[0]) && (MASK_temp[j1*dimX+i1] == ClassesList[2])) {
-              /* improbabale combination 0 -> 1 -> 2 (air->loop->crystal): 1 -> 2 */
-              bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 4, (long)(dimX), (long)(dimY));
-              }
+            if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {           
+              if ((MASK_temp[j*dimX+i] == ClassesList[class_start]) && (MASK_temp[j1*dimX+i1] == ClassesList[class_end])) {
+              /* We check that point A belongs to "class_start" and point B to "class_end". If they do then the idea is to check if 
+              "class_mid" (undesirable class) lies inbetween two classes. If it does -> replace it with "class_substitute".  */
+              bresenham2D_combo(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, class_mid, class_substitute, (long)(dimX), (long)(dimY));
+              }              
             }
           }}
       }
   return *MASK_upd;
 }
-int bresenham2D(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, int class_switcher, long dimX, long dimY)
+int bresenham2D_main(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, long dimX, long dimY)
 {
                    int n;
                    int x[] = {i, i1};
@@ -298,63 +282,95 @@ int bresenham2D(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char
 
                   for(n = 0; n<delx+1; n++) {
                        if (steep == 1) {
-                        /*printf("[%i][%i][%u]\n", x_n, y_n, MASK[y_n*dimX+x_n]);*/
-                        /*checks all points (classes) that the line crosses */
-                        if (class_switcher == 0) {
+                       /* this replaces any class which is different from classes in
+                       the starting and ending points */
                         if (MASK[j*dimX+i] != MASK[x_n*dimX+y_n]) {
                         	MASK_upd[x_n*dimX+y_n] = MASK[j*dimX+i];
                         	CORRECTEDRegions[x_n*dimX+y_n] += 1;
-                       	 }}
-                        if (class_switcher == 1) {
-                          /* deal with  1 -> 2 -> 3 combination of classes, i.e. convert 2 (if exist) into 1 */
-                           if (MASK[x_n*dimX+y_n] == ClassesList[2]) MASK_upd[x_n*dimX+y_n] = ClassesList[1];
-                        }
-                        if (class_switcher == 2) {
-                          /* improbabale combination 0 -> 4 -> 3 (air->artifacts->liquor): 4 -> 3  or
-                             improbabale (!) combination 0 -> 1 -> 3 (air->loop->liquor): 1 -> 3  */
-                           if ((MASK[x_n*dimX+y_n] == ClassesList[4]) || (MASK[x_n*dimX+y_n] == ClassesList[1])) MASK_upd[x_n*dimX+y_n] = ClassesList[3];
-                        }
-                        if (class_switcher == 3) {
-                          /* improbabale combination 0 -> 4 -> 1 (air->artifacts->loop): 4 -> 1 or
-                             improbabale combination 0 -> 2 -> 1 (air->crystal->loop): 2 -> 1 or  */
-                           if ((MASK[x_n*dimX+y_n] == ClassesList[4]) || (MASK[x_n*dimX+y_n] == ClassesList[2])) MASK_upd[x_n*dimX+y_n] = ClassesList[1];
-                        }
-                        if (class_switcher == 4) {
-                          /* improbabale combination 0 -> 1 -> 2 (air->loop->crystal): 1 -> 2 */
-                           if (MASK[x_n*dimX+y_n] == ClassesList[1]) MASK_upd[x_n*dimX+y_n] = ClassesList[2];
-                        }
+                       	 }                     
                       }
-                       else {
-                        // printf("[%i][%i][%u]\n", y_n, x_n, MASK[x_n*dimX+y_n]);
-                        /*checks all points (classes) that the line crosses */
-                        if (class_switcher == 0) {
+                       else {                       
                           if (MASK[j*dimX+i] != MASK[y_n*dimX+x_n]) {
-	                           MASK_upd[y_n*dimX+x_n] = MASK[j*dimX+i];
+	                     MASK_upd[y_n*dimX+x_n] = MASK[j*dimX+i];
                              CORRECTEDRegions[y_n*dimX+x_n] += 1;
-                           }}
-                        if (class_switcher == 1) {
-                        /* deal with  1 -> 2 -> 3 combination of classes, i.e. convert 2 (if exist) into 1 */
-                          if (MASK[y_n*dimX+x_n] == ClassesList[2]) MASK_upd[y_n*dimX+x_n] = ClassesList[1];
-                        }
-                        if (class_switcher == 2) {
-                          /* improbabale combination 0 -> 4 -> 3 (air->artifacts->liquor): 4 -> 3  or
-                             improbabale (!) combination 0 -> 1 -> 3 (air->loop->liquor): 1 -> 3  */
-                           if ((MASK[x_n*dimX+y_n] == ClassesList[4]) || (MASK[x_n*dimX+y_n] == ClassesList[1])) MASK_upd[y_n*dimX+x_n] = ClassesList[3];
-                        }
-                        if (class_switcher == 3) {
-                          /* improbabale combination 0 -> 4 -> 1 (air->artifacts->loop): 4 -> 1 or
-                             improbabale combination 0 -> 2 -> 1 (air->crystal->loop): 2 -> 1 or  */
-                           if ((MASK[y_n*dimX+x_n] == ClassesList[4]) || (MASK[y_n*dimX+x_n] == ClassesList[2])) MASK_upd[y_n*dimX+x_n] = ClassesList[1];
-                        }
-                        if (class_switcher == 4) {
-                          /* improbabale combination 0 -> 1 -> 2 (air->loop->crystal): 1 -> 2 */
-                           if (MASK[y_n*dimX+x_n] == ClassesList[1]) MASK_upd[y_n*dimX+x_n] = ClassesList[2];
-                        }
-
+                           }                      
                       }
                        x_n = x_n + 1;
                        error = error + dely;
+                       if (2*error >= delx) {
+                          y_n = y_n + ystep;
+                         error = error - delx;
+                       } // (2*error >= delx)                       
+                  } // for(int n = 0; n<delx+1; n++)
+                  return 0;
+}
+int bresenham2D_combo(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList,  unsigned char class_mid, unsigned char class_substitute, long dimX, long dimY)
+{
+                   int n;
+                   int x[] = {i, i1};
+                   int y[] = {j, j1};
+                   int steep = (fabs(y[1]-y[0]) > fabs(x[1]-x[0]));
+                   int ystep = 0;
+                   //printf("[%i][%i][%i][%i]\n", x[1], y[1], steep, kk) ;
+                   //if (steep == 1) {swap(x[0],y[0]); swap(x[1],y[1]);}                   
 
+                   if (steep == 1) {
+                   // swaping
+                   int a, b;
+
+                   a = x[0];
+                   b = y[0];
+                   x[0] = b;
+                   y[0] = a;
+
+                   a = x[1];
+                   b = y[1];
+                   x[1] = b;
+                   y[1] = a;
+                   }
+
+                   if (x[0] > x[1]) {
+                   int a, b;
+                   a = x[0];
+                   b = x[1];
+                   x[0] = b;
+                   x[1] = a;
+
+                   a = y[0];
+                   b = y[1];
+                   y[0] = b;
+                   y[1] = a;
+                   } //(x[0] > x[1])
+
+                  int delx = x[1]-x[0];
+                  int dely = fabs(y[1]-y[0]);
+                  int error = 0;
+                  int x_n = x[0];
+                  int y_n = y[0];
+                  if (y[0] < y[1]) {ystep = 1;}
+                  else {ystep = -1;}
+
+                  for(n = 0; n<delx+1; n++) {
+                       if (steep == 1) {
+                        /*printf("[%i][%i][%u]\n", x_n, y_n, MASK[y_n*dimX+x_n]);*/
+                        /* dealing with various improbable combination of classes in the mask. The improbable class is replaced 
+                        with more probable one. */
+                        if (MASK[x_n*dimX+y_n] == ClassesList[class_mid]) {                        
+	                        MASK_upd[x_n*dimX+y_n] = ClassesList[class_substitute];
+	                        CORRECTEDRegions[x_n*dimX+y_n] += 1;
+	                        }
+                      }
+                       else {
+                        // printf("[%i][%i][%u]\n", y_n, x_n, MASK[x_n*dimX+y_n]);
+                        /* dealing with various improbable combination of classes in the mask. The improbable class is replaced 
+                        with more probable one. */
+                          if (MASK[y_n*dimX+x_n] == ClassesList[class_mid]) {                          
+	                          MASK_upd[y_n*dimX+x_n] = ClassesList[class_substitute];
+	                          CORRECTEDRegions[y_n*dimX+x_n] += 1;
+	                          }                        
+                      }
+                       x_n = x_n + 1;
+                       error = error + dely;
                        if (2*error >= delx) {
                           y_n = y_n + ystep;
                          error = error - delx;
@@ -363,6 +379,7 @@ int bresenham2D(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char
                   } // for(int n = 0; n<delx+1; n++)
                   return 0;
 }
+
 /********************************************************************/
 /***************************3D Functions*****************************/
 /********************************************************************/
