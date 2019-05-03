@@ -82,11 +82,11 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
     /* copy given MASK to MASK_upd*/
     copyIm_unchar(MASK, MASK_upd, (long)(dimX), (long)(dimY), (long)(dimZ));
 
+	
     if (dimZ == 1) {
+     /********************** PERFORM 2D MASK PROCESSING ************************/
     /* start iterations */
-    for(k=0; k<iterationsNumb; k++) {
-
-    /********************** PERFORM 2D MASK PROCESSING ************************/
+    for(k=0; k<iterationsNumb; k++) {   
     #pragma omp parallel for shared(MASK,MASK_upd) private(i,j)
     for(i=0; i<dimX; i++) {
         for(j=0; j<dimY; j++) {
@@ -97,7 +97,6 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
     copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));
 
     // printf("[%u][%u][%u]\n", ClassesList[0], ClassesList[1], ClassesList[2]);
-
     for(l=0; l<SelClassesList_length; l++) {
     /*printf("[%u]\n", ClassesList[SelClassesList[l]]);*/
     #pragma omp parallel for shared(MASK_temp,MASK_upd,l) private(i,j)
@@ -115,8 +114,7 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
       copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));     
       } /*SelClassesList_length*/
        /* Main classes have been processed. Working with implausable combinations */
-       /* loop over the combinations of 3 */
-      
+       /* loop over the combinations of 3 */      
        for(l=0; l<tot_combinations; l++) {
 	 class_start = ComboClasses[l*4]; /* current class */
 	 class_mid = ComboClasses[l*4+1]; /* class in-between */
@@ -134,8 +132,16 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
     }
     else {
     /********************** PERFORM 3D MASK PROCESSING ************************/
-
-    }
+    /* start iterations */
+    #pragma omp parallel for shared(MASK,MASK_upd) private(i,j,k)
+    for(i=0; i<dimX; i++) {
+        for(j=0; j<dimY; j++) {
+           for(k=0; k<dimZ; k++) {
+    /* STEP1: in a smaller neighbourhood check that the current pixel is NOT an outlier */
+    OutiersRemoval3D(MASK, MASK_upd, i, j, k, (long)(dimX), (long)(dimY), (long)(dimZ));
+    }}}
+    }   
+    
     free(MASK_temp);
     free(ClassesList);
     return *MASK_upd;
@@ -383,3 +389,23 @@ int bresenham2D_combo(int i, int j, int i1, int j1, unsigned char *MASK, unsigne
 /********************************************************************/
 /***************************3D Functions*****************************/
 /********************************************************************/
+float OutiersRemoval3D(unsigned char *MASK, unsigned char *MASK_upd, long i, long j, long k, long dimX, long dimY, long dimZ)
+{
+  /*if the ROI pixel does not belong to the surrondings, turn it into the surronding*/
+  long i_m, j_m, k_m, i1, j1, k1, counter;
+    counter = 0;
+    for(i_m=-1; i_m<=1; i_m++) {
+      for(j_m=-1; j_m<=1; j_m++) {
+        for(k_m=-1; k_m<=1; k_m++) {
+        i1 = i+i_m;
+        j1 = j+j_m;
+        k1 = k+k_m;
+        if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY)) && ((k1 >= 0) && (k1 < dimZ))) {
+          if (MASK[(dimX*dimY)*k + j*dimX+i] != MASK[(dimX*dimY)*k1 + j1*dimX+i1]) counter++;
+        }
+      }}}
+      if (counter >= 26) MASK_upd[(dimX*dimY)*k + j*dimX+i] = MASK[(dimX*dimY)*k1 + j1*dimX+i1];
+      return *MASK_upd;
+}
+
+

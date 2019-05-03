@@ -22,7 +22,6 @@ cdef extern float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, 
 #****************************************************************#
 def MASK_CORR(maskData, class_names, total_classesNum, restricted_combinations, CorrectionWindow, iterationsNumb):
     #select_classes_ar = np.uint8(np.array([3, 0, 1])) # convert a tuple to array
-    
     # get main classes to work with
     select_classes_ar = np.array([])
     for obj in class_names:
@@ -57,7 +56,7 @@ def MASK_CORR(maskData, class_names, total_classesNum, restricted_combinations, 
     if maskData.ndim == 2:
         return MASK_CORR_2D(maskData, select_classes_ar, combo_classes_ar, total_classesNum, CorrectionWindow, iterationsNumb)
     elif maskData.ndim == 3:
-        return 0
+        return MASK_CORR_3D(maskData, select_classes_ar, combo_classes_ar, total_classesNum, CorrectionWindow, iterationsNumb)
 
 def MASK_CORR_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
                     np.ndarray[np.uint8_t, ndim=1, mode="c"] select_classes_ar,
@@ -83,4 +82,31 @@ def MASK_CORR_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
                     &corr_regions[0,0], &select_classes_ar[0], &combo_classes_ar[0], tot_combinations, select_classes_length, 
                     total_classesNum, CorrectionWindow, 
                     iterationsNumb, dims[1], dims[0], 1)
+    return mask_upd
+
+def MASK_CORR_3D(np.ndarray[np.uint8_t, ndim=3, mode="c"] maskData,
+                    np.ndarray[np.uint8_t, ndim=1, mode="c"] select_classes_ar,
+                    np.ndarray[np.uint8_t, ndim=1, mode="c"] combo_classes_ar,
+                     int total_classesNum,
+                     int CorrectionWindow,
+                     int iterationsNumb):
+
+    cdef long dims[3]
+    dims[0] = maskData.shape[0]
+    dims[1] = maskData.shape[1]
+    dims[2] = maskData.shape[2]
+
+    select_classes_length = select_classes_ar.shape[0]
+    tot_combinations = (int)(combo_classes_ar.shape[0]/int(4))
+
+    cdef np.ndarray[np.uint8_t, ndim=3, mode="c"] mask_upd = \
+            np.zeros([dims[0],dims[1],dims[2]], dtype='uint8')
+    cdef np.ndarray[np.uint8_t, ndim=3, mode="c"] corr_regions = \
+            np.zeros([dims[0],dims[1],dims[2]], dtype='uint8')
+
+   # Run the function to process given MASK
+    Mask_merge_main(&maskData[0,0,0], &mask_upd[0,0,0], 
+                    &corr_regions[0,0,0], &select_classes_ar[0], &combo_classes_ar[0], tot_combinations, select_classes_length, 
+                    total_classesNum, CorrectionWindow, 
+                    iterationsNumb, dims[2], dims[1], dims[0])
     return mask_upd

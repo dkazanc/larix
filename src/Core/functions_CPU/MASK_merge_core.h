@@ -46,11 +46,14 @@ limitations under the License.
 extern "C" {
 #endif
 float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, unsigned char *ComboClasses, int tot_combinations, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
+/************2D functions ***********/
 float OutiersRemoval2D(unsigned char *MASK, unsigned char *MASK_upd, long i, long j, long dimX, long dimY);
 float Mask_update_main2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, long i, long j, int CorrectionWindow, long dimX, long dimY);
 float Mask_update_combo2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, unsigned char class_start, unsigned char class_mid, unsigned char class_end, unsigned char class_substitute, long i, long j, int CorrectionWindow, long dimX, long dimY);
 int bresenham2D_main(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, long dimX, long dimY);
 int bresenham2D_combo(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList,  unsigned char class_mid, unsigned char class_substitute, long dimX, long dimY);
+/************3D functions ***********/
+float OutiersRemoval3D(unsigned char *MASK, unsigned char *MASK_upd, long i, long j, long k, long dimX, long dimY, long dimZ);
 #ifdef __cplusplus
 }
 #endif

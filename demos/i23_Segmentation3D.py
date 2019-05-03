@@ -26,24 +26,34 @@ plt.title('GMM segmented (clustered) image')
 plt.imshow(mask[10,:,:])
 # np.save('13068_GMM_100slices.npy', mask)
 #%%
+import numpy as np
+import matplotlib.pyplot as plt
 # Now we process the mask 
-np.load('/scratch/DATA_TEMP/13068_GMM_100slices.npy')
-upd_mask_input = mask[10,:,:].copy()
-classes_number = 5
+mask = np.load('/scratch/DATA_TEMP/13068_GMM_100slices.npy')
+mask_input = mask.copy()
+total_classesNum = 5
 
-pars = {'maskdata' : upd_mask_input,\
-        'classes_names': (3,0,1),\
-        'total_classesNum': classes_number,\
+pars = {'maskdata' : mask_input,\
+        'class_names': ('liquor','air','loop'),\
+        'total_classesNum': total_classesNum,\
+        'restricted_combinations': (('loop','crystal','liquor','loop'),
+                                    ('air','artifacts','liquor','liquor'),
+                                    ('air','loop','liquor','liquor'),
+                                    ('air','artifacts','loop','loop'),
+                                    ('air','crystal','loop','loop'),
+                                    ('air','loop','crystal','crystal')),\
         'CorrectionWindow' : 10,\
-        'iterationsNumb' : 25}
+        'iterationsNumb' : 1}
 
-(upd_mask_input,correct_matrix) = MASK_CORR(pars['maskdata'], pars['select_classes'],
-pars['total_classesNum'], pars['CorrectionWindow'], pars['iterationsNumb'])
+upd_mask_input = MASK_CORR(pars['maskdata'], pars['class_names'], \
+                pars['total_classesNum'], pars['restricted_combinations'],\
+                pars['CorrectionWindow'], pars['iterationsNumb'])
+
 
 plt.figure()
 plt.rcParams.update({'font.size': 21})
 plt.title('Segmented image (postproc GMM)')
-plt.imshow(upd_mask_input)
+plt.imshow(upd_mask_input[10,:,:])
 #%%
 """
 reg_param_scalar = 0.0001
