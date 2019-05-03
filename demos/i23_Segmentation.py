@@ -37,7 +37,7 @@ pars = {'maskdata' : mask_input,\
         'restricted_combinations': (('loop','air','loop'), 
                                     ('crystal','air','crystal')),\
         'CorrectionWindow' : 10,\
-        'iterationsNumb' : 3}
+        'iterationsNumb' : 20}
 
 
 upd_mask_input = MASK_CORR(pars['maskdata'], pars['class_names'], \

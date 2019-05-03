@@ -113,21 +113,24 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
       }}
       /* copy the updated mask */
       copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));     
-       } /*SelClassesList_length*/
+      } /*SelClassesList_length*/
        /* Main classes have been processed. Working with implausable combinations */
-	/* loop over combinations of 3 */
+       /* loop over the combinations of 3 */
+      
        for(l=0; l<tot_combinations; l++) {
 	 class1 = ComboClasses[l*3];
 	 class2 = ComboClasses[l*3+1];
 	 class3 = ComboClasses[l*3+2];
+	 printf("[%u][%u][%u]\n", class1, class2, class3);
+	 /*
 	 #pragma omp parallel for shared(MASK_temp,MASK_upd, l, class1, class2, class3) private(i,j)
 	     for(i=0; i<dimX; i++) {
 	             for(j=0; j<dimY; j++) { 
 		        Mask_update_combo2D(MASK_temp, MASK_upd, ClassesList, class1, class2, class3, i, j, CorrectionWindow, (long)(dimX), (long)(dimY));        
 		}}		        
-         /* copy the updated mask */
          copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));            
-       }       
+         */
+       }             
       }
     }
     else {
@@ -184,25 +187,6 @@ float Mask_update_main2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsi
             i1 = i+i_m;
             j1 = j+j_m;
             if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
-              if ((MASK_temp[j*dimX+i] == ClassesList[1]) && (MASK_temp[j1*dimX+i1] == ClassesList[3])) {
-              /* points A and B belong to different classes (specifically 1 (loop) and 3 (liquor))! We consider
-              the combination 1 -> 2 -> 3 (loop->crystal->liquor) is not plausable.  */
-              bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 1, (long)(dimX), (long)(dimY));
-              }
-              if ((MASK_temp[j*dimX+i] == ClassesList[0]) && (MASK_temp[j1*dimX+i1] == ClassesList[3])) {
-              /* improbabale combination 0 -> 4 -> 3 (air->artifacts->liquor): 4 -> 3  or
-                 improbabale (!) combination 0 -> 1 -> 3 (air->loop->liquor): 1 -> 3  */
-              bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 2, (long)(dimX), (long)(dimY));
-              }
-              if ((MASK_temp[j*dimX+i] == ClassesList[0]) && (MASK_temp[j1*dimX+i1] == ClassesList[1])) {
-              /* improbabale combination 0 -> 4 -> 1 (air->artifacts->loop): 4 -> 1 or
-                 improbabale combination 0 -> 2 -> 1 (air->crystal->loop): 2 -> 1 or  */
-              bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 3, (long)(dimX), (long)(dimY));
-              }
-              if ((MASK_temp[j*dimX+i] == ClassesList[0]) && (MASK_temp[j1*dimX+i1] == ClassesList[2])) {
-              /* improbabale combination 0 -> 1 -> 2 (air->loop->crystal): 1 -> 2 */
-              bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 4, (long)(dimX), (long)(dimY));
-              }
               if (MASK_temp[j*dimX+i] == MASK_temp[j1*dimX+i1]) {
                /* A and B points belong to the same class, do STEP 4*/
                /* STEP 4: Run the Bresenham line algorithm between A and B points
@@ -214,7 +198,8 @@ float Mask_update_main2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsi
       }
   return *MASK_upd;
 }
-float Mask_update2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, long i, long j, int CorrectionWindow, long dimX, long dimY)
+
+float Mask_update_combo2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, unsigned char class1, unsigned char class2, unsigned char class3, long i, long j, int CorrectionWindow, long dimX, long dimY)
 {
   long i_m, j_m, i1, j1, CounterOtherClass;
 
@@ -259,12 +244,6 @@ float Mask_update2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned 
               /* improbabale combination 0 -> 1 -> 2 (air->loop->crystal): 1 -> 2 */
               bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 4, (long)(dimX), (long)(dimY));
               }
-              if (MASK_temp[j*dimX+i] == MASK_temp[j1*dimX+i1]) {
-               /* A and B points belong to the same class, do STEP 4*/
-               /* STEP 4: Run the Bresenham line algorithm between A and B points
-               and convert all points on the way to the class of A. */
-              bresenham2D(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, 0, (long)(dimX), (long)(dimY));
-             }
             }
           }}
       }
