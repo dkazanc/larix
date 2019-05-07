@@ -23,6 +23,7 @@ limitations under the License.
 #include "omp.h"
 #include "utils.h"
 
+ 
 /* A method to ensure connectivity within regions of the segmented image/volume. Here we assume
  * that the MASK has been obtained using some classification/segmentation method such as k-means or gaussian
  * mixture. Some pixels/voxels have been misclassified and we check the spatial dependences
@@ -55,6 +56,10 @@ int bresenham2D_main(int i, int j, int i1, int j1, unsigned char *MASK, unsigned
 int bresenham2D_combo(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList,  unsigned char class_mid, unsigned char class_substitute, long dimX, long dimY);
 /************3D functions ***********/
 float OutiersRemoval3D(unsigned char *MASK, unsigned char *MASK_upd, long i, long j, long k, long dimX, long dimY, long dimZ);
+float Mask_update_main3D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, long i, long j, long k, int CorrectionWindow, long dimX, long dimY, long dimZ);
+float Mask_update_combo3D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, unsigned char class_start, unsigned char class_mid, unsigned char class_end, unsigned char class_substitute, long i, long j, long k, int CorrectionWindow, long dimX, long dimY, long dimZ);
+int bresenham3D_main(int i, int j, int k, int i1, int j1, int k1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, long dimX, long dimY, long dimZ);
+int bresenham3D_combo(int i, int j, int k, int i1, int j1, int k1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList,  unsigned char class_mid, unsigned char class_substitute, long dimX, long dimY, long dimZ);
 #ifdef __cplusplus
 }
 #endif

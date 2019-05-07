@@ -42,18 +42,23 @@ pars = {'maskdata' : mask_input,\
                                     ('air','artifacts','loop','loop'),
                                     ('air','crystal','loop','loop'),
                                     ('air','loop','crystal','crystal')),\
-        'CorrectionWindow' : 10,\
+        'CorrectionWindow' : 8,\
         'iterationsNumb' : 1}
 
 upd_mask_input = MASK_CORR(pars['maskdata'], pars['class_names'], \
                 pars['total_classesNum'], pars['restricted_combinations'],\
                 pars['CorrectionWindow'], pars['iterationsNumb'])
 
+slicetovis = 10
+plt.figure()
+plt.rcParams.update({'font.size': 21})
+plt.title('GMM clustered mask')
+plt.imshow(mask[slicetovis,:,:])
 
 plt.figure()
 plt.rcParams.update({'font.size': 21})
 plt.title('Segmented image (postproc GMM)')
-plt.imshow(upd_mask_input[10,:,:])
+plt.imshow(upd_mask_input[slicetovis,:,:])
 #%%
 """
 reg_param_scalar = 0.0001
