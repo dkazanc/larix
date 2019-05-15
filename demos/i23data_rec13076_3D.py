@@ -9,13 +9,13 @@
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
-from tomorec.supp.suppTools import normaliser
-from tomorec.methodsDIR import RecToolsDIR
+from tomobar.supp.suppTools import normaliser
+from tomobar.methodsDIR import RecToolsDIR
+from tomobar.methodsIR import RecToolsIR
 
+vert_tuple = [i for i in range(500,650)] # selection of vertical slice
 
-vert_tuple = [i for i in range(450,850)] # selection of vertical slice
-
-h5py_list = h5py.File('../rawdata/13076/13076.nxs','r')
+h5py_list = h5py.File('/dls/i23/data/2019/nr23017-1/processing/tomography/rotated/13076/13076.nxs','r')
 
 darks = h5py_list['/entry1/instrument/flyScanDetector/data'][0:19,vert_tuple,:]
 flats = h5py_list['/entry1/instrument/flyScanDetector/data'][20:39,vert_tuple,:]
@@ -41,73 +41,58 @@ plt.imshow(darks[:,18,:], vmin=0, vmax=1000, cmap="gray")
 plt.title('Dark field image')
 plt.show()
 #%%
+# cropping the 3D data: 
+N_size = 700
+detectHoriz, anglesNum, slices = np.shape(data_raw)
+det_y_crop = [i for i in range(150,detectHoriz-201)]
+data_raw = data_raw[det_y_crop,:,:]
+flats = flats[det_y_crop,:,:]
+darks = darks[det_y_crop,:,:]
+#%%
 # normalising the data
 starind = 0
-vert_select = [i for i in range(starind,starind+150)] # selection for normalaiser
+endind = 50
+vert_select = [i for i in range(starind,starind+endind)] # selection for normalaiser
 data_norm = normaliser(data_raw[:,:,vert_select], flats[:,:,vert_select], darks[:,:,vert_select], log='log')
 
 plt.figure()
 plt.imshow(np.transpose(data_norm[:,:,0]), vmin=0, vmax=1.8, cmap="gray")
 plt.title('Normalised projection')
 
-# Reconstructing normalised data
-N_size = 700
-detectHoriz, anglesNum, slices = np.shape(data_norm)
-det_y_crop = [i for i in range(150,detectHoriz-201)]
+detectHorizCrop, anglesNum, slices = np.shape(data_norm)
 
+# Reconstructing normalised data
+#N_size = 700
+#detectHoriz, anglesNum, slices = np.shape(data_norm)
+#det_y_crop = [i for i in range(150,detectHoriz-201)]
 #%%
-RectoolsDIR = RecToolsDIR(DetectorsDimH = np.size(det_y_crop),  # DetectorsDimH # detector dimension (horizontal)
-                    DetectorsDimV = 150,  # DetectorsDimV # detector dimension (vertical) for 3D case only
+# Reconstructing normalised data with FBP
+RectoolsDIR = RecToolsDIR(DetectorsDimH = detectHorizCrop,  # DetectorsDimH # detector dimension (horizontal)
+                    DetectorsDimV = slices,  # DetectorsDimV # detector dimension (vertical) for 3D case only
                     AnglesVec = angles_rad, # array of angles in radians
                     ObjSize = N_size, # a scalar to define reconstructed object dimensions
                     device='gpu')
-
-FBP = RectoolsDIR.FBP(np.swapaxes(data_norm[det_y_crop,:,:],2,0))
+FBP = RectoolsDIR.FBP(np.swapaxes(data_norm,2,0))
 
 plt.figure()
-plt.imshow(FBP, vmin=0, vmax=0.01, cmap="gray")
+plt.imshow(FBP[4,:,:], vmin=-0.001, vmax=0.005, cmap="gray")
 plt.title('FBP reconstruction')
 plt.show()
 #%%
+"""
 h5f = h5py.File('i23_13076.h5', 'w')
 h5f.create_dataset('data_norm', data=data_norm)
 #h5f.create_dataset('flats', data=flats)
 #h5f.create_dataset('darks', data=darks)
 h5f.create_dataset('angles_rad', data=angles_rad)
 h5f.close()
+"""
 #%%
-#data_raw_norm = np.float32(np.transpose(data_raw[det_y_crop,:,vert_select[0]]))/np.max(np.float32(np.transpose(data_raw[det_y_crop,:,vert_select[0]])))
-data_raw_norm = np.float32(data_raw[det_y_crop,:,0:100])/np.max(np.float32(data_raw[det_y_crop,:,0:100]))
+data_raw_norm = np.float32(np.transpose(data_raw[:,:,starind:starind+endind]))/np.max(np.float32(np.transpose(data_raw[:,:,starind:starind+endind])))
 
-from tomorec.methodsIR import RecToolsIR
 # set parameters and initiate a class object
-Rectools = RecToolsIR(DetectorsDimH = np.size(det_y_crop),  # DetectorsDimH # detector dimension (horizontal)
-                    DetectorsDimV = 100,  # DetectorsDimV # detector dimension (vertical) for 3D case only
-                    AnglesVec = angles_rad, # array of angles in radians
-                    ObjSize = N_size, # a scalar to define reconstructed object dimensions
-                    datafidelity='PWLS',# data fidelity, choose LS, PWLS, GH (wip), Student (wip)
-                    nonnegativity='ENABLE', # enable nonnegativity constraint (set to 'ENABLE')
-                    OS_number = 12, # the number of subsets, NONE/(or > 1) ~ classical / ordered subsets
-                    tolerance = 1e-09, # tolerance to stop outer iterations earlier
-                    device='gpu')
-#lc = Rectools.powermethod() # calculate Lipschitz constant (run once to initilise)
-
-lc = Rectools.powermethod(np.swapaxes(data_raw_norm,2,0)) # calculate Lipschitz constant (run once to initilise)
-#%%
-RecFISTA_TV_os = Rectools.FISTA(np.swapaxes(data_norm[det_y_crop,:,:],2,0), \
-                              weights=np.swapaxes(data_raw_norm,2,0),\
-                              iterationsFISTA = 5, \
-                              regularisation = 'SB_TV', \
-                              regularisation_parameter = 0.00000025,\
-                              regularisation_iterations = 400,\
-                              lipschitz_const = lc)
-plt.figure()
-plt.imshow(RecFISTA_TV_os[3,:,:], vmin=0, vmax=0.008, cmap="gray")
-plt.show()
-#%%
-# set parameters and initiate a class object
-Rectools = RecToolsIR(DetectorsDimH = np.size(det_y_crop),  # DetectorsDimH # detector dimension (horizontal)
-                    DetectorsDimV = 100,  # DetectorsDimV # detector dimension (vertical) for 3D case only
+Rectools = RecToolsIR(DetectorsDimH = detectHorizCrop,  # DetectorsDimH # detector dimension (horizontal)
+                    DetectorsDimV = slices,  # DetectorsDimV # detector dimension (vertical) for 3D case only
                     AnglesVec = angles_rad, # array of angles in radians
                     ObjSize = N_size, # a scalar to define reconstructed object dimensions
                     datafidelity='PWLS',# data fidelity, choose LS, PWLS, GH (wip), Student (wip)
@@ -116,17 +101,21 @@ Rectools = RecToolsIR(DetectorsDimH = np.size(det_y_crop),  # DetectorsDimH # de
                     tolerance = 1e-09, # tolerance to stop outer iterations earlier
                     device='gpu')
 
-RecFISTA_Huber_TV_os = Rectools.FISTA(np.swapaxes(data_norm[det_y_crop,:,:],2,0), \
-                              weights=np.swapaxes(data_raw_norm,2,0),\
-                              iterationsFISTA = 12, \
-                              huber_data_threshold = 0.02,\
-                              regularisation = 'SB_TV', \
-                              regularisation_parameter = 0.00000025,\
-                              regularisation_iterations = 400,\
+lc = Rectools.powermethod(data_raw_norm) # calculate Lipschitz constant (run once to initilise)
+del data_raw, darks, flats
+#%%
+RecFISTA = Rectools.FISTA(np.swapaxes(data_norm, 2, 0), \
+                              weights=data_raw_norm, \
+                              iterationsFISTA = 20, \
+                              student_data_threshold = 0.95,\
+                              regularisation = 'FGP_TV', \
+                              regularisation_parameter = 0.0000015,\
+                              regularisation_iterations = 450,\
                               lipschitz_const = lc)
 
 plt.figure()
-plt.imshow(RecFISTA_Huber_TV_os[3,:,:], vmin=0, vmax=0.008, cmap="gray")
+plt.imshow(RecFISTA[3,:,:], vmin=-0.001, vmax=0.005, cmap="gray")
+plt.title('Iterative FISTA-TV reconstruction')
 plt.show()
 #%%
 from ccpi.filters.regularisers import PatchSelect

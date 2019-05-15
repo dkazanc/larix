@@ -57,7 +57,6 @@ plt.title('Normalised projection')
 
 detectHorizCrop, anglesNum, slices = np.shape(data_norm)
 #%%
-
 # Reconstructing normalised data with FBP
 RectoolsDIR = RecToolsDIR(DetectorsDimH = detectHorizCrop,  # DetectorsDimH # detector dimension (horizontal)
                     DetectorsDimV = slices,  # DetectorsDimV # detector dimension (vertical) for 3D case only

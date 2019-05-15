@@ -1,7 +1,6 @@
 # Run Reconstruction script first
 #%%
 import numpy as np
-from i23.methods.segmentation import MASK_CORR
 import matplotlib.pyplot as plt
 from sklearn.mixture import GaussianMixture
 #N_size = 700
@@ -25,8 +24,9 @@ plt.imshow(mask)
 #%%
 import numpy as np
 import matplotlib.pyplot as plt
+from i23.methods.segmentation import MASK_CORR
 # Now we process the mask 
-mask = np.load("upd_mask.npy")
+mask = np.load("/home/kjy41806/Documents/SOFT/i23seg/demos/upd_mask.npy")
 mask_input = mask.copy()
 total_classesNum = 5
 
