@@ -10,9 +10,9 @@ import sys
 import numpy
 import platform	
 
-i23_version=os.environ['i23seg_VERSION']
+i23_version=os.environ['VERSION']
 if  i23_version == '':
-    print("Please set the environmental variable i23seg_VERSION")
+    print("Please set the environmental variable VERSION")
     sys.exit(1)
 	
 library_include_path = ""

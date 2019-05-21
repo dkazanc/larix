@@ -8,7 +8,7 @@ from sklearn.mixture import GaussianMixture
 
 slices, NxSize, NySize = np.shape(RecFISTA)
 inputdata = RecFISTA.reshape(slices*NxSize*NySize, 1)/np.max(RecFISTA)
-classes_number = 4
+classes_number = 5
 #hist, bin_edges = np.histogram(inputdata, bins=100)
 classif = GaussianMixture(n_components=classes_number, covariance_type="tied")
 classif.fit(inputdata)
@@ -63,10 +63,13 @@ plt.figure()
 plt.rcParams.update({'font.size': 21})
 plt.title('Segmented image (postproc GMM)')
 plt.imshow(upd_mask_input[slicetovis,:,:])
+
+#%%
+np.save('13076_GMM_50slices_SEGMENT.npy', upd_mask_input)
 #%%
 #13076 (4 classes)!
 
-pars = {'maskdata' : mask_4classes[25,:,:],\
+pars = {'maskdata' : mask_4classes,\
         'class_names': ('crystal','air','loop'),\
         'total_classesNum': 4,\
         'restricted_combinations': (('loop','crystal','liquor','loop'),
@@ -76,7 +79,7 @@ pars = {'maskdata' : mask_4classes[25,:,:],\
                                     ('air','crystal','liquor','liquor'),
                                     ('air','liquor','loop','loop')),\
         'CorrectionWindow' : 10,\
-        'iterationsNumb' : 20}
+        'iterationsNumb' : 10}
 
 upd_mask_input = MASK_CORR(pars['maskdata'], pars['class_names'], \
                 pars['total_classesNum'], pars['restricted_combinations'],\

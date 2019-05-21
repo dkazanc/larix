@@ -1,5 +1,5 @@
-IF NOT DEFINED i23seg_VERSION (
-ECHO i23seg_VERSION Not Defined.
+IF NOT DEFINED VERSION (
+ECHO VERSION Not Defined.
 exit 1
 )
 

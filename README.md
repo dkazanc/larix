@@ -18,7 +18,7 @@ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:../lib
 ### Python (conda-build)
 One can also run/modify `conda_install.sh` or:
 ```
-export i23seg_VERSION=0.1.0
+export VERSION=`date +%Y.%m`
 conda build recipe/ --numpy 1.14 --python 2.7  
-conda install i23-seg=${i23seg_VERSION} --use-local --force-reinstall
+conda install i23-seg --use-local --force-reinstall
 ```
