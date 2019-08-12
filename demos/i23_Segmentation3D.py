@@ -5,12 +5,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.mixture import GaussianMixture
+from sklearn.mixture import BayesianGaussianMixture
 
 slices, NxSize, NySize = np.shape(RecFISTA)
 inputdata = RecFISTA.reshape(slices*NxSize*NySize, 1)/np.max(RecFISTA)
 classes_number = 5
 #hist, bin_edges = np.histogram(inputdata, bins=100)
 classif = GaussianMixture(n_components=classes_number, covariance_type="tied")
+#classif = BayesianGaussianMixture(n_components=classes_number, covariance_type="tied")
 classif.fit(inputdata)
 cluster = classif.predict(inputdata)
 segm = classif.means_[cluster]
@@ -22,7 +24,7 @@ mask = mask.astype(np.uint8) # we obtain the mask
 plt.figure()
 plt.rcParams.update({'font.size': 21})
 plt.title('GMM segmented (clustered) image')
-plt.imshow(mask[10,:,:])
+plt.imshow(mask[7,:,:])
 # np.save('13068_GMM_100slices.npy', mask)
 #%%
 import numpy as np

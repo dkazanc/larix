@@ -12,7 +12,7 @@ from tomobar.methodsDIR import RecToolsDIR
 
 vert_tuple = [i for i in range(700,900)] # selection of vertical slice
 
-h5py_list = h5py.File('/media/HD-LXU3/ITT_BATH_DLS/DataP_II_I23_alignment/rawdata/13068/13068.nxs','r')
+h5py_list = h5py.File('/dls/i23/data/2019/nr23017-1/processing/tomography/rotated/13068/13068.nxs','r')
 
 darks = h5py_list['/entry1/instrument/flyScanDetector/data'][0:19,vert_tuple,:]
 flats = h5py_list['/entry1/instrument/flyScanDetector/data'][20:39,vert_tuple,:]
@@ -39,7 +39,7 @@ plt.title('Dark field image')
 plt.show()
 #%%
 # normalising the data
-starind = 2
+starind = 80
 vert_select = [i for i in range(starind,starind+2)] # selection for normalaiser
 data_norm = normaliser(data_raw[:,:,vert_select], flats[:,:,vert_select], darks[:,:,vert_select], log='log')
 
@@ -76,6 +76,21 @@ h5f.close()
 #%%
 data_raw_norm = np.float32(np.transpose(data_raw[det_y_crop,:,vert_select[0]]))/np.max(np.float32(np.transpose(data_raw[det_y_crop,:,vert_select[0]])))
 
+"""
+data_raw_norm2 = np.ones(np.shape(data_raw_norm))
+#data_raw_norm2[data_raw_norm < 0.103] = data_raw_norm[data_raw_norm < 0.103]**(2)
+#data_raw_norm2[data_raw_norm > 0.7] = data_raw_norm[data_raw_norm > 0.7]**(-2)
+
+data_raw_norm2[data_raw_norm > 0.65] = 0
+from scipy import misc
+from scipy.ndimage import gaussian_filter
+ascent = misc.ascent()
+result = gaussian_filter(data_raw_norm2, sigma=2)
+data_raw_norm = data_raw_norm*result
+data_raw_norm = result
+"""
+
+
 from tomobar.methodsIR import RecToolsIR
 # set parameters and initiate a class object
 Rectools = RecToolsIR(DetectorsDimH = np.size(det_y_crop),  # DetectorsDimH # detector dimension (horizontal)
@@ -85,18 +100,18 @@ Rectools = RecToolsIR(DetectorsDimH = np.size(det_y_crop),  # DetectorsDimH # de
                     datafidelity='PWLS',# data fidelity, choose LS, PWLS, GH (wip), Student (wip)
                     nonnegativity='ENABLE', # enable nonnegativity constraint (set to 'ENABLE')
                     OS_number = 12, # the number of subsets, NONE/(or > 1) ~ classical / ordered subsets
-                    tolerance = 1e-09, # tolerance to stop outer iterations earlier
+                    tolerance = 1e-11, # tolerance to stop outer iterations earlier
                     device='gpu')
 lc = Rectools.powermethod(data_raw_norm) # calculate Lipschitz constant (run once to initilise)
 #%%
 RecFISTA = Rectools.FISTA(np.transpose(data_norm[det_y_crop,:,0]), \
                               weights=data_raw_norm, \
-                              iterationsFISTA = 25, \
+                              iterationsFISTA = 20, \
                               #huber_data_threshold = 0.04,\
-                              student_data_threshold = 0.95,\
-                              regularisation = 'FGP_TV', \
-                              regularisation_parameter = 0.0000025,\
-                              regularisation_iterations = 600,\
+                              #student_data_threshold = 0.95,\
+                              #regularisation = 'FGP_TV', \
+                              #regularisation_parameter = 0.0000025,\
+                              #regularisation_iterations = 600,\
                               lipschitz_const = lc)
 
 plt.figure()
