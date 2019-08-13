@@ -128,9 +128,89 @@ plt.imshow(TomobarRec3D[50,:,:], vmin=0.0, vmax=0.25, cmap="gray")
 plt.title('Iterative FISTA-TV reconstruction')
 plt.show()
 
-
+# save data
 h5f = h5py.File('TomoRec3D_13551.h5', 'w')
 h5f.create_dataset('data', data=TomobarRec3D)
 h5f.close()
-#%%
 
+#read data 
+import h5py
+import numpy as np
+import matplotlib.pyplot as plt
+h5f = h5py.File('TomoRec3D_13551.h5', 'r')
+TomoRec3D_13551 = h5f['data'][:]
+h5f.close()
+#%%
+# using CV2 with Hough detection of lines
+import cv2
+
+image = TomoRec3D_13551[100,:,:]
+image /= np.max(image)
+kernel_size = 5
+blur_gray = cv2.GaussianBlur(image,(kernel_size, kernel_size),0)
+blur_gray /= np.max(blur_gray)
+
+gray = (blur_gray*255).astype(np.uint8)
+edges = cv2.Canny(gray, 1, 15, apertureSize = 3)
+lines = cv2.HoughLinesP(edges, 1, np.pi/180, 70, maxLineGap=100)
+for line in lines:
+   x1, y1, x2, y2 = line[0]
+   cv2.line(gray, (x1, y1), (x2, y2), (0, 0, 128), 1)
+cv2.imshow("linesEdges", edges)
+cv2.imshow("linesDetected", gray)
+#cv2.waitKey(0)
+#cv2.destroyAllWindows()
+
+#%%
+from skimage import data
+from skimage.filters import gaussian
+from skimage.segmentation import active_contour
+
+image = TomoRec3D_13551[100,0:600,:]
+image = image/np.max(image)
+
+s = np.linspace(0, 2*np.pi, 800)
+x = 300 + 200*np.cos(s)
+y = 270 + 260*np.sin(s)
+init = np.array([x, y]).T
+
+snake = active_contour(gaussian(image, 3),
+                       init, alpha=0.015, beta=0.5, gamma=0.001)
+
+#%%
+snake2 = snake.copy()
+#snake2[:,0] = snake2[:,0] - 33*np.cos(s)
+#snake2[:,1] = snake2[:,1] - 33*np.sin(s)
+snake2[:,0] = snake2[:,0] - 0*np.cos(s)
+snake2[:,1] = snake2[:,1] - 0*np.sin(s)
+
+fig, ax = plt.subplots(figsize=(7, 7))
+ax.imshow(image, cmap=plt.cm.gray)
+ax.plot(init[:, 0], init[:, 1], '--r', lw=3)
+ax.plot(snake2[:, 0], snake2[:, 1], '-b', lw=3)
+ax.set_xticks([]), ax.set_yticks([])
+ax.axis([0, image.shape[1], image.shape[0], 0])
+plt.show()
+#%%
+image2 = image.copy()
+
+cordY = np.uint16(snake2[:, 0])
+cordX = np.uint16(snake2[:, 1])
+
+image2[cordX, cordY] = 1.0
+
+import scipy.ndimage as ndimage    
+
+# Create an empty image to store the masked array
+r_mask = np.zeros_like(r, dtype='bool')
+
+# Create a contour image by using the contour coordinates rounded to their nearest integer value
+r_mask[np.round(contour[:, 0]).astype('int'), np.round(contour[:, 1]).astype('int')] = 1
+
+# Fill in the hole created by the contour boundary
+r_mask = ndimage.binary_fill_holes(r_mask)
+
+# Invert the mask since you want pixels outside of the region
+r_mask = ~r_mask
+
+#%%
