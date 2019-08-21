@@ -10,7 +10,7 @@ h5f = h5py.File('TomoRec3D_13551.h5', 'r')
 TomoRec3D_13551 = h5f['data'][:]
 h5f.close()
 #%%
-image = TomoRec3D_13551[135,:,:]
+image = TomoRec3D_13551[20,:,:]
 image = image/np.max(image)
 shapeX, shapeY = np.shape(image)
 
@@ -134,17 +134,17 @@ from morphsnakes import (morphological_chan_vese,
 #image = image/np.max(image)
 #ls1 = circle_level_set(image.shape, (40, 300, 300), 70)
 
-image = TomoRec3D_13551[85,:,:]
+image = TomoRec3D_13551[110,:,:]
 ls1 = circle_level_set(image.shape, (300, 300), 80)
 
 # get outer liquer shape
 #acwe_ls1 = morphological_chan_vese(image, iterations=250, smoothing=3, lambda1=1.0, lambda2=1.0, init_level_set=ls1)
 # get the crystal 
-acwe_ls2 = morphological_chan_vese(image, iterations=350, smoothing=3, lambda1=1.0, lambda2=0.025, init_level_set=ls1)
+acwe_ls2 = morphological_chan_vese(image, iterations=350, smoothing=2, lambda1=1.0, lambda2=0.025, init_level_set=ls1)
 
 #gac_ls = morphological_geodesic_active_contour(image, iterations=60,init_level_set=acwe_ls1)
 plt.figure()
-plt.imshow(acwe_ls2[10,:,:], vmin=0.0, vmax=1, cmap="gray")
+plt.imshow(acwe_ls2, vmin=0.0, vmax=1, cmap="gray")
 plt.title('Segmentation')
 plt.show()
 #%%
@@ -210,6 +210,112 @@ plt.figure()
 plt.plot(image_crop[130,:])
 plt.show()
 #%%
+#########################################################################
+import h5py
+import numpy as np
+import matplotlib.pyplot as plt
 
 
+h5f = h5py.File('TomoRec3D_13551.h5', 'r')
+TomoRec3D_13551 = h5f['data'][:]
+h5f.close()
+#%%
+#from i23.methods.segmentation import EDGES_CRYSTAL
+from skimage.filters import frangi, hessian
+image = TomoRec3D_13551[110,:,:]
+image /= np.max(image)
+image_crop = image[150:470,170:430] # for 130
+image_crop = image_crop.copy(order='C')
 
+frimage = frangi(image_crop, beta1 = 1, beta2 = 0.01)
+
+plt.figure()
+plt.imshow(frimage, vmin=0.0, vmax=1.0, cmap="gray")
+plt.show()
+
+frimage[frimage < 0.3] = 0.0
+plt.figure()
+plt.imshow(frimage, vmin=0.0, vmax=1.0, cmap="gray")
+plt.show()
+
+# outputEdges = EDGES_CRYSTAL(image_crop, 10, 0.007)
+
+
+#%%
+# segmenting the outer shape of th eloop
+from skimage.morphology import erosion, dilation, opening, closing, white_tophat
+from skimage.morphology import black_tophat, skeletonize, convex_hull_image
+from skimage.morphology import disk
+
+image_c = image.copy()
+mask1 = np.zeros(np.shape(image))
+mask1[5:595,5:595] = 1
+chanvese_outer = chanvese(image, mask1, max_its=2000, display=True, alpha=0.5)
+
+#%%
+chanvese_outer_mask = chanvese_outer[0]
+image_c *= chanvese_outer_mask
+selem = disk(100)
+chanvese_outer_mask_errosion = erosion(chanvese_outer_mask, selem)
+chanvese_outer_mask_errosion2 = chanvese_outer_mask_errosion.copy()
+chanvese_outer_mask_errosion2[500:None,:] = 0
+#%%
+# segmenting loop out
+image_loop = image_c.copy()
+chanvese_loop = chanvese(image_loop, chanvese_outer_mask_errosion2, max_its=300, display=True, alpha=1.0)
+chanvese_loop_mask = chanvese_loop[0]
+image_loop *= chanvese_loop_mask
+#%%
+selem = disk(25)
+chanvese_loop_mask_errosion = erosion(chanvese_loop_mask, selem)
+#%%
+image_crystal = image_loop.copy()
+from ccpi.filters.regularisers import PatchSelect, NLTV
+# NLM processing of image
+pars = {'algorithm' : PatchSelect, \
+        'input' : image_crystal,\
+        'searchwindow': 9, \
+        'patchwindow': 2,\
+        'neighbours' : 15 ,\
+        'edge_parameter':0.02}
+
+H_i, H_j, Weights = PatchSelect(pars['input'], 
+              pars['searchwindow'],
+              pars['patchwindow'], 
+              pars['neighbours'],
+              pars['edge_parameter'],'cpu')
+#%%
+pars2 = {'algorithm' : NLTV, \
+        'input' : image_crystal,\
+        'H_i': H_i, \
+        'H_j': H_j,\
+        'H_k' : 0,\
+        'Weights' : Weights,\
+        'regularisation_parameter': 5.0,\
+        'iterations': 50
+        }
+nltv_cpu = NLTV(pars2['input'], 
+              pars2['H_i'],
+              pars2['H_j'], 
+              pars2['H_k'],
+              pars2['Weights'],
+              pars2['regularisation_parameter'],
+              pars2['iterations'])
+
+plt.figure()
+plt.imshow(nltv_cpu, vmin=0.0, vmax=0.3, cmap="gray")
+plt.show()
+
+#%%
+image_crystal = nltv_cpu.copy()
+from skimage.filters import frangi, hessian
+frimage = frangi(image_crystal, beta1 = 1, beta2 = 0.004)
+frimage1 = (1.0/(1.0 + frimage))
+image_crystal *= frimage1
+#%%
+# segmenting crystal out 
+chanvese_crystal = chanvese(image_crystal, chanvese_loop_mask_errosion, max_its=1500, display=True, alpha=3.5)
+chanvese_crystal_mask = chanvese_crystal[0]
+image_crystal *= chanvese_crystal_mask
+
+#%%

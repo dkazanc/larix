@@ -1,9 +1,5 @@
 /*
-This work is part of the Core Imaging Library developed by
-Visual Analytics and Imaging System Group of the Science Technology
-Facilities Council, STFC
-
-Copyright 2019 Daniil Kazantsev
+Copyright 2019 Daniil Kazantsev & Diamond Light Source ltd.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,7 +19,7 @@ limitations under the License.
 #include "omp.h"
 #include "utils.h"
 
- 
+
 /* A method to ensure connectivity within regions of the segmented image/volume. Here we assume
  * that the MASK has been obtained using some classification/segmentation method such as k-means or gaussian
  * mixture. Some pixels/voxels have been misclassified and we check the spatial dependences

@@ -12,21 +12,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+#include <math.h>
 #include <stdlib.h>
 #include <memory.h>
+#include <stdio.h>
 #include "omp.h"
+#include "utils.h"
 
-#define M_PI 3.14159265358979323846
-
+/*
+ * Output:
+ */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-float copyIm(float *A, float *U, long dimX, long dimY, long dimZ);
-unsigned char copyIm_unchar(unsigned char *A, unsigned char *U, int dimX, int dimY, int dimZ);
-float copyIm_roll(float *A, float *U, int dimX, int dimY, int roll_value, int switcher);
-float RotateImage(float *A, float *B, int dimX, int dimY, float angle_rad, int k);
-float Pad_Crop(float *A, float *B, int dimX, int dimY, int padDims, int switchpad_crop);
+float Detect_edges_main(float *Input, unsigned char *output_mask, float *test_output, int LineSize, float threshold, int OrientNo, int dimX, int dimY, int dimZ);
+float Proc_Rot_Array(float *Rotate_pad, float *Output_mask_pad, int LineSize, int dimX, int dimY, int OrientNo, float threshold, int k);
 #ifdef __cplusplus
 }
 #endif

@@ -1,20 +1,15 @@
 /*
- * This work is part of the Core Imaging Library developed by
- * Visual Analytics and Imaging System Group of the Science Technology
- * Facilities Council, STFC
- *
- * Copyright 2019 Daniil Kazantsev
- * Copyright 2019 Srikanth Nagella, Edoardo Pasca
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+Copyright 2019 Daniil Kazantsev & Diamond Light Source ltd.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
  */
 
 #include "MASK_merge_core.h"
@@ -39,14 +34,14 @@
  * changed are highlighted and the changes have been counted
  */
 
-int signum(int i) {    
-    return (i>0)?1:((i<0)?-1:0);    
+int signum(int i) {
+    return (i>0)?1:((i<0)?-1:0);
 }
 
 #ifndef max
     #define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
 #endif
- 
+
 #ifndef min
     #define min( a, b ) ( ((a) < (b)) ? (a) : (b) )
 #endif
@@ -95,11 +90,11 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
 
     /* copy given MASK to MASK_upd*/
     copyIm_unchar(MASK, MASK_upd, (long)(dimX), (long)(dimY), (long)(dimZ));
-	
+
     if (dimZ == 1) {
      /********************** PERFORM 2D MASK PROCESSING ************************/
     /* start iterations */
-    for(k=0; k<iterationsNumb; k++) {   
+    for(k=0; k<iterationsNumb; k++) {
     #pragma omp parallel for shared(MASK,MASK_upd) private(i,j)
     for(i=0; i<dimX; i++) {
         for(j=0; j<dimY; j++) {
@@ -124,10 +119,10 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
        	  }}
       }}
       /* copy the updated mask */
-      copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));     
+      copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));
       }
        /* Main classes have been processed. Working with implausable combinations */
-       /* loop over the combinations of 3 */      
+       /* loop over the combinations of 3 */
        for(l=0; l<tot_combinations; l++) {
 	 class_start = ComboClasses[l*4]; /* current class */
 	 class_mid = ComboClasses[l*4+1]; /* class in-between */
@@ -136,17 +131,17 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
 	 /*printf("[%i][%u][%u][%u][%u]\n", l, class_start, class_mid, class_end, class_substitute);*/
 	 #pragma omp parallel for shared(MASK_temp,MASK_upd, l, class_start, class_mid, class_end, class_substitute) private(i,j)
 	     for(i=0; i<dimX; i++) {
-	             for(j=0; j<dimY; j++) { 
-	        Mask_update_combo2D(MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, class_start, class_mid, class_end, class_substitute, i, j, CorrectionWindow, (long)(dimX), (long)(dimY));        
-		}}		        
-         copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));          
-       }             
+	             for(j=0; j<dimY; j++) {
+	        Mask_update_combo2D(MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, class_start, class_mid, class_end, class_substitute, i, j, CorrectionWindow, (long)(dimX), (long)(dimY));
+		}}
+         copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));
+       }
       }
     }
     else {
     /********************** PERFORM 3D MASK PROCESSING ************************/
     /* start iterations */
-    for(l=0; l<iterationsNumb; l++) {   
+    for(l=0; l<iterationsNumb; l++) {
     #pragma omp parallel for shared(MASK,MASK_upd) private(i,j,k)
     for(i=0; i<dimX; i++) {
         for(j=0; j<dimY; j++) {
@@ -173,10 +168,10 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
        	  }}
       }}}
       /* copy the updated mask */
-      copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));     
-    }    
+      copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));
+    }
     /* Main classes have been processed. Working with implausable combinations */
-    /* loop over the combinations of 3 */      
+    /* loop over the combinations of 3 */
        for(n=0; n<tot_combinations; n++) {
 	 class_start = ComboClasses[n*4]; /* current class */
 	 class_mid = ComboClasses[n*4+1]; /* class in-between */
@@ -185,14 +180,14 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
 	 /*printf("[%i][%u][%u][%u][%u]\n", l, class_start, class_mid, class_end, class_substitute);*/
 	 #pragma omp parallel for shared(MASK_temp,MASK_upd, n, l, class_start, class_mid, class_end, class_substitute) private(i,j,k)
 	     for(i=0; i<dimX; i++) {
-                  for(j=0; j<dimY; j++) { 
+                  for(j=0; j<dimY; j++) {
 	              for(k=0; k<dimZ; k++) {
-	        Mask_update_combo3D(MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, class_start, class_mid, class_end, class_substitute, i, j, k, CorrectionWindow, (long)(dimX), (long)(dimY), (long)(dimZ));        
-		}}}		        
-         copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));          
-       }    
-	    } /* iterations terminated*/      
-    }    
+	        Mask_update_combo3D(MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, class_start, class_mid, class_end, class_substitute, i, j, k, CorrectionWindow, (long)(dimX), (long)(dimY), (long)(dimZ));
+		}}}
+         copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));
+       }
+	    } /* iterations terminated*/
+    }
     free(MASK_temp);
     free(ClassesList);
     return *MASK_upd;
@@ -310,20 +305,20 @@ int bresenham2D_main(int i, int j, int i1, int j1, unsigned char *MASK, unsigned
                         if (MASK[j*dimX+i] != MASK[x_n*dimX+y_n]) {
                         	MASK_upd[x_n*dimX+y_n] = MASK[j*dimX+i];
                         	CORRECTEDRegions[x_n*dimX+y_n] += 1;
-                       	 }                     
+                       	 }
                       }
-                       else {                       
+                       else {
                           if (MASK[j*dimX+i] != MASK[y_n*dimX+x_n]) {
 	                     MASK_upd[y_n*dimX+x_n] = MASK[j*dimX+i];
                              CORRECTEDRegions[y_n*dimX+x_n] += 1;
-                           }                      
+                           }
                       }
                        x_n = x_n + 1;
                        error = error + dely;
                        if (2*error >= delx) {
                           y_n = y_n + ystep;
                          error = error - delx;
-                       } // (2*error >= delx)                       
+                       } // (2*error >= delx)
                   } // for(int n = 0; n<delx+1; n++)
                   return 0;
 }
@@ -352,12 +347,12 @@ float Mask_update_combo2D(unsigned char *MASK_temp, unsigned char *MASK_upd, uns
           for(j_m=-CorrectionWindow; j_m<=CorrectionWindow; j_m++) {
             i1 = i+i_m;
             j1 = j+j_m;
-            if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {           
+            if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
               if ((MASK_temp[j*dimX+i] == ClassesList[class_start]) && (MASK_temp[j1*dimX+i1] == ClassesList[class_end])) {
-              /* We check that point A belongs to "class_start" and point B to "class_end". If they do then the idea is to check if 
+              /* We check that point A belongs to "class_start" and point B to "class_end". If they do then the idea is to check if
               "class_mid" (undesirable class) lies inbetween two classes. If it does -> replace it with "class_substitute".  */
               bresenham2D_combo(i, j, i1, j1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, class_mid, class_substitute, (long)(dimX), (long)(dimY));
-              }              
+              }
             }
           }}
       }
@@ -372,7 +367,7 @@ int bresenham2D_combo(int i, int j, int i1, int j1, unsigned char *MASK, unsigne
                    int steep = (fabs(y[1]-y[0]) > fabs(x[1]-x[0]));
                    int ystep = 0;
                    //printf("[%i][%i][%i][%i]\n", x[1], y[1], steep, kk) ;
-                   //if (steep == 1) {swap(x[0],y[0]); swap(x[1],y[1]);}                   
+                   //if (steep == 1) {swap(x[0],y[0]); swap(x[1],y[1]);}
 
                    if (steep == 1) {
                    // swaping
@@ -413,21 +408,21 @@ int bresenham2D_combo(int i, int j, int i1, int j1, unsigned char *MASK, unsigne
                   for(n = 0; n<delx+1; n++) {
                        if (steep == 1) {
                         /*printf("[%i][%i][%u]\n", x_n, y_n, MASK[y_n*dimX+x_n]);*/
-                        /* dealing with various improbable combination of classes in the mask. The improbable class is replaced 
+                        /* dealing with various improbable combination of classes in the mask. The improbable class is replaced
                         with more probable one. */
-                        if (MASK[x_n*dimX+y_n] == ClassesList[class_mid]) {                        
+                        if (MASK[x_n*dimX+y_n] == ClassesList[class_mid]) {
 	                        MASK_upd[x_n*dimX+y_n] = ClassesList[class_substitute];
 	                        CORRECTEDRegions[x_n*dimX+y_n] += 1;
 	                        }
                       }
                        else {
                         // printf("[%i][%i][%u]\n", y_n, x_n, MASK[x_n*dimX+y_n]);
-                        /* dealing with various improbable combination of classes in the mask. The improbable class is replaced 
+                        /* dealing with various improbable combination of classes in the mask. The improbable class is replaced
                         with more probable one. */
-                          if (MASK[y_n*dimX+x_n] == ClassesList[class_mid]) {                          
+                          if (MASK[y_n*dimX+x_n] == ClassesList[class_mid]) {
 	                          MASK_upd[y_n*dimX+x_n] = ClassesList[class_substitute];
 	                          CORRECTEDRegions[y_n*dimX+x_n] += 1;
-	                          }                        
+	                          }
                       }
                        x_n = x_n + 1;
                        error = error + dely;
@@ -509,89 +504,89 @@ int bresenham3D_main(int i, int j, int k, int i1, int j1, int k1, unsigned char 
 {
     int P1[] = {i, j, k};
     int P2[] = {i1, j1, k1};
-    
+
     int x1 = P1[0];
     int y1 = P1[1];
     int z1 = P1[2];
-     
+
     int x2 = P2[0];
     int y2 = P2[1];
     int z2 = P2[2];
-     
+
     int dx = x2 - x1;
     int dy = y2 - y1;
     int dz = z2 - z1;
-     
+
     int ax = fabs(dx)*2;
     int ay = fabs(dy)*2;
     int az = fabs(dz)*2;
-     
+
     int sx = signum(dx);
     int sy = signum(dy);
     int sz = signum(dz);
-     
+
     int x = x1;
     int y = y1;
     int z = z1;
-     
+
     int xd;
     int yd;
     int zd;
-    
+
     //printf("ijk indeces: [%i][%i][%i]\n", i, j, k) ;
-     
+
     if (ax >= max(ay, az)) {
         int yd = ay - ax/2;
         int zd = az - ax/2;
-         
-        while (1) {             
+
+        while (1) {
             // printf("xyz indeces: [%i][%i][%i]\n", x, y, z) ;
-            
+
             if (MASK[(dimX*dimY)*k + j*dimX+i] != MASK[(dimX*dimY)*z + y*dimX+x]) {
                        	MASK_upd[(dimX*dimY)*z + y*dimX+x] = MASK[(dimX*dimY)*k + j*dimX+i];
                        	CORRECTEDRegions[(dimX*dimY)*z + y*dimX+x] += 1;
-                       	 }       
-                         
+                       	 }
+
             if (x == x2)  break;
-             
+
             if (yd >= 0) {
                 y = y + sy;     // move along y
                 yd = yd - ax; }
-             
+
             if (zd >= 0) {
                 z = z + sz; // % move along z
                 zd = zd - ax;
             }
-             
+
             x  = x  + sx;       // move along x
             yd = yd + ay;
             zd = zd + az;
         } //while
-         
+
     } // (ax>= fmax(ay,az))
     else if (ay >= max(ax, az)) {
         xd = ax - ay/2;
         zd = az - ay/2;
-         
-        while (1) {             
+
+        while (1) {
 
             if (MASK[(dimX*dimY)*k + j*dimX+i] != MASK[(dimX*dimY)*z + y*dimX+x]) {
                      	MASK_upd[(dimX*dimY)*z + y*dimX+x] = MASK[(dimX*dimY)*k + j*dimX+i];
                       	CORRECTEDRegions[(dimX*dimY)*z + y*dimX+x] += 1;
                     	 }
-             
+
             if (y == y2)  break;
-             
+
             if (xd >= 0) {
                 x = x + sx;     // move along x
                 xd = xd - ay;
             }
-             
+
             if (zd >= 0)  {
                 z = z + sz; //move along z
                 zd = zd - ay;
             }
-             
+
             y  = y  + sy;       // % move along y
             xd = xd + ax;
             zd = zd + az;
@@ -600,29 +595,29 @@ int bresenham3D_main(int i, int j, int k, int i1, int j1, int k1, unsigned char 
     else if (az >= max(ax, ay)) {
         xd = ax - az/2;
         yd = ay - az/2;
-         
+
         while (1) {
 
             if (MASK[(dimX*dimY)*k + j*dimX+i] != MASK[(dimX*dimY)*z + y*dimX+x]) {
                        	MASK_upd[(dimX*dimY)*z + y*dimX+x] = MASK[(dimX*dimY)*k + j*dimX+i];
                        	CORRECTEDRegions[(dimX*dimY)*z + y*dimX+x] += 1;
-             } 
-             
+             }
+
             if(z == z2)  break;
-             
+
             if(xd >= 0)  {
                 x = x + sx; // move along x
                 xd = xd - az;
-            }             
+            }
             if (yd >= 0) {
                 y = y + sy; // % move along y
                 yd = yd - az;
             }
-             
+
             z  = z  + sz;       //% move along z
             xd = xd + ax;
             yd = yd + ay;
-             
+
         } //while loop
     }
  return 0;
@@ -657,12 +652,12 @@ float Mask_update_combo3D(unsigned char *MASK_temp, unsigned char *MASK_upd, uns
 	        i1 = i+i_m;
         	j1 = j+j_m;
         	k1 = k+k_m;
-        if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY)) && ((k1 >= 0) && (k1 < dimZ))) {      
+        if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY)) && ((k1 >= 0) && (k1 < dimZ))) {
               if ((MASK_temp[(dimX*dimY)*k + j*dimX+i] == ClassesList[class_start]) && (MASK_temp[(dimX*dimY)*k1 + j1*dimX+i1] == ClassesList[class_end])) {
-              /* We check that point A belongs to "class_start" and point B to "class_end". If they do then the idea is to check if 
+              /* We check that point A belongs to "class_start" and point B to "class_end". If they do then the idea is to check if
               "class_mid" (undesirable class) lies inbetween two classes. If it does -> replace it with "class_substitute".  */
               bresenham3D_combo(i, j, k, i1, j1, k1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, class_mid, class_substitute, (long)(dimX), (long)(dimY), (long)(dimZ));
-              }              
+              }
             }
           }}}
       }
@@ -677,87 +672,87 @@ int bresenham3D_combo(int i, int j, int k, int i1, int j1, int k1, unsigned char
     int x1 = P1[0];
     int y1 = P1[1];
     int z1 = P1[2];
-     
+
     int x2 = P2[0];
     int y2 = P2[1];
     int z2 = P2[2];
-     
+
     int dx = x2 - x1;
     int dy = y2 - y1;
     int dz = z2 - z1;
-     
+
     int ax = fabs(dx)*2;
     int ay = fabs(dy)*2;
     int az = fabs(dz)*2;
-     
+
     int sx = signum(dx);
     int sy = signum(dy);
     int sz = signum(dz);
-     
+
     int x = x1;
     int y = y1;
     int z = z1;
-     
+
     int xd;
     int yd;
     int zd;
-    
+
     //printf("ijk indeces: [%i][%i][%i]\n", i, j, k) ;
-     
+
     if (ax >= max(ay, az)) {
         int yd = ay - ax/2;
         int zd = az - ax/2;
-         
+
         while (1) {
-             
+
             //fprintf(stderr,"\nid: %d ",idx);
             /* getting the indeces of voxels which were crossed by the line */
-                                   	        
-           if (MASK[(dimX*dimY)*z + y*dimX+x] == ClassesList[class_mid]) {                        
+
+           if (MASK[(dimX*dimY)*z + y*dimX+x] == ClassesList[class_mid]) {
 	                        MASK_upd[(dimX*dimY)*z + y*dimX+x] = ClassesList[class_substitute];
 	                        CORRECTEDRegions[(dimX*dimY)*z + y*dimX+x] += 1;
 	                        }
-                         
+
             if (x == x2)  break;
-             
+
             if (yd >= 0) {
                 y = y + sy;     // move along y
                 yd = yd - ax; }
-             
+
             if (zd >= 0) {
                 z = z + sz; // % move along z
                 zd = zd - ax;
             }
-             
+
             x  = x  + sx;       // move along x
             yd = yd + ay;
             zd = zd + az;
         } //while
-         
+
     } // (ax>= fmax(ay,az))
     else if (ay >= max(ax, az)) {
         xd = ax - ay/2;
         zd = az - ay/2;
-         
-        while (1) {            
 
-           if (MASK[(dimX*dimY)*z + y*dimX+x] == ClassesList[class_mid]) {                        
+        while (1) {
+
+           if (MASK[(dimX*dimY)*z + y*dimX+x] == ClassesList[class_mid]) {
 	                        MASK_upd[(dimX*dimY)*z + y*dimX+x] = ClassesList[class_substitute];
 	                        CORRECTEDRegions[(dimX*dimY)*z + y*dimX+x] += 1;
 	                        }
-             
+
             if (y == y2)  break;
-             
+
             if (xd >= 0) {
                 x = x + sx;     // move along x
                 xd = xd - ay;
             }
-             
+
             if (zd >= 0)  {
                 z = z + sz; //move along z
                 zd = zd - ay;
             }
-             
+
             y  = y  + sy;       // % move along y
             xd = xd + ax;
             zd = zd + az;
@@ -766,32 +761,30 @@ int bresenham3D_combo(int i, int j, int k, int i1, int j1, int k1, unsigned char
     else if (az >= max(ax, ay)) {
         xd = ax - az/2;
         yd = ay - az/2;
-         
+
         while (1) {
 
-           if (MASK[(dimX*dimY)*z + y*dimX+x] == ClassesList[class_mid]) {                        
+           if (MASK[(dimX*dimY)*z + y*dimX+x] == ClassesList[class_mid]) {
 	                        MASK_upd[(dimX*dimY)*z + y*dimX+x] = ClassesList[class_substitute];
 	                        CORRECTEDRegions[(dimX*dimY)*z + y*dimX+x] += 1;
 	                        }
-             
+
             if(z == z2)  break;
-             
+
             if(xd >= 0)  {
                 x = x + sx; // move along x
                 xd = xd - az;
-            }             
+            }
             if (yd >= 0) {
                 y = y + sy; // % move along y
                 yd = yd - az;
             }
-             
+
             z  = z  + sz;   //% move along z
             xd = xd + ax;
             yd = yd + ay;
-             
+
         } //while loop
     }
  return 0;
 }
-
-

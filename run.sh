@@ -6,7 +6,7 @@ rm -r build
 mkdir build
 cd build
 #make clean
-export i23seg_VERSION=0.1.0
+export i23seg_VERSION=0.1.1
 # install Python modules without CUDA
 cmake ../ -DBUILD_PYTHON_WRAPPER=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./install
 make install
@@ -14,4 +14,4 @@ make install
 cp install/lib/libi23seg.so install/python/i23/methods
 cd install/python
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:../lib
-spyder
+spyder --new-instance
