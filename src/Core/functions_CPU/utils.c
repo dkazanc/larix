@@ -74,6 +74,8 @@ float RotateImage(float *A, float *B, int dimX, int dimY, float angle_rad, int k
 			for (m=0; m < dimY; m++) {
 			stepAR_Y = Tomorange_Ymin + m*H_y;
 
+			if (angle_rad != 0.0) {
+
 			B[(dimX*dimY)*k + m*dimX+l] = 0.0;
 
 			xx = stepAR_X*ct - stepAR_Y*st;
@@ -106,6 +108,8 @@ float RotateImage(float *A, float *B, int dimX, int dimY, float angle_rad, int k
 							d = A[j1*dimX+i1];
 					}}
 							B[(dimX*dimY)*k + m*dimX+l] = (1.0 - u)*(1.0 - v)*a + u*(1.0 - v)*b + (1.0 - u)*v*c + u*v*d;
+						}
+						else B[(dimX*dimY)*k + m*dimX+l] =  A[m*dimX+l]; // zeroth angle - no interpolation
 			}
 	}
 	return *B;

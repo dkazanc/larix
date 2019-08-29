@@ -269,30 +269,30 @@ image_loop *= chanvese_loop_mask
 selem = disk(25)
 chanvese_loop_mask_errosion = erosion(chanvese_loop_mask, selem)
 #%%
-image_crystal = image_loop.copy()
+#image_crystal = image.copy()
 from ccpi.filters.regularisers import PatchSelect, NLTV
 # NLM processing of image
 pars = {'algorithm' : PatchSelect, \
-        'input' : image_crystal,\
+        'input' : image_t,\
         'searchwindow': 9, \
         'patchwindow': 2,\
-        'neighbours' : 15 ,\
-        'edge_parameter':0.02}
+        'neighbours' : 20 ,\
+        'edge_parameter':0.025}
 
 H_i, H_j, Weights = PatchSelect(pars['input'], 
               pars['searchwindow'],
               pars['patchwindow'], 
               pars['neighbours'],
-              pars['edge_parameter'],'cpu')
+              pars['edge_parameter'],'gpu')
 #%%
 pars2 = {'algorithm' : NLTV, \
-        'input' : image_crystal,\
+        'input' : image_t,\
         'H_i': H_i, \
         'H_j': H_j,\
         'H_k' : 0,\
         'Weights' : Weights,\
-        'regularisation_parameter': 5.0,\
-        'iterations': 50
+        'regularisation_parameter': 10.0,\
+        'iterations': 100
         }
 nltv_cpu = NLTV(pars2['input'], 
               pars2['H_i'],
@@ -303,7 +303,7 @@ nltv_cpu = NLTV(pars2['input'],
               pars2['iterations'])
 
 plt.figure()
-plt.imshow(nltv_cpu, vmin=0.0, vmax=0.3, cmap="gray")
+plt.imshow(nltv_cpu, vmin=0.0, vmax=1.0, cmap="gray")
 plt.show()
 
 #%%

@@ -27,7 +27,7 @@ limitations under the License.
 extern "C" {
 #endif
 float Detect_edges_main(float *Input, unsigned char *output_mask, float *test_output, int LineSize, float threshold, int OrientNo, int dimX, int dimY, int dimZ);
-float Proc_Rot_Array(float *Rotate_pad, float *Output_mask_pad, int LineSize, int dimX, int dimY, int OrientNo, float threshold, int k);
+float Proc_Rot_Array(float *Rotate_pad, float *Output_minResid, int LineSize, int dimX, int dimY, int OrientNo, float threshold, int k);
 #ifdef __cplusplus
 }
 #endif
