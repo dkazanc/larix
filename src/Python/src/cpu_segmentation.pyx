@@ -17,8 +17,77 @@ cimport numpy as np
 
 cdef extern float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, unsigned char *ComboClasses, int tot_combinations, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
 cdef extern float Detect_edges_main(float *Input, unsigned char *output_mask, float *test_output, int LineSize, float threshold, int OrientNo, int dimX, int dimY, int dimZ);
+cdef extern float chan_vese_main(float *Input, float *mask, float *Phi_x, float *Phi_xy, float *Phi_xx, float *Phi_y, float *Phi_yx, float *Phi_yy, float dt, float eta, float epsilon, float alpha_in, float alpha_out, int iterationsNumb, int dimX, int dimY, int dimZ);
+cdef extern float Gradient2D_central(float *input, float *gradientX, float *gradientY, int dimX, int dimY);
 
 ##############################################################################
+#****************************************************************#
+#************Chan-Vese level sets segmentation ******************#
+#****************************************************************#
+def SEGMENT_CV(input, mask, dt, eta, epsilon, alpha_in, alpha_out, iterationsNumb):
+        if input.ndim == 2:
+            return SEGMENT_CV_2D(input, mask, dt, eta, epsilon, alpha_in, alpha_out, iterationsNumb)
+        elif input.ndim == 3:
+            return 0
+
+def SEGMENT_CV_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] input,
+                  np.ndarray[np.float32_t, ndim=2, mode="c"] mask,
+                     float dt,
+                     float eta,
+                     float epsilon,
+                     float alpha_in,
+                     float alpha_out,
+                     int iterationsNumb):
+
+    cdef long dims[2]
+    dims[0] = input.shape[0]
+    dims[1] = input.shape[1]
+
+    cdef np.ndarray[np.float32_t, ndim=2, mode="c"] Phi_x = \
+                np.zeros([dims[0],dims[1]], dtype='float32')
+    cdef np.ndarray[np.float32_t, ndim=2, mode="c"] Phi_xy = \
+                np.zeros([dims[0],dims[1]], dtype='float32')
+    cdef np.ndarray[np.float32_t, ndim=2, mode="c"] Phi_xx = \
+                np.zeros([dims[0],dims[1]], dtype='float32')
+    cdef np.ndarray[np.float32_t, ndim=2, mode="c"] Phi_y = \
+                np.zeros([dims[0],dims[1]], dtype='float32')
+    cdef np.ndarray[np.float32_t, ndim=2, mode="c"] Phi_yx = \
+                np.zeros([dims[0],dims[1]], dtype='float32')
+    cdef np.ndarray[np.float32_t, ndim=2, mode="c"] Phi_yy = \
+                np.zeros([dims[0],dims[1]], dtype='float32')
+
+
+    # Run the function here
+    chan_vese_main(&input[0,0], &mask[0,0],
+                     &Phi_x[0,0],&Phi_xy[0,0],&Phi_xx[0,0], &Phi_y[0,0], &Phi_yx[0,0], &Phi_yy[0,0],
+                     dt, eta, epsilon, alpha_in, alpha_out, iterationsNumb,
+                    dims[1], dims[0], 1)
+    return Phi_x,Phi_xy,Phi_xx,Phi_y,Phi_yx,Phi_yy
+
+#****************************************************************#
+#************Gradient central differences *********************#
+#****************************************************************#
+def GRAD_CENTRAL(input):
+        if input.ndim == 2:
+            return GRAD_CENTRAL_2D(input)
+        elif input.ndim == 3:
+            return 0
+
+def GRAD_CENTRAL_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] input):
+
+    cdef long dims[2]
+    dims[0] = input.shape[0]
+    dims[1] = input.shape[1]
+
+    cdef np.ndarray[np.float32_t, ndim=2, mode="c"] gradientX = \
+                np.zeros([dims[0],dims[1]], dtype='float32')
+    cdef np.ndarray[np.float32_t, ndim=2, mode="c"] gradientY = \
+                np.zeros([dims[0],dims[1]], dtype='float32')
+
+    # Run the function here
+    Gradient2D_central(&input[0,0], &gradientX[0,0],&gradientY[0,0], dims[1], dims[0])
+    return gradientX,gradientY
+
 #****************************************************************#
 #************Crystal edges detection module *********************#
 #****************************************************************#

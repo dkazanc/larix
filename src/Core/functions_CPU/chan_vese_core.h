@@ -12,22 +12,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+#include <math.h>
 #include <stdlib.h>
 #include <memory.h>
+#include <stdio.h>
 #include "omp.h"
+#include "utils.h"
 
-#define M_PI 3.14159265358979323846
-
+/*
+ * Output:
+ */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-float copyIm(float *A, float *U, long dimX, long dimY, long dimZ);
-unsigned char copyIm_unchar(unsigned char *A, unsigned char *U, int dimX, int dimY, int dimZ);
-float copyIm_roll(float *A, float *U, int dimX, int dimY, int roll_value, int switcher);
-float RotateImage(float *A, float *B, int dimX, int dimY, float angle_rad, int k);
-float Pad_Crop(float *A, float *B, int dimX, int dimY, int padDims, int switchpad_crop);
-float Gradient2D_central(float *input, float *gradientX, float *gradientY, int dimX, int dimY);
+float chan_vese_main(float *Input, float *mask, float *Phi_x, float *Phi_xy, float *Phi_xx, float *Phi_y, float *Phi_yx, float *Phi_yy, float dt, float eta, float epsilon, float alpha_in, float alpha_out, int iterationsNumb, int dimX, int dimY, int dimZ);
 #ifdef __cplusplus
 }
 #endif

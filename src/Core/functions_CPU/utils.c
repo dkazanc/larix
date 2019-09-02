@@ -130,3 +130,31 @@ float Pad_Crop(float *A, float *B, int dimX, int dimY, int padDims, int switchpa
 		}}
 	return *B;
 }
+
+
+float Gradient2D_central(float *input, float *gradientX, float *gradientY, int dimX, int dimY)
+{
+	int i, j, i1, j1, i2, j2, index;
+	float FDx, FDy, BDx, BDy;
+
+#pragma omp parallel for shared (input) private(i, j, i1, j1, i2, j2, index, FDx, FDy, BDx, BDy)
+	for(j=0; j<dimY; j++) {
+			for(i=0; i<dimX; i++) {
+					index = j*dimX+i;
+					i1 = i + 1; if (i1 >= dimX) i1 = i-1;
+					j1 = j + 1; if (j1 >= dimY) j1 = j-1;
+					i2 = i - 1; if (i2 < 0) i2 = i+1;
+					j2 = j - 1; if (j2 < 0) j2 = j+1;
+
+					/* forward differences */
+					FDx = input[j*dimX + i1] - input[index];
+					FDy = input[j1*dimX + i] - input[index];
+					/* backward differences */
+					BDx = input[index] - input[j*dimX + i2];
+					BDy = input[index] - input[j2*dimX + i];
+
+					gradientX[index] = 0.5f*(FDx + BDx);
+					gradientY[index] = 0.5f*(FDy + BDy);
+			}}
+			return 1;
+}

@@ -1,6 +1,5 @@
 #%%
 from skimage.filters import gaussian
-from skimage.segmentation import active_contour
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,14 +10,16 @@ TomoRec3D_13551 = h5f['data'][:]
 h5f.close()
 #%%
 image = TomoRec3D_13551[20,:,:]
-image = image/np.max(image)
-shapeX, shapeY = np.shape(image)
+image_t = image.copy()
+image_t = image_t/np.max(image_t)
 
 plt.figure()
 plt.imshow(image, vmin=0.0, vmax=0.8, cmap="gray")
 plt.title('Iterative FISTA-TV reconstruction')
 plt.show()
 #%%
+
+shapeX, shapeY = np.shape(image)
 # initialise curve for active countours
 points_num = shapeX
 index_crop = 1
@@ -37,8 +38,9 @@ ax.imshow(image, cmap=plt.cm.gray)
 ax.plot(init[:, 0], init[:, 1], '--r', lw=3)
 plt.show()
 #%%
-snake = active_contour(gaussian(image, 3),
-                       init, alpha=0.005, beta=0.5, gamma=0.001)
+from skimage.segmentation import active_contour
+snake = active_contour(gaussian(image, 2),
+                       init, alpha=0.005, beta=1.0, gamma=0.001)
 
 fig, ax = plt.subplots(figsize=(7, 7))
 ax.imshow(image, cmap=plt.cm.gray)
