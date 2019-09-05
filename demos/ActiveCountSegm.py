@@ -18,7 +18,6 @@ plt.imshow(image, vmin=0.0, vmax=0.8, cmap="gray")
 plt.title('Iterative FISTA-TV reconstruction')
 plt.show()
 #%%
-
 shapeX, shapeY = np.shape(image)
 # initialise curve for active countours
 points_num = shapeX
@@ -131,24 +130,61 @@ r_mask = ~r_mask
 from morphsnakes import (morphological_chan_vese,
                          morphological_geodesic_active_contour,
                          inverse_gaussian_gradient, circle_level_set, checkerboard_level_set)
+import timeit
 
 #image = TomoRec3D_13551[80:120,:,:]
 #image = image/np.max(image)
 #ls1 = circle_level_set(image.shape, (40, 300, 300), 70)
 
-image = TomoRec3D_13551[110,:,:]
-ls1 = circle_level_set(image.shape, (300, 300), 80)
+image = SB_TV3D[20:45,:,:]
+ls1 = circle_level_set(image.shape, (25, 300, 300), 10)
 
 # get outer liquer shape
 #acwe_ls1 = morphological_chan_vese(image, iterations=250, smoothing=3, lambda1=1.0, lambda2=1.0, init_level_set=ls1)
+
+start_time = timeit.default_timer()
 # get the crystal 
-acwe_ls2 = morphological_chan_vese(image, iterations=350, smoothing=2, lambda1=1.0, lambda2=0.025, init_level_set=ls1)
+acwe_ls2 = morphological_chan_vese(image, iterations=350, lambda1=1.0, lambda2=0.0035, init_level_set=ls1)
+txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
+print (txtstr)
 
 #gac_ls = morphological_geodesic_active_contour(image, iterations=60,init_level_set=acwe_ls1)
 plt.figure()
 plt.imshow(acwe_ls2, vmin=0.0, vmax=1, cmap="gray")
 plt.title('Segmentation')
 plt.show()
+
+
+#%%
+
+from morphsnakes import (morphological_chan_vese,
+                         morphological_geodesic_active_contour,
+                         inverse_gaussian_gradient, circle_level_set, checkerboard_level_set)
+import timeit
+
+#image = TomoRec3D_13551[80:120,:,:]
+#image = image/np.max(image)
+#ls1 = circle_level_set(image.shape, (40, 300, 300), 70)
+
+image = SB_TV3D[21,:,:]
+ls1 = acwe_ls2[1,:,:]
+#ls1 = circle_level_set(image.shape, (300, 300), 10)
+
+# get outer liquer shape
+acwe_ls1 = morphological_chan_vese(image, iterations=350, smoothing=1, lambda1=1.0, lambda2=0.075, init_level_set=ls1)
+
+#start_time = timeit.default_timer()
+# get the crystal 
+#acwe_ls2 = morphological_chan_vese(image, iterations=350, lambda1=1.0, lambda2=0.0035, init_level_set=ls1)
+#txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
+#print (txtstr)
+
+#gac_ls = morphological_geodesic_active_contour(image, iterations=60,init_level_set=acwe_ls1)
+plt.figure()
+plt.imshow(acwe_ls1, vmin=0.0, vmax=1, cmap="gray")
+plt.title('Segmentation')
+plt.show()
+
 #%%
 # performing morphological closing on segmeted images
 from skimage.morphology import erosion, dilation, opening, closing, white_tophat
@@ -275,11 +311,11 @@ chanvese_loop_mask_errosion = erosion(chanvese_loop_mask, selem)
 from ccpi.filters.regularisers import PatchSelect, NLTV
 # NLM processing of image
 pars = {'algorithm' : PatchSelect, \
-        'input' : image_t,\
+        'input' : image_t[5,:,:],\
         'searchwindow': 9, \
         'patchwindow': 2,\
         'neighbours' : 20 ,\
-        'edge_parameter':0.025}
+        'edge_parameter':0.005}
 
 H_i, H_j, Weights = PatchSelect(pars['input'], 
               pars['searchwindow'],
@@ -288,7 +324,7 @@ H_i, H_j, Weights = PatchSelect(pars['input'],
               pars['edge_parameter'],'gpu')
 #%%
 pars2 = {'algorithm' : NLTV, \
-        'input' : image_t,\
+        'input' : image_t[5,:,:],\
         'H_i': H_i, \
         'H_j': H_j,\
         'H_k' : 0,\
@@ -305,7 +341,7 @@ nltv_cpu = NLTV(pars2['input'],
               pars2['iterations'])
 
 plt.figure()
-plt.imshow(nltv_cpu, vmin=0.0, vmax=1.0, cmap="gray")
+plt.imshow(nltv_cpu, vmin=0.0, vmax=0.5, cmap="gray")
 plt.show()
 
 #%%
