@@ -2,26 +2,60 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 import timeit
+
 import geodesic_distance
-from morphsnakes import morphological_chan_vese, circle_level_set
+
 # using Morphological snakes from
 # https://github.com/pmneila/morphsnakes
+from morphsnakes import morphological_chan_vese, circle_level_set
+
 
 from ccpi.filters.regularisers import SB_TV
 from ccpi.filters.regularisers import PatchSelect, NLTV
 
-from skimage.morphology import erosion, dilation, opening, closing, white_tophat
+from skimage.morphology import opening, closing
 from skimage.morphology import disk
 
+def initialiseLS(slices, NxSize, NySize, coordX0, coordY0, coordZ0, coordX1, coordY1, coordZ1, circle_size):
+    LS_init = np.uint8(np.zeros((slices, NxSize, NySize)))
+    # calculate coordinates
+    steps = coordZ1 - coordZ0
+    if ((steps <= 0) or (steps > slices)):
+        raise Exception("Z coordinates are given incorrectly (out of array range)")
+    distance = np.sqrt((coordX1 - coordX0)**2 + (coordY1 - coordY0)**2)
+    d_dist = distance/(steps-1)
+    d_step = d_dist
+    
+    for j in range(coordZ0,coordZ1):
+        t = d_step/distance
+        x_t = np.round((1.0 - t)*coordX0 + t*coordX1)
+        y_t = np.round((1.0 - t)*coordY0 + t*coordY1)
+        if (coordX0 == coordX1):
+            x_t = coordX0
+        if(coordY0 == coordY1):
+            y_t = coordY0
+        LS_init[j,:,:] = circle_level_set(tuple((NxSize, NySize)), (y_t, x_t), circle_size)
+        d_step += d_dist
+    return LS_init
 
-h5f = h5py.File('/home/kjy41806/Documents/data_temp/TomoRec3D_13551.h5', 'r')
+def morphological_proc(data, disk_size):
+    selem = disk(disk_size)
+    Morph = np.uint8(np.zeros(np.shape(data)))
+    slices, NxSize, NySize = np.shape(data)
+    for j in range(0,slices):
+        segm_to_proc = data[j,:,:].copy()
+        closing_t = closing(segm_to_proc, selem)
+        segm_tmp = opening(closing_t, selem)
+        Morph[j,:,:] = segm_tmp
+    return Morph
+
+h5f = h5py.File('/scratch/data_temp/i23/TomoRec3D_13551.h5', 'r')
 TomoRec3D_13551 = h5f['data'][:]
 h5f.close()
 
-#image = TomoRec3D_13551[100,10:None,:]
-#image = TomoRec3D_13551[130,160:460,200:430] # 130-slice
 # image = TomoRec3D_13551[130,:,:] # 130-slice
-image = TomoRec3D_13551[40:140,:,:] 
+image = TomoRec3D_13551[170:190,:,:]
+#image = TomoRec3D_13551[180:190,:,:]
 image = image/np.max(image)
 
 slices, NxSize, NySize = np.shape(image)
@@ -52,7 +86,7 @@ for j in range(0,slices):
             'H_k' : 0,\
             'Weights' : Weights,\
             'regularisation_parameter': 10.0,\
-            'iterations': 100
+            'iterations': 50
             }
     NLTV_im[j,:,:] = NLTV(pars2['input'], 
                   pars2['H_i'],
@@ -69,29 +103,42 @@ plt.title('NLTV denoised')
 plt.show()
 del H_i,H_j,Weights
 #%%
-print ("2D geodesic distance calculation for each slice")
+print ("Geodesic distance calculation")
 slices, NxSize, NySize = np.shape(NLTV_im)
-ls1 = np.uint8(np.zeros(np.shape(NLTV_im)))
-for j in range(0,slices):
-    ls1[j,:,:] = circle_level_set(tuple((NxSize, NySize)), (300, 300), 15)
+#initialise level sets
+#ls1 = initialiseLS(slices, NxSize, NySize, coordX0=260, coordY0=243, coordZ0=0,\
+#                   coordX1=362, coordY1=373, coordZ1=slices, circle_size = 10)
 
-segm3D_as2D = np.float32(np.zeros(np.shape(NLTV_im)))
-for j in range(0,slices):
-    segm3D_as2D[j,:,:] = geodesic_distance.geodesic2d_fast_marching(NLTV_im[j,:,:],ls1[j,:,:])
+ls1 = initialiseLS(slices, NxSize, NySize, coordX0=360, coordY0=360, coordZ0=0,\
+                   coordX1=360, coordY1=360, coordZ1=slices, circle_size = 10)
 
-segm3D_as2D = segm3D_as2D/np.max(segm3D_as2D)
+
+segm3D_geo = np.float32(np.zeros(np.shape(NLTV_im)))
+for j in range(0,slices):
+    #segm3D_geo[j,:,:] = geodesic_distance.geodesic2d_fast_marching(NLTV_im[j,:,:],ls1[j,:,:])
+    #using raster scan (faster)
+    segm3D_geo[j,:,:] = geodesic_distance.geodesic2d_raster_scan(NLTV_im[j,:,:], ls1[j,:,:], 0.5, 4)
+
+
+"""
+start_time = timeit.default_timer()
+segm3D_geo = geodesic_distance.geodesic3d_raster_scan(NLTV_im,ls1, 0.5, 4)
+txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
+print (txtstr)
+"""
+segm3D_geo = segm3D_geo/np.max(segm3D_geo)
 
 plt.figure()
 plt.rcParams.update({'font.size': 21})
 plt.title('geodesic distance results')
-plt.imshow(segm3D_as2D[5,:,:])
+plt.imshow(segm3D_geo[5,:,:], vmin=0.0, vmax=0.13, cmap="gray")
 plt.pause(.2)
-del NLTV_im
+#del NLTV_im
 #%%
 print ("Apply 3D TV denoising to the result of the Geodesic distance processing...")
 pars = {'algorithm' : SB_TV, \
-        'input' : segm3D_as2D,\
-        'regularisation_parameter': 0.02, \
+        'input' : segm3D_geo,\
+        'regularisation_parameter': 0.033, \
         'number_of_iterations' : 100 ,\
         'tolerance_constant': 0.0,\
         'methodTV': 0}
@@ -104,17 +151,18 @@ pars = {'algorithm' : SB_TV, \
 
 plt.figure()
 plt.rcParams.update({'font.size': 21})
-plt.imshow(SB_TV3D[5,:,:], vmin=0.0, vmax=0.2, cmap="gray")
+plt.imshow(SB_TV3D[5,:,:], vmin=0.0, vmax=0.13, cmap="gray")
 plt.title('SB_TV denoised')
 plt.show()
 plt.pause(.2)
-del segm3D_as2D
+
+np.save('GeoDistanceTV13551_200slices.npy', SB_TV3D)
+#del segm3D_geo
 #%%
-print ("Running Morph Chan-Vese to get crystal...")
-# image = SB_TV3D[35:45,:,:]
-#ls1 = circle_level_set(SB_TV3D.shape, (5, 300, 300), 20)
+
+print ("Running Morph Chan-Vese (3D) to get crystal...")
 start_time = timeit.default_timer()
-# get the crystal 
+# get the crystal
 CrystSegm = morphological_chan_vese(SB_TV3D, iterations=350, lambda1=1.0, lambda2=0.0035, init_level_set=ls1)
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
@@ -126,26 +174,18 @@ plt.show()
 plt.pause(.2)
 #%%
 # morphologically process it
-selem = disk(10)
-CrystSegmMorph = np.uint8(np.zeros(np.shape(CrystSegm)))
-slices, NxSize, NySize = np.shape(CrystSegm)
+CrystSegmMorph = morphological_proc(data = CrystSegm, disk_size=7)
 
-for j in range(0,slices):
-    segm_to_proc = CrystSegm[j,:,:].copy()
-    closing_t = closing(segm_to_proc, selem)
-    segm_tmp = opening(closing_t, selem)
-    CrystSegmMorph[j,:,:] = segm_tmp
-#%
 plt.figure()
 plt.rcParams.update({'font.size': 21})
 plt.title('Morphological processing of crystal segmentation')
 plt.imshow(CrystSegmMorph[5,:,:])
 plt.pause(.2)
-del CrystSegm
+#del CrystSegm
 #%%
 # now when crystal is segmented we can get the surrounding liquor
 # initialise snakes with the result of crystal segmentation
-print ("Running Morph Chan-Vese to get the surrounding liquor...")
+print ("Running Morph Chan-Vese (3D) to get the surrounding liquor...")
 start_time = timeit.default_timer()
 # get the crystal 
 LiquorSegm = morphological_chan_vese(SB_TV3D, iterations=350, smoothing=1, lambda1=1.0, lambda2=0.045, init_level_set=CrystSegmMorph)
@@ -159,32 +199,25 @@ plt.pause(.2)
 plt.show()
 #%%
 # morphologically process it
-selem = disk(10)
-LiquorSegmMorph = np.uint8(np.zeros(np.shape(LiquorSegm)))
-slices, NxSize, NySize = np.shape(LiquorSegm)
+LiquorSegmMorph = morphological_proc(data = LiquorSegm, disk_size=7)
 
-for j in range(0,slices):
-    segm_to_proc = LiquorSegm[j,:,:].copy()
-    closing_t = closing(segm_to_proc, selem)
-    segm_tmp = opening(closing_t, selem)
-    LiquorSegmMorph[j,:,:] = segm_tmp
-#%
 plt.figure()
 plt.rcParams.update({'font.size': 21})
 plt.title('Morphological processing of liquor segmentation')
 plt.imshow(LiquorSegmMorph[5,:,:])
 plt.pause(.2)
-del LiquorSegm
+#del LiquorSegm
 #%%
 # getting the whole object
-print ("Running Morph Chan-Vese to get the whole object...")
-dist=5
-init_set = np.uint8(np.zeros(np.shape(image)))
-init_set[0:slices, dist:NxSize-dist, dist:NySize-dist] = 1
+print ("Running Morph Chan-Vese (3D) to get the whole object...")
+# initialise level sets
+#dist=1
+#init_set = np.uint8(np.zeros(np.shape(image)))
+#init_set[0:slices, dist:NxSize-dist, dist:NySize-dist] = 1
 
 start_time = timeit.default_timer()
 # get the crystal 
-WholeObjSegm = morphological_chan_vese(SB_TV3D, iterations=350, smoothing=1, lambda1=0.1, lambda2=1.0, init_level_set=init_set)
+WholeObjSegm = morphological_chan_vese(SB_TV3D, iterations=350, smoothing=1, lambda1=0.48, lambda2=1.0, init_level_set=LiquorSegmMorph)
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 
@@ -195,15 +228,8 @@ plt.imshow(WholeObjSegm[5,:,:])
 plt.pause(.2)
 #%%
 # morphologically process it
-selem = disk(10)
-WholeObjSegmMorph = np.uint8(np.zeros(np.shape(WholeObjSegm)))
-slices, NxSize, NySize = np.shape(WholeObjSegm)
+WholeObjSegmMorph = morphological_proc(data = WholeObjSegm, disk_size=7)
 
-for j in range(0,slices):
-    segm_to_proc = WholeObjSegm[j,:,:].copy()
-    closing_t = closing(segm_to_proc, selem)
-    segm_tmp = opening(closing_t, selem)
-    WholeObjSegmMorph[j,:,:] = segm_tmp
 #%
 plt.figure()
 plt.rcParams.update({'font.size': 21})
@@ -213,12 +239,19 @@ plt.pause(.2)
 del WholeObjSegm
 #%%
 # combining everything into a single object - crystal, liquor, loop, vacuum
-# 
 FinalSegm = CrystSegmMorph+LiquorSegmMorph+WholeObjSegmMorph
+
+for j in range(0,slices):
+    mask_temp = FinalSegm[j,:,:]
+    res = np.where(mask_temp == 0)
+    if (np.size(res[0]) == 0 & np.size(res[1]) == 0):
+        mask_temp[mask_temp == 1] = 0
+        FinalSegm[j,:,:] = mask_temp
 
 plt.figure()
 plt.rcParams.update({'font.size': 21})
 plt.title('Final segmentation')
 plt.imshow(FinalSegm[5,:,:])
 plt.pause(.2)
+np.save('FinalSegm13551_2_200slices.npy', FinalSegm)
 #%%
