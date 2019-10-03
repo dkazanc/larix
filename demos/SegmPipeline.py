@@ -4,11 +4,9 @@ import matplotlib.pyplot as plt
 import timeit
 
 import geodesic_distance
-
+from morphsnakes import morphological_chan_vese, circle_level_set
 # using Morphological snakes from
 # https://github.com/pmneila/morphsnakes
-from morphsnakes import morphological_chan_vese, circle_level_set
-
 
 from ccpi.filters.regularisers import SB_TV
 from ccpi.filters.regularisers import PatchSelect, NLTV
@@ -53,14 +51,13 @@ h5f = h5py.File('/scratch/data_temp/i23/TomoRec3D_13551.h5', 'r')
 TomoRec3D_13551 = h5f['data'][:]
 h5f.close()
 
-# image = TomoRec3D_13551[130,:,:] # 130-slice
-image = TomoRec3D_13551[170:190,:,:]
-#image = TomoRec3D_13551[180:190,:,:]
+#image = TomoRec3D_13551[170:190,:,:]
+image = TomoRec3D_13551[150:155,:,:]
 image = image/np.max(image)
 
 slices, NxSize, NySize = np.shape(image)
 del TomoRec3D_13551
-#%%
+#%%1
 NLTV_im = np.float32(np.zeros(np.shape(image)))
 print ("Doing NLTV denoising of X-Y slices")
 
@@ -138,7 +135,7 @@ plt.pause(.2)
 print ("Apply 3D TV denoising to the result of the Geodesic distance processing...")
 pars = {'algorithm' : SB_TV, \
         'input' : segm3D_geo,\
-        'regularisation_parameter': 0.033, \
+        'regularisation_parameter': 0.025, \
         'number_of_iterations' : 100 ,\
         'tolerance_constant': 0.0,\
         'methodTV': 0}
@@ -156,14 +153,14 @@ plt.title('SB_TV denoised')
 plt.show()
 plt.pause(.2)
 
-np.save('GeoDistanceTV13551_200slices.npy', SB_TV3D)
+#np.save('GeoDistanceTV13551_200slices.npy', SB_TV3D)
 #del segm3D_geo
 #%%
 
-print ("Running Morph Chan-Vese (3D) to get crystal...")
+print ("Running Morph Chan-Vese (3D) to get the crystal...")
 start_time = timeit.default_timer()
 # get the crystal
-CrystSegm = morphological_chan_vese(SB_TV3D, iterations=350, lambda1=1.0, lambda2=0.0035, init_level_set=ls1)
+CrystSegm = morphological_chan_vese(SB_TV3D, iterations=350, lambda1=1.0, lambda2=0.002, init_level_set=ls1)
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 
@@ -181,7 +178,7 @@ plt.rcParams.update({'font.size': 21})
 plt.title('Morphological processing of crystal segmentation')
 plt.imshow(CrystSegmMorph[5,:,:])
 plt.pause(.2)
-#del CrystSegm
+del CrystSegm
 #%%
 # now when crystal is segmented we can get the surrounding liquor
 # initialise snakes with the result of crystal segmentation
@@ -206,18 +203,17 @@ plt.rcParams.update({'font.size': 21})
 plt.title('Morphological processing of liquor segmentation')
 plt.imshow(LiquorSegmMorph[5,:,:])
 plt.pause(.2)
-#del LiquorSegm
+del LiquorSegm
 #%%
 # getting the whole object
 print ("Running Morph Chan-Vese (3D) to get the whole object...")
 # initialise level sets
-#dist=1
-#init_set = np.uint8(np.zeros(np.shape(image)))
-#init_set[0:slices, dist:NxSize-dist, dist:NySize-dist] = 1
+dist=1
+init_set = np.uint8(np.zeros(np.shape(image)))
+init_set[0:slices, dist:NxSize-dist, dist:NySize-dist] = 1
 
 start_time = timeit.default_timer()
-# get the crystal 
-WholeObjSegm = morphological_chan_vese(SB_TV3D, iterations=350, smoothing=1, lambda1=0.48, lambda2=1.0, init_level_set=LiquorSegmMorph)
+WholeObjSegm = morphological_chan_vese(SB_TV3D, iterations=350, smoothing=1, lambda1=1.0, lambda2=1.0, init_level_set=init_set)
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 
