@@ -59,8 +59,8 @@ plt.imshow(TomoRec3D[440,:,:], vmin=0.0, vmax=0.25, cmap="gray")
 plt.title('Denoised volume')
 plt.show()
 
-image = TomoRec3D[440:445,:,:]
-slices, NxSize, NySize = np.shape(image)
+image = TomoRec3D[390:590,:,:]
+slices, NxSize, NySize = np.shape(TomoRec3D)
 #del TomoRec3D_13551
 #%%1
 """
@@ -140,12 +140,17 @@ plt.pause(.2)
 #%%
 import numpy as np
 from i23.methods.segmentation import MASK_ITERATE
+import matplotlib.pyplot as plt
 
 segm3D_geo = np.load('/home/kjy41806/Documents/tempGeo.npy')
 MASK = np.load('/home/kjy41806/Documents/tempMask.npy')
+image = np.load('/home/kjy41806/Documents/tempImage.npy')
 
-MASK_upd = MASK_ITERATE(segm3D_geo[0,:,:], MASK[0,:,:], threhsold = 0.1, iterationsNumb = 1)
+MASK_upd = MASK_ITERATE(segm3D_geo[0,:,:], MASK[0,:,:], threhsold = 0.01, iterationsNumb = 50)
 
+plt.figure()
+plt.rcParams.update({'font.size': 21})
+plt.imshow(image[0,:,:], vmin=0.0, vmax=0.25, cmap="gray")
 #%%
 from sklearn.mixture import GaussianMixture
 inputdata = segm3D_geo.reshape(slices*NxSize*NySize, 1)
