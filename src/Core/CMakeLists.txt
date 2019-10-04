@@ -55,6 +55,7 @@ message("Adding i23 segmentation as a shared library")
 
 add_library(i23seg SHARED
     	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/MASK_merge_core.c
+	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/MaskIterative_core.c
     	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/utils.c
 	    )
 target_link_libraries(i23seg ${EXTRA_LIBRARIES} )

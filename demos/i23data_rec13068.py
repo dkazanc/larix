@@ -12,7 +12,7 @@ from tomobar.methodsDIR import RecToolsDIR
 
 vert_tuple = [i for i in range(700,900)] # selection of vertical slice
 
-h5py_list = h5py.File('/dls/i23/data/2019/nr23017-1/processing/tomography/rotated/13068/13068.nxs','r')
+h5py_list = h5py.File('/dls/i23/data/2019/nr23571-10/processing/tomography/rotated/13724/13724.nxs','r')
 
 darks = h5py_list['/entry1/instrument/flyScanDetector/data'][0:19,vert_tuple,:]
 flats = h5py_list['/entry1/instrument/flyScanDetector/data'][20:39,vert_tuple,:]
