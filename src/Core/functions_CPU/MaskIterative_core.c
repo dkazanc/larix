@@ -47,7 +47,7 @@ float MASK_flat_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_o
     /* calculate mean inside given MASK */
     mask_region_mean(Input, MASK_out, maskreg_mean, (long)(dimX), (long)(dimY));
 
-    /* iteratively updating mask */ 
+    /* iteratively updating mask */
     for(i=0; i<iterations; i++) {
     mask_update(Input, MASK_out, maskreg_mean, threhsold, (long)(dimX), (long)(dimY));
     }
@@ -99,7 +99,7 @@ float mask_update(float *Input, unsigned char *MASK, float *maskreg_mean, float 
         j_e = j + 1;
         j_w = j - 1;
         index = j*dimX+i;
-        
+
         if (((i_n >= 0) && (i_s < dimX)) && ((j_w >= 0) && (j_e < dimY))) {
         /* find where closest pixels of the mask equal to 1 */
         if ((MASK[j*dimX+i_s] == 1) || (MASK[j*dimX+i_n] == 1) || (MASK[j_e*dimX+i] == 1) || (MASK[j_w*dimX+i] == 1)) {
@@ -111,6 +111,7 @@ float mask_update(float *Input, unsigned char *MASK, float *maskreg_mean, float 
             }
         }
     }}
+    return *MASK;
 }
 
 /********************************************************************/
