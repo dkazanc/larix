@@ -117,7 +117,7 @@ def MASK_ITERATE(Input, maskData, threhsold, iterationsNumb):
     if maskData.ndim == 2:
         return MASK_ITERATE_2D(Input, maskData, threhsold, iterationsNumb)
     elif maskData.ndim == 3:
-        return 0
+        return MASK_ITERATE_3D(Input, maskData, threhsold, iterationsNumb)
 
 def MASK_ITERATE_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
                     np.ndarray[np.uint8_t, ndim=2, mode="c"] MASK_in,
@@ -133,4 +133,21 @@ def MASK_ITERATE_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
 
     MASK_flat_main(&Input[0,0], &MASK_in[0,0], &MASK_out[0,0], threhsold,
                     iterationsNumb, dims[1], dims[0], 1)
+    return MASK_out
+
+def MASK_ITERATE_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
+                    np.ndarray[np.uint8_t, ndim=3, mode="c"] MASK_in,
+                     float threhsold,
+                     int iterationsNumb):
+
+    cdef long dims[3]
+    dims[0] = Input.shape[0]
+    dims[1] = Input.shape[1]
+    dims[2] = Input.shape[2]
+
+    cdef np.ndarray[np.uint8_t, ndim=3, mode="c"] MASK_out = \
+            np.zeros([dims[0],dims[1],dims[2]], dtype='uint8')
+
+    MASK_flat_main(&Input[0,0,0], &MASK_in[0,0,0], &MASK_out[0,0,0], threhsold,
+                    iterationsNumb, dims[2], dims[1], dims[0])
     return MASK_out

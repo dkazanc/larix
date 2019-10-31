@@ -24,13 +24,14 @@ limitations under the License.
 #include "omp.h"
 #include "utils.h"
 
- 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 float MASK_flat_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_out, float threhsold, int iterations, int dimX, int dimY, int dimZ);
 float mask_region_mean(float *Input, unsigned char *MASK, float *maskreg_mean, long dimX, long dimY);
 float mask_update(float *Input, unsigned char *MASK, float *maskreg_mean, float threhsold, long dimX, long dimY);
+float mask_update3D(float *Input, unsigned char *MASK, float threhsold, long dimX, long dimY, long dimZ);
 /************2D functions ***********/
 #ifdef __cplusplus
 }
