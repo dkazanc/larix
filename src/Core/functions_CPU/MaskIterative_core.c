@@ -58,7 +58,7 @@ float MASK_flat_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_o
     /* iteratively updating 3D mask */
     for(i=0; i<iterations; i++) {
       mask_update3D(Input, MASK_out, threhsold, (long)(dimX), (long)(dimY), (long)(dimZ));
-    }
+      }
     }
 
     free(maskreg_mean);
