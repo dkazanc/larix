@@ -94,7 +94,7 @@ float mask_update(float *Input, unsigned char *MASK, float *maskreg_mean, float 
 {
     int index, j, i, i_s, i_n, j_e, j_w;
 
-#pragma omp parallel for shared (Input, MASK) private(index, j, i, i_s, i_n, j_e, j_w)
+#pragma omp parallel for shared (Input, MASK, maskreg_mean, method) private(index, j, i, i_s, i_n, j_e, j_w)
     for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
         i_s = i + 1;
@@ -156,7 +156,7 @@ float mask_update3D(float *Input, unsigned char *MASK, float *maskreg_mean, floa
 {
     int index, j, i, k, i_s, i_n, j_e, j_w, k_u, k_d;
 
-#pragma omp parallel for shared (Input, MASK) private(index, j, i, k, i_s, i_n, j_e, j_w, k_u, k_d)
+#pragma omp parallel for shared (Input, MASK, maskreg_mean, method) private(index, j, i, k, i_s, i_n, j_e, j_w, k_u, k_d)
     for(k=0; k<dimZ; k++) {
       for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
