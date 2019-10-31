@@ -1,11 +1,7 @@
 /*
- * This work is part of the Core Imaging Library developed by
- * Visual Analytics and Imaging System Group of the Science Technology
- * Facilities Council, STFC
  *
- * Copyright 2017 Daniil Kazantsev
- * Copyright 2017 Srikanth Nagella, Edoardo Pasca
- *
+ * Copyright 2019 Daniil Kazantsev
+  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -60,7 +56,7 @@ float MASK_flat_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_o
 
     /* iteratively updating 3D mask */
     for(i=0; i<iterations; i++) {
-      mask_update3D(Input, MASK_out, threhsold, method, (long)(dimX), (long)(dimY), (long)(dimZ));
+      mask_update3D(Input, MASK_out, maskreg_mean, threhsold, method, (long)(dimX), (long)(dimY), (long)(dimZ));
       }
     }
     free(maskreg_mean);
