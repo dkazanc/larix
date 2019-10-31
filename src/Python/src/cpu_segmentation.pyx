@@ -16,7 +16,7 @@ import numpy as np
 cimport numpy as np
 
 cdef extern float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, unsigned char *ComboClasses, int tot_combinations, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
-cdef extern float MASK_flat_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_out, float threhsold, int iterations, int dimX, int dimY, int dimZ);
+cdef extern float MASK_flat_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_out, float threhsold, int iterations, int method, int dimX, int dimY, int dimZ);
 ##############################################################################
 #****************************************************************#
 #********Mask (segmented image) correction module **************#
@@ -113,16 +113,17 @@ def MASK_CORR_3D(np.ndarray[np.uint8_t, ndim=3, mode="c"] maskData,
     return mask_upd
 
 
-def MASK_ITERATE(Input, maskData, threhsold, iterationsNumb):
+def MASK_ITERATE(Input, maskData, threhsold, iterationsNumb, method):
     if maskData.ndim == 2:
-        return MASK_ITERATE_2D(Input, maskData, threhsold, iterationsNumb)
+        return MASK_ITERATE_2D(Input, maskData, threhsold, iterationsNumb, method)
     elif maskData.ndim == 3:
-        return MASK_ITERATE_3D(Input, maskData, threhsold, iterationsNumb)
+        return MASK_ITERATE_3D(Input, maskData, threhsold, iterationsNumb, method)
 
 def MASK_ITERATE_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
                     np.ndarray[np.uint8_t, ndim=2, mode="c"] MASK_in,
                      float threhsold,
-                     int iterationsNumb):
+                     int iterationsNumb,
+                     int method):
 
     cdef long dims[2]
     dims[0] = Input.shape[0]
@@ -132,13 +133,14 @@ def MASK_ITERATE_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
             np.zeros([dims[0],dims[1]], dtype='uint8')
 
     MASK_flat_main(&Input[0,0], &MASK_in[0,0], &MASK_out[0,0], threhsold,
-                    iterationsNumb, dims[1], dims[0], 1)
+                    iterationsNumb, method, dims[1], dims[0], 1)
     return MASK_out
 
 def MASK_ITERATE_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
                     np.ndarray[np.uint8_t, ndim=3, mode="c"] MASK_in,
                      float threhsold,
-                     int iterationsNumb):
+                     int iterationsNumb,
+                     int method):
 
     cdef long dims[3]
     dims[0] = Input.shape[0]
@@ -149,5 +151,5 @@ def MASK_ITERATE_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
             np.zeros([dims[0],dims[1],dims[2]], dtype='uint8')
 
     MASK_flat_main(&Input[0,0,0], &MASK_in[0,0,0], &MASK_out[0,0,0], threhsold,
-                    iterationsNumb, dims[2], dims[1], dims[0])
+                    iterationsNumb, method, dims[2], dims[1], dims[0])
     return MASK_out

@@ -32,7 +32,7 @@
  *
  */
 
-float MASK_flat_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_out, float threhsold, int iterations, int dimX, int dimY, int dimZ)
+float MASK_flat_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_out, float threhsold, int iterations, int method, int dimX, int dimY, int dimZ)
 {
     int i;
     float *maskreg_mean;
@@ -45,22 +45,24 @@ float MASK_flat_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_o
     if (dimZ == 1) {
       /*2D version*/
       /* calculate mean inside given MASK */
-      mask_region_mean(Input, MASK_out, maskreg_mean, (long)(dimX), (long)(dimY));
+      if (method == 0) mask_region_mean(Input, MASK_out, maskreg_mean, (long)(dimX), (long)(dimY));
 
       /* iteratively updating mask */
       for(i=0; i<iterations; i++) {
-        mask_update(Input, MASK_out, maskreg_mean, threhsold, (long)(dimX), (long)(dimY));
+        mask_update(Input, MASK_out, maskreg_mean, threhsold, method, (long)(dimX), (long)(dimY));
       }
     //printf("%f\n", maskreg_mean[0]);
       }
     else {
     /*3D version*/
+    /* calculate mean inside given MASK */
+    if (method == 0) mask_region_mean3D(Input, MASK_out, maskreg_mean, (long)(dimX), (long)(dimY), (long)(dimZ));
+
     /* iteratively updating 3D mask */
     for(i=0; i<iterations; i++) {
-      mask_update3D(Input, MASK_out, threhsold, (long)(dimX), (long)(dimY), (long)(dimZ));
+      mask_update3D(Input, MASK_out, threhsold, method, (long)(dimX), (long)(dimY), (long)(dimZ));
       }
     }
-
     free(maskreg_mean);
     return *MASK_out;
 }
@@ -92,7 +94,7 @@ float mask_region_mean(float *Input, unsigned char *MASK, float *maskreg_mean, l
     return *maskreg_mean;
 }
 
-float mask_update(float *Input, unsigned char *MASK, float *maskreg_mean, float threhsold, long dimX, long dimY)
+float mask_update(float *Input, unsigned char *MASK, float *maskreg_mean, float threhsold, int method, long dimX, long dimY)
 {
     int index, j, i, i_s, i_n, j_e, j_w;
 
@@ -109,12 +111,19 @@ float mask_update(float *Input, unsigned char *MASK, float *maskreg_mean, float 
         /* find where closest pixels of the mask equal to 1 */
         if ((MASK[j*dimX+i_s] == 1) || (MASK[j*dimX+i_n] == 1) || (MASK[j_e*dimX+i] == 1) || (MASK[j_w*dimX+i] == 1)) {
         /* test the central pixel if it belongs to the same class */
-        // if (fabs(Input[index] - maskreg_mean[0]) <=  threhsold) {
-        if (fabs(Input[index]) <=  threhsold) {
-        /* make the central pixel part of the mask */
-            MASK[index] = 1;
+        if (method == 0) {
+            if (fabs(Input[index] - maskreg_mean[0]) <=  threhsold) {
+              /* make the central pixel part of the mask */
+                  MASK[index] = 1;
                 }
-            }
+        }
+        else {
+          if (fabs(Input[index]) <=  threhsold) {
+          /* make the central pixel part of the mask */
+              MASK[index] = 1;
+                  }
+        }
+          }
         }
     }}
     return *MASK;
@@ -123,7 +132,31 @@ float mask_update(float *Input, unsigned char *MASK, float *maskreg_mean, float 
 /********************************************************************/
 /***************************3D Functions*****************************/
 /********************************************************************/
-float mask_update3D(float *Input, unsigned char *MASK, float threhsold, long dimX, long dimY, long dimZ)
+float mask_region_mean3D(float *Input, unsigned char *MASK, float *maskreg_mean, long dimX, long dimY, long dimZ)
+{
+    float mean_final, cur_val;
+    int index, j, i, k, counter;
+
+    mean_final = 0.0f;
+    counter = 0;
+
+  for(k=0; k<dimZ; k++) {
+    for(j=0; j<dimY; j++) {
+        for(i=0; i<dimX; i++) {
+        index = (dimX*dimY)*k + j*dimX+i;
+        cur_val = Input[index]*(float)(MASK[index]);
+        if (cur_val != 0.0f) {
+        mean_final += cur_val;
+        counter++; }
+    }}}
+    if (counter != 0) {
+        maskreg_mean[0] = mean_final/counter;
+    }
+    else maskreg_mean[0] = 0.0f;
+    return *maskreg_mean;
+}
+
+float mask_update3D(float *Input, unsigned char *MASK, float threhsold, int method, long dimX, long dimY, long dimZ)
 {
     int index, j, i, k, i_s, i_n, j_e, j_w, k_u, k_d;
 
@@ -143,11 +176,18 @@ float mask_update3D(float *Input, unsigned char *MASK, float threhsold, long dim
         /* find where closest pixels of the mask equal to 1 */
         if ((MASK[(dimX*dimY)*k + j*dimX+i_s] == 1) || (MASK[(dimX*dimY)*k + j*dimX+i_n] == 1) || (MASK[(dimX*dimY)*k + j_e*dimX+i] == 1) || (MASK[(dimX*dimY)*k + j_w*dimX+i] == 1) || (MASK[(dimX*dimY)*k_d + j*dimX+i] == 1) || (MASK[(dimX*dimY)*k_u + j*dimX+i] == 1)) {
         /* test the central pixel if it belongs to the same class */
-        // if (fabs(Input[index] - maskreg_mean[0]) <=  threhsold) {
-        if (fabs(Input[index]) <=  threhsold) {
-        /* make the central pixel part of the mask */
-            MASK[index] = 1;
+        if (method == 0) {
+            if (fabs(Input[index] - maskreg_mean[0]) <=  threhsold) {
+              /* make the central pixel part of the mask */
+                  MASK[index] = 1;
                 }
+        }
+        else {
+          if (fabs(Input[index]) <=  threhsold) {
+          /* make the central pixel part of the mask */
+              MASK[index] = 1;
+                  }
+        }
             }
         }
     }}}
