@@ -156,7 +156,7 @@ float mask_region_mean3D(float *Input, unsigned char *MASK, float *maskreg_mean,
     return *maskreg_mean;
 }
 
-float mask_update3D(float *Input, unsigned char *MASK, float threhsold, int method, long dimX, long dimY, long dimZ)
+float mask_update3D(float *Input, unsigned char *MASK, float *maskreg_mean, float threhsold, int method, long dimX, long dimY, long dimZ)
 {
     int index, j, i, k, i_s, i_n, j_e, j_w, k_u, k_d;
 

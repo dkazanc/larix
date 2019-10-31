@@ -34,7 +34,7 @@ float mask_region_mean(float *Input, unsigned char *MASK, float *maskreg_mean, l
 float mask_update(float *Input, unsigned char *MASK, float *maskreg_mean, float threhsold, int method, long dimX, long dimY);
 /************3D functions ***********/
 float mask_region_mean3D(float *Input, unsigned char *MASK, float *maskreg_mean, long dimX, long dimY, long dimZ);
-float mask_update3D(float *Input, unsigned char *MASK, float threhsold, int method, long dimX, long dimY, long dimZ);
+float mask_update3D(float *Input, unsigned char *MASK, float *maskreg_mean, float threhsold, int method, long dimX, long dimY, long dimZ);
 #ifdef __cplusplus
 }
 #endif
