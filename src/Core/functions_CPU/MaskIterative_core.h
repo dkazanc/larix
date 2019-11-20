@@ -27,10 +27,12 @@ extern "C" {
 #endif
 float MASK_flat_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_out, float threhsold, int iterations, int method, int dimX, int dimY, int dimZ);
 /************2D functions ***********/
-float mask_region_mean(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY);
+float mask_region_MADmean(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY);
+float mask_region_MADmedian(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY);
 float mask_update(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, int method, long dimX, long dimY);
 /************3D functions ***********/
-float mask_region_mean3D(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY, long dimZ);
+float mask_region_MADmean3D(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY, long dimZ);
+float mask_region_MADmedian3D(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY, long dimZ);
 float mask_update3D(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, int method, long dimX, long dimY, long dimZ);
 #ifdef __cplusplus
 }

@@ -27,13 +27,21 @@
  * [1] Updated mask (segmentation)
  *
  */
+ 
+void swap(float *xp, float *yp)
+{
+    float temp = *xp;
+    *xp = *yp;
+    *yp = temp;
+}
+
 
 float MASK_flat_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_out, float threhsold, int iterations, int method, int dimX, int dimY, int dimZ)
 {
     int i;
     float *maskreg_value;
 
-    maskreg_value = (float*) calloc (1,sizeof(float));
+    maskreg_value = (float*) calloc (2,sizeof(float));
 
     /* copy given MASK to MASK_out*/
     copyIm_unchar(MASK_in, MASK_out, (long)(dimX), (long)(dimY), (long)(dimZ));
@@ -41,8 +49,8 @@ float MASK_flat_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_o
     if (dimZ == 1) {
       /*2D version*/
       /* calculate mean inside given MASK */
-      if (method == 0) mask_region_mean(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY));
-      if (method == 2) mask_region_max_var(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY));
+      if (method == 0) mask_region_MADmean(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY));
+      if (method == 2) mask_region_MADmedian(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY));
 
       /* iteratively updating mask */
       for(i=0; i<iterations; i++) {
@@ -53,8 +61,9 @@ float MASK_flat_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_o
     else {
     /*3D version*/
     /* calculate mean inside given MASK */
-    if (method == 0) mask_region_mean3D(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY), (long)(dimZ));
-
+    if (method == 0) mask_region_MADmean3D(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY), (long)(dimZ));
+    if (method == 2) mask_region_MADmedian3D(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY), (long)(dimZ));
+    
     /* iteratively updating 3D mask */
     for(i=0; i<iterations; i++) {
       mask_update3D(Input, MASK_out, maskreg_value, threhsold, method, (long)(dimX), (long)(dimY), (long)(dimZ));
@@ -68,63 +77,101 @@ float MASK_flat_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_o
 /********************************************************************/
 /***************************2D Functions*****************************/
 /********************************************************************/
-float mask_region_mean(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY)
+
+float mask_region_MADmean(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY)
 {
-    float mean_final, cur_val;
+    float mean_final, sum_residual;
     int index, j, i, counter;
 
     mean_final = 0.0f;
+    sum_residual = 0.0f;
     counter = 0;
-
     for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
         index = j*dimX+i;
-        cur_val = Input[index]*(float)(MASK[index]);
-        if (cur_val != 0.0f) {
-        mean_final += cur_val;
+        if (MASK[index] != 0) {
+        mean_final += Input[index];
         counter++; }
     }}
     if (counter != 0) {
-        maskreg_value[0] = mean_final/counter;
+    mean_final /= counter;
+    
+    /* here we obtain the mean absolute deviation value within the mask */
+    for(j=0; j<dimY; j++) {
+        for(i=0; i<dimX; i++) {
+        index = j*dimX+i;
+        if (MASK[index] != 0) sum_residual += fabs(Input[index] - mean_final);
+    }}
+    sum_residual /= counter;
+    
+    maskreg_value[0] = mean_final;
+    maskreg_value[1] = 1.4826*sum_residual;
     }
-    else maskreg_value[0] = 0.0f;
+    else {
+    maskreg_value[0] = 0.0;
+    maskreg_value[1] = 0.0;
+    }
     return *maskreg_value;
 }
 
-
-float mask_region_max_var(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY)
+float mask_region_MADmedian(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY)
 {
-    float mean_final, max_residual, cur_val;
-    int index, j, i, counter;
+    float *Values_Vec, median_final, MAD_abs_final;
+    int index, j, i, x, y, counter, midval;
 
-    mean_final = 0.0f;
+    median_final = 0.0f;
     counter = 0;
     for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
         index = j*dimX+i;
-        cur_val = Input[index]*(float)(MASK[index]);
-        if (cur_val != 0.0f) {
-        mean_final += cur_val;
+        if (MASK[index] != 0) {
         counter++; }
     }}
-    if (mean_final != 0)  mean_final = mean_final/counter;
-    else mean_final = 0.0f;
-
-    /* here we obtain the maximum difference value in the mask */
-    max_residual = 0.0f;
+    
+    Values_Vec = (float*) calloc (counter, sizeof(float));
+    counter = 0;
     for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
         index = j*dimX+i;
-        cur_val = Input[index]*(float)(MASK[index]);
-        if (cur_val != 0.0f) {
-        temp_res = fabs(Input[index] - mean_final);
-        if (temp_res > max_residual) max_residual = temp_res;
-      }
+        if (MASK[index] != 0) {
+        Values_Vec[counter] = Input[index];
+        counter++; }
     }}
-
-    maskreg_value[0] = max_residual;
+    
+    midval = (int)(0.5f*counter) - 1;
+    if (counter != 0) {
+    /* perform sorting of the vector array */
+    for (x = 0; x < counter-1; x++)  {
+        for (y = 0; y < counter-x-1; y++)  {
+            if (Values_Vec[y] > Values_Vec[y+1]) {
+                swap(&Values_Vec[y], &Values_Vec[y+1]);
+            }}}
+    median_final = Values_Vec[midval];
+    
+    counter = 0;
+    for(j=0; j<dimY; j++) {
+        for(i=0; i<dimX; i++) {
+        index = j*dimX+i;
+        if (MASK[index] != 0) {
+        Values_Vec[counter] = fabs(Input[index] - median_final);
+        counter++;}
+    }}
+    /* perform sorting of the vector array */
+    for (x = 0; x < counter-1; x++)  {
+        for (y = 0; y < counter-x-1; y++)  {
+            if (Values_Vec[y] > Values_Vec[y+1]) {
+                swap(&Values_Vec[y], &Values_Vec[y+1]);
+            }}}
+    MAD_abs_final = Values_Vec[midval];
+    
+    maskreg_value[0] = median_final;
+    maskreg_value[1] = 1.4826*MAD_abs_final;
+    }
+    free(Values_Vec);
     return *maskreg_value;
 }
+
+
 
 float mask_update(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, int method, long dimX, long dimY)
 {
@@ -143,24 +190,17 @@ float mask_update(float *Input, unsigned char *MASK, float *maskreg_value, float
         /* find where closest pixels of the mask equal to 1 */
         if ((MASK[j*dimX+i_s] == 1) || (MASK[j*dimX+i_n] == 1) || (MASK[j_e*dimX+i] == 1) || (MASK[j_w*dimX+i] == 1)) {
         /* test the central pixel if it belongs to the same class */
-        if (method == 0) {
-            if (fabs(Input[index] - maskreg_value[0]) <=  threhsold) {
+        if ((method == 0) || (method == 2)) {
+            if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
               /* make the central pixel part of the mask */
                   MASK[index] = 1;
                 }
-          }
-          /******************************FINISH HERE*****/
-        else if (method == 2) {
-          if (fabs(Input[index] - maskreg_value[0]) <=  threhsold) {
-            /* make the central pixel part of the mask */
-                MASK[index] = 1;
-              }
         }
         else {
           if (fabs(Input[index]) <=  threhsold) {
           /* make the central pixel part of the mask */
               MASK[index] = 1;
-                  }
+            }
         }
           }
         }
@@ -171,27 +211,102 @@ float mask_update(float *Input, unsigned char *MASK, float *maskreg_value, float
 /********************************************************************/
 /***************************3D Functions*****************************/
 /********************************************************************/
-float mask_region_mean3D(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY, long dimZ)
+float mask_region_MADmean3D(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY, long dimZ)
 {
-    float mean_final, cur_val;
+    float mean_final, sum_residual;
     int index, j, i, k, counter;
 
     mean_final = 0.0f;
+    sum_residual = 0.0f;
     counter = 0;
 
   for(k=0; k<dimZ; k++) {
     for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
         index = (dimX*dimY)*k + j*dimX+i;
-        cur_val = Input[index]*(float)(MASK[index]);
-        if (cur_val != 0.0f) {
-        mean_final += cur_val;
+        if (MASK[index] != 0) {
+        mean_final += Input[index];
         counter++; }
     }}}
     if (counter != 0) {
-        maskreg_value[0] = mean_final/counter;
+    mean_final /= counter;
+    /* here we obtain the mean absolute deviation value within the mask */
+   for(k=0; k<dimZ; k++) {
+    for(j=0; j<dimY; j++) {
+        for(i=0; i<dimX; i++) {
+        index = (dimX*dimY)*k + j*dimX+i;
+        if (MASK[index] != 0) sum_residual += fabs(Input[index] - mean_final);
+    }}}
+    sum_residual /= counter;
+    
+    maskreg_value[0] = mean_final;
+    maskreg_value[1] = 1.4826*sum_residual;
     }
-    else maskreg_value[0] = 0.0f;
+    else {
+    maskreg_value[0] = 0.0;
+    maskreg_value[1] = 0.0;
+    }
+    return *maskreg_value;
+}
+
+
+float mask_region_MADmedian3D(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY, long dimZ)
+{
+    float *Values_Vec, median_final, MAD_abs_final;
+    int index, j, i, k, x, y, counter, midval;
+
+    median_final = 0.0f;
+    counter = 0;
+   for(k=0; k<dimZ; k++) {
+    for(j=0; j<dimY; j++) {
+        for(i=0; i<dimX; i++) {
+        index = (dimX*dimY)*k + j*dimX+i;
+        if (MASK[index] != 0) {
+        counter++; }
+    }}}
+    
+    Values_Vec = (float*) calloc (counter, sizeof(float));
+    counter = 0;
+  for(k=0; k<dimZ; k++) {
+    for(j=0; j<dimY; j++) {
+        for(i=0; i<dimX; i++) {
+        index = (dimX*dimY)*k + j*dimX+i;
+        if (MASK[index] != 0) {
+        Values_Vec[counter] = Input[index];
+        counter++; }
+    }}}
+    
+    midval = (int)(0.5f*counter) - 1;
+    if (counter != 0) {
+    /* perform sorting of the vector array */
+    for (x = 0; x < counter-1; x++)  {
+        for (y = 0; y < counter-x-1; y++)  {
+            if (Values_Vec[y] > Values_Vec[y+1]) {
+                swap(&Values_Vec[y], &Values_Vec[y+1]);
+            }}}
+    median_final = Values_Vec[midval];
+    
+    counter = 0;
+    for(k=0; k<dimZ; k++) {
+        for(j=0; j<dimY; j++) {
+            for(i=0; i<dimX; i++) {
+            index = (dimX*dimY)*k + j*dimX+i;
+        if (MASK[index] != 0) {
+        Values_Vec[counter] = fabs(Input[index] - median_final);
+        counter++;}
+    }}}
+    /* perform sorting of the vector array */
+    for (x = 0; x < counter-1; x++)  {
+        for (y = 0; y < counter-x-1; y++)  {
+            if (Values_Vec[y] > Values_Vec[y+1]) {
+                swap(&Values_Vec[y], &Values_Vec[y+1]);
+            }}}
+    MAD_abs_final = Values_Vec[midval];
+    
+    maskreg_value[0] = median_final;
+    maskreg_value[1] = 1.4826*MAD_abs_final;
+    }
+    free(Values_Vec);
     return *maskreg_value;
 }
 
@@ -215,11 +330,11 @@ float mask_update3D(float *Input, unsigned char *MASK, float *maskreg_value, flo
         /* find where closest pixels of the mask equal to 1 */
         if ((MASK[(dimX*dimY)*k + j*dimX+i_s] == 1) || (MASK[(dimX*dimY)*k + j*dimX+i_n] == 1) || (MASK[(dimX*dimY)*k + j_e*dimX+i] == 1) || (MASK[(dimX*dimY)*k + j_w*dimX+i] == 1) || (MASK[(dimX*dimY)*k_d + j*dimX+i] == 1) || (MASK[(dimX*dimY)*k_u + j*dimX+i] == 1)) {
         /* test the central pixel if it belongs to the same class */
-        if (method == 0) {
-            if (fabs(Input[index] - maskreg_value[0]) <=  threhsold) {
+        if ((method == 0) || (method == 2)) {
+            if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
               /* make the central pixel part of the mask */
                   MASK[index] = 1;
-                }
+            }
         }
         else {
           if (fabs(Input[index]) <=  threhsold) {
