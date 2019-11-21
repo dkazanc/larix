@@ -23,7 +23,7 @@ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:../lib
 Install from the channel with `conda install -c dkazanc i23-seg` or build with:
 ```
 export VERSION=`date +%Y.%m`
-conda build recipe/ --numpy 1.14 --python 2.7  
+conda build recipe/ --numpy 1.15 --python 2.7  
 conda install i23-seg --use-local --force-reinstall
 ```
 Additionaly you can also run/modify `conda_install.sh` for automatic conda build/install

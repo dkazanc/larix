@@ -140,9 +140,9 @@ lc = Rectools.powermethod() # calculate Lipschitz constant (run once to initilis
 #%%
 RecFISTA_Huber3D = Rectools.FISTA(data_norm[:,:,det_y_crop], \
                               iterationsFISTA = 20, \
-                              huber_data_threshold = 0.02,\
+                              huber_data_threshold = 0.03,\
                               regularisation = 'ROF_TV', \
-                              regularisation_parameter = 0.000003,\
+                              regularisation_parameter = 0.000007,\
                               regularisation_iterations = 300,\
                               lipschitz_const = lc)
 
@@ -155,7 +155,7 @@ RecFISTA_HuberRing3D = Rectools.FISTA(data_norm[:,:,det_y_crop], \
                               iterationsFISTA = 20, \
                               huber_data_threshold = 0.03,\
                               ring_model_horiz_size= 9, \
-                              ring_model_vert_size = 1,\
+                              ring_model_slices_size = 2,\
                               regularisation = 'ROF_TV', \
                               regularisation_parameter = 0.000007,\
                               regularisation_iterations = 300,\
