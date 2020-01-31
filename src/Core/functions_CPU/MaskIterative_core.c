@@ -320,7 +320,7 @@ float mask_update_con4(float *Input, unsigned char *MASK_conditional, unsigned c
         if (MASK_conditional[index] == 0) {
         if (((i_n >= 0) && (i_s < dimX)) && ((j_w >= 0) && (j_e < dimY))) {
         /* find if the closest pixels of the mask are equal to 1 */
-        if ((MASK[j*dimX+i_s] == 1) || (MASK[j*dimX+i_n] == 1) || (MASK[j_e*dimX+i] == 1) || (MASK[j_w*dimX+i] == 1)) {
+        if ((MASK[j*dimX+i_s] > 0) || (MASK[j*dimX+i_n] > 0) || (MASK[j_e*dimX+i] > 0) || (MASK[j_w*dimX+i] > 0)) {
         /* test if the central pixel also belongs to the same class  as the neighbourhood*/
         if ((method == 1) || (method == 2)) {
             if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
@@ -358,7 +358,7 @@ float mask_update_con8(float *Input, unsigned char *MASK_conditional,  unsigned 
                 if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
 
               /* find if the closest pixels of the mask are equal to 1 */
-               if (MASK[j1*dimX+i1] == 1) {
+               if (MASK[j1*dimX+i1] > 0) {
               /* test if the central pixel also belongs to the same class  as the neighbourhood*/
               if ((method == 1) || (method == 2)) {
                   if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
@@ -657,7 +657,7 @@ float mask_update_con3D_4(float *Input, unsigned char *MASK_conditional, unsigne
         if (MASK_conditional[index] == 0) {
         if (((i_n >= 0) && (i_s < dimX)) && ((j_w >= 0) && (j_e < dimY))) {
           /* find if the closest pixels of the mask are equal to 1 */
-        if ((MASK[(dimX*dimY)*k + j*dimX+i_s] == 1) || (MASK[(dimX*dimY)*k + j*dimX+i_n] == 1) || (MASK[(dimX*dimY)*k + j_e*dimX+i] == 1) || (MASK[(dimX*dimY)*k + j_w*dimX+i] == 1)) {
+        if ((MASK[(dimX*dimY)*k + j*dimX+i_s] > 0) || (MASK[(dimX*dimY)*k + j*dimX+i_n] > 0) || (MASK[(dimX*dimY)*k + j_e*dimX+i] > 0) || (MASK[(dimX*dimY)*k + j_w*dimX+i] > 0)) {
         /* test if the central pixel also belongs to the same class  as the neighbourhood*/
         if ((method == 1) || (method == 2)) {
             if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
@@ -698,18 +698,18 @@ float mask_update_con3D_6(float *Input, unsigned char *MASK_conditional, unsigne
         if (MASK_conditional[index] == 0) {
         if (((i_n >= 0) && (i_s < dimX)) && ((j_w >= 0) && (j_e < dimY)) && ((k_d >= 0) && (k_u < dimZ))) {
         /* find if the closest pixels of the mask are equal to 1 */
-        if ((MASK[(dimX*dimY)*k + j*dimX+i_s] == 1) || (MASK[(dimX*dimY)*k + j*dimX+i_n] == 1) || (MASK[(dimX*dimY)*k + j_e*dimX+i] == 1) || (MASK[(dimX*dimY)*k + j_w*dimX+i] == 1) || (MASK[(dimX*dimY)*k_d + j*dimX+i] == 1) || (MASK[(dimX*dimY)*k_u + j*dimX+i] == 1)) {
+        if ((MASK[(dimX*dimY)*k + j*dimX+i_s] > 0) || (MASK[(dimX*dimY)*k + j*dimX+i_n] > 0) || (MASK[(dimX*dimY)*k + j_e*dimX+i] > 0) || (MASK[(dimX*dimY)*k + j_w*dimX+i] > 0) || (MASK[(dimX*dimY)*k_d + j*dimX+i] > 0) || (MASK[(dimX*dimY)*k_u + j*dimX+i] > 0)) {
         /* test if the central pixel also belongs to the same class  as the neighbourhood*/
         if ((method == 1) || (method == 2)) {
 		
-		counter = 0;
+	counter = 0;
         for(k_m=-1; k_m<=1; k_m++) {
           for(j_m=-1; j_m<=1; j_m++) {
             for(i_m=-1; i_m<=1; i_m++) {
               i1 = i+i_m;
               j1 = j+j_m;
               k1 = k+k_m;
-              if (MASK_conditional[(dimX*dimY)*k1 + j1*dimX+i1] == 1) counter++;
+              if (MASK_conditional[(dimX*dimY)*k1 + j1*dimX+i1] > 0) counter++;
 		  }}}
 
             if ((fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) || (counter == 0)) {
@@ -749,7 +749,7 @@ float mask_update_con3D_8(float *Input, unsigned char *MASK_conditional, unsigne
               if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
 
                 /* find if the closest pixels of the mask are equal to 1 */
-                if (MASK[(dimX*dimY)*k + j1*dimX+i1] == 1) {
+                if (MASK[(dimX*dimY)*k + j1*dimX+i1] > 0) {
                 /* test if the central pixel also belongs to the same class  as the neighbourhood*/
                 if ((method == 1) || (method == 2)) {
                   if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
@@ -794,7 +794,7 @@ float mask_update_con3D_26(float *Input, unsigned char *MASK_conditional,  unsig
               k1 = k+k_m;
               if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY)) && ((k1 >= 0) && (k1 < dimZ))) {
               /* find if the closest pixels of the mask are equal to 1 */
-              if (MASK[(dimX*dimY)*k1 + j1*dimX+i1] == 1) {
+              if (MASK[(dimX*dimY)*k1 + j1*dimX+i1] > 0) {
                 /* test if the central pixel also belongs to the same class as the neighbourhood*/
                 if ((method == 1) || (method == 2)) {
                   if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
