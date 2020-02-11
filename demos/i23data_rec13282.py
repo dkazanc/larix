@@ -35,7 +35,7 @@ plt.show()
 #%%
 # normalising the data
 starind = 0
-vert_select = [i for i in range(starind,starind+30)] # selection for normalaiser
+vert_select = [i for i in range(starind,starind+60)] # selection for normalaiser
 data_norm = normaliser(data_raw[:,vert_select,:], flats[:,vert_select,:], darks[:,vert_select,:], log='log')
 
 data_norm = np.swapaxes(np.swapaxes(data_norm,2,0),2,1)
@@ -45,7 +45,7 @@ plt.title('Normalised projection')
 #%%
 # Reconstructing normalised data
 N_size = 1000
-slice_to_rec =10
+slice_to_rec =10 
 detectHoriz, anglesNum, slices = np.shape(data_norm)
 det_y_crop = [i for i in range(17,detectHoriz-70)]
 
@@ -54,7 +54,7 @@ RectoolsDIR = RecToolsDIR(DetectorsDimH = np.size(det_y_crop),  # DetectorsDimH 
                     CenterRotOffset = None,
                     AnglesVec = angles_rad, # array of angles in radians
                     ObjSize = N_size, # a scalar to define reconstructed object dimensions
-                    device='gpu')
+                    device_projector='gpu')
 
 FBP = RectoolsDIR.FBP(np.transpose(data_norm[det_y_crop,:,slice_to_rec]))
 
@@ -71,23 +71,33 @@ Rectools = RecToolsIR(DetectorsDimH = np.size(det_y_crop),  # DetectorsDimH # de
                     AnglesVec = angles_rad, # array of angles in radians
                     ObjSize = N_size, # a scalar to define reconstructed object dimensions
                     datafidelity='LS',# data fidelity, choose LS, PWLS, GH (wip), Student (wip)
-                    nonnegativity='ENABLE', # enable nonnegativity constraint (set to 'ENABLE')
-                    OS_number = 6, # the number of subsets, NONE/(or > 1) ~ classical / ordered subsets
-                    tolerance = 1e-11, # tolerance to stop outer iterations earlier
-                    device='gpu')
-lc = Rectools.powermethod() # calculate Lipschitz constant (run once to initilise)
+                    OS_number = None, # the number of subsets, NONE/(or > 1) ~ classical / ordered subsets
+                    device_projector='gpu')
+
+# prepare dictionaries with parameters:
+_data_ = {'projection_norm_data' : np.transpose(data_norm[det_y_crop,:,slice_to_rec])} # data dictionary
+lc = Rectools.powermethod(_data_) # calculate Lipschitz constant (run once to initialise)
+
+# Run FISTA-OS reconstrucion algorithm without regularisation
+_algorithm_ = {'iterations' : 250,
+               'lipschitz_const' : lc}
+RecFISTA_os = Rectools.FISTA(_data_, _algorithm_, {})
 #%%
-RecFISTA = Rectools.FISTA(np.transpose(data_norm[det_y_crop,:,slice_to_rec]), \
-                              iterationsFISTA = 25, \
-                              #huber_data_threshold = 0.05,\
-                              #student_data_threshold = 0.95,\
-                              regularisation = 'FGP_TV', \
-                              regularisation_parameter = 0.000001,\
-                              regularisation_iterations = 300,\
-                              lipschitz_const = lc)
+# adding regularisation
+_regularisation_ = {'method' : 'FGP_TV',
+                    'regul_param' : 0.0000015,
+                    'iterations' : 200,
+                    'methodTV' : 1,                    
+                    'device_regulariser': 'gpu'}
+
+_data_.update({'huber_threshold' : 0.03})
+_data_.update({'ring_weights_threshold' : 0.01,
+               'ring_tuple_halfsizes': (9,4,0)}) 
+
+RecFISTAreg = Rectools.FISTA(_data_, _algorithm_, _regularisation_)
 
 plt.figure()
-plt.imshow(RecFISTA, vmin=-0.001, vmax=0.005, cmap="gray")
+plt.imshow(RecFISTAreg, vmin=-0.001, vmax=0.005, cmap="gray")
 plt.title('Iterative FISTA-TV reconstruction')
 plt.show()
 #%%
