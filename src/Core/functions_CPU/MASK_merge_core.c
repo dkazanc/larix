@@ -201,7 +201,7 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
 
 float mask_merge_binary_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, int selectedClass, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ)
 {
-    long i,j,k;
+    long i,j,k,class_no;
     long DimTotal;
     unsigned char *MASK_temp;
     DimTotal = (long)(dimX*dimY*dimZ);
@@ -224,19 +224,21 @@ float mask_merge_binary_main(unsigned char *MASK, unsigned char *MASK_upd, unsig
     /* copy the updated MASK (clean of outliers) to MASK_temp*/
     copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));
 
-    #pragma omp parallel for shared(MASK_temp,MASK_upd) private(i,j)
-    for(i=0; i<dimX; i++) {
-        for(j=0; j<dimY; j++) {
+    for(class_no=0; class_no<2; class_no++) {
+    #pragma omp parallel for shared(MASK_temp,MASK_upd, class_no) private(i,j)
+    for(j=0; j<dimY; j++) {
+        for(i=0; i<dimX; i++) {        
       /* The class of the central pixel has not changed, i.e. the central pixel is not an outlier -> continue */
       if (MASK_temp[j*dimX+i] == MASK[j*dimX+i]) {
-	/* !One needs to work with a specific class to avoid overlaps! It is 
-	crucial to establish relevant classes first (given as an input in SelClassesList) */
-       if (MASK_temp[j*dimX+i] == selectedClass) {
+    	/* !One needs to work with a specific class to avoid overlaps! It is 
+    	crucial to establish relevant classes first (given as an input in SelClassesList) */
+       if (MASK_temp[j*dimX+i] == class_no) {
         Mask_update_main2D(MASK_temp, MASK_upd, CORRECTEDRegions, i, j, CorrectionWindow, (long)(dimX), (long)(dimY));
        	  }}
       }}
       /* copy the updated mask */
       copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));            
+         }
       }
     }
     else {
