@@ -169,7 +169,7 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
 	/* !One needs to work with a specific class to avoid overlaps! It is
 	     crucial to establish relevant classes first (given as an input in SelClassesList) */
      if (MASK_temp[(dimX*dimY)*k + j*dimX+i] == ClassesList[SelClassesList[n]]) {
-        Mask_update_main3D(MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, i, j, k, CorrectionWindow, (long)(dimX), (long)(dimY), (long)(dimZ));
+        Mask_update_main3D(MASK_temp, MASK_upd, CORRECTEDRegions, i, j, k, CorrectionWindow, (long)(dimX), (long)(dimY), (long)(dimZ));
        	  }}
       }}}
       /* copy the updated mask */
@@ -201,7 +201,7 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
 
 float mask_merge_binary_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, int selectedClass, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ)
 {
-    long i,j,k;
+    long i,j,k,l;
     long DimTotal;
     unsigned char *MASK_temp;
     DimTotal = (long)(dimX*dimY*dimZ);
@@ -216,11 +216,11 @@ float mask_merge_binary_main(unsigned char *MASK, unsigned char *MASK_upd, unsig
     /* start iterations */
     for(k=0; k<iterationsNumb; k++) {   
     #pragma omp parallel for shared(MASK,MASK_upd) private(i,j)
-    for(i=0; i<dimX; i++) {
-        for(j=0; j<dimY; j++) {
+    for(j=0; j<dimY; j++) {
+        for(i=0; i<dimX; i++) {
     /* STEP1: in a smaller neighbourhood check that the current pixel is NOT an outlier */
     OutiersRemoval2D(MASK, MASK_upd, i, j, (long)(dimX), (long)(dimY));
-    }}
+        }}
     /* copy the updated MASK (clean of outliers) to MASK_temp*/
     copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));
     
@@ -240,6 +240,32 @@ float mask_merge_binary_main(unsigned char *MASK, unsigned char *MASK_upd, unsig
     }
     else {
     /********************** PERFORM 3D MASK PROCESSING ************************/
+    /* start iterations */
+    for(l=0; l<iterationsNumb; l++) {   
+    #pragma omp parallel for shared(MASK,MASK_upd) private(i,j,k)
+    for(k=0; k<dimZ; k++) {
+        for(j=0; j<dimY; j++) {
+            for(i=0; i<dimX; i++) {
+    /* STEP1: in a smaller neighbourhood check that the current pixel is NOT an outlier */
+    OutiersRemoval3D(MASK, MASK_upd, i, j, k, (long)(dimX), (long)(dimY), (long)(dimZ));
+    	}}}
+    /* copy the updated MASK (clean of outliers) */
+    copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));
+        
+    #pragma omp parallel for shared(MASK_temp,MASK_upd,l) private(i,j,k)
+    for(k=0; k<dimZ; k++) {
+        for(j=0; j<dimY; j++) {
+            for(i=0; i<dimX; i++) {
+    /* The class of the central pixel has not changed, i.e. the central pixel is not an outlier -> continue */
+      if (MASK_temp[(dimX*dimY)*k + j*dimX+i] == MASK[(dimX*dimY)*k + j*dimX+i]) {
+	/* !One needs to work with a specific class to avoid overlaps */
+     if (MASK_temp[(dimX*dimY)*k + j*dimX+i] == selectedClass) {
+        Mask_update_main3D(MASK_temp, MASK_upd, CORRECTEDRegions, i, j, k, CorrectionWindow, (long)(dimX), (long)(dimY), (long)(dimZ));
+       	  }}
+      }}}
+      /* copy the updated mask */
+      copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));      
+      } /* iterations terminated*/      
     }   
     free(MASK_temp);
     return *MASK_upd;
@@ -510,7 +536,7 @@ float OutiersRemoval3D(unsigned char *MASK, unsigned char *MASK_upd, long i, lon
       return *MASK_upd;
 }
 
-float Mask_update_main3D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, long i, long j, long k, int CorrectionWindow, long dimX, long dimY, long dimZ)
+float Mask_update_main3D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, long i, long j, long k, int CorrectionWindow, long dimX, long dimY, long dimZ)
 {
   long i_m, j_m, k_m, i1, j1, k1, CounterOtherClass;
 
@@ -545,7 +571,7 @@ float Mask_update_main3D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsi
                /* A and B points belong to the same class, do STEP 4*/
                /* STEP 4: Run the Bresenham line algorithm between A and B points
                and convert all points on the way to the class of A. */
-              bresenham3D_main(i, j, k, i1, j1, k1, MASK_temp, MASK_upd, CORRECTEDRegions, ClassesList, (long)(dimX), (long)(dimY), (long)(dimZ));
+              bresenham3D_main(i, j, k, i1, j1, k1, MASK_temp, MASK_upd, CORRECTEDRegions, (long)(dimX), (long)(dimY), (long)(dimZ));
              }
             }
           }}}
@@ -553,7 +579,7 @@ float Mask_update_main3D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsi
   return *MASK_upd;
 }
 
-int bresenham3D_main(int i, int j, int k, int i1, int j1, int k1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, long dimX, long dimY, long dimZ)
+int bresenham3D_main(int i, int j, int k, int i1, int j1, int k1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, long dimX, long dimY, long dimZ)
 {
     int P1[] = {i, j, k};
     int P2[] = {i1, j1, k1};

@@ -120,7 +120,7 @@ def MASK_CORR_BINARY(maskData, selectedClass, correctionWindow, iterationsNumb):
     if maskData.ndim == 2:
         return MASK_CORR_BIN_2D(maskData, selectedClass, correctionWindow, iterationsNumb)
     elif maskData.ndim == 3:
-        return 0
+        return MASK_CORR_BIN_3D(maskData, selectedClass, correctionWindow, iterationsNumb)
 
 def MASK_CORR_BIN_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,                    
                      int selectedClass,
@@ -140,6 +140,27 @@ def MASK_CORR_BIN_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
     mask_merge_binary_main(&maskData[0,0], &mask_upd[0,0],
                     &corr_regions[0,0], selectedClass, correctionWindow,
                     iterationsNumb, dims[1], dims[0], 1)
+    return mask_upd
+
+def MASK_CORR_BIN_3D(np.ndarray[np.uint8_t, ndim=3, mode="c"] maskData,
+                     int selectedClass,
+                     int correctionWindow,
+                     int iterationsNumb):
+
+    cdef long dims[3]
+    dims[0] = maskData.shape[0]
+    dims[1] = maskData.shape[1]
+    dims[2] = maskData.shape[2]
+
+    cdef np.ndarray[np.uint8_t, ndim=3, mode="c"] mask_upd = \
+            np.zeros([dims[0],dims[1],dims[2]], dtype='uint8')
+    cdef np.ndarray[np.uint8_t, ndim=3, mode="c"] corr_regions = \
+            np.zeros([dims[0],dims[1],dims[2]], dtype='uint8')
+
+   # Run the function to process given MASK
+    mask_merge_binary_main(&maskData[0,0,0], &mask_upd[0,0,0],
+                    &corr_regions[0,0,0], selectedClass, correctionWindow,                    
+                    iterationsNumb, dims[2], dims[1], dims[0])
     return mask_upd
 
 #################################################################
