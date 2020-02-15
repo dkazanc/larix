@@ -241,7 +241,8 @@ float mask_merge_binary_main(unsigned char *MASK, unsigned char *MASK_upd, unsig
     else {
     /********************** PERFORM 3D MASK PROCESSING ************************/
     /* start iterations */
-    for(l=0; l<iterationsNumb; l++) {   
+    long ll;
+    for(l=0; l<iterationsNumb; l++) {
     #pragma omp parallel for shared(MASK,MASK_upd) private(i,j,k)
     for(k=0; k<dimZ; k++) {
         for(j=0; j<dimY; j++) {
@@ -251,22 +252,24 @@ float mask_merge_binary_main(unsigned char *MASK, unsigned char *MASK_upd, unsig
     	}}}
     /* copy the updated MASK (clean of outliers) */
     copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));
-        
-    #pragma omp parallel for shared(MASK_temp,MASK_upd,l) private(i,j,k)
+    
+    for(ll=0; ll<2; ll++) {
+    #pragma omp parallel for shared(MASK_temp,MASK_upd,l,ll) private(i,j,k)
     for(k=0; k<dimZ; k++) {
         for(j=0; j<dimY; j++) {
             for(i=0; i<dimX; i++) {
     /* The class of the central pixel has not changed, i.e. the central pixel is not an outlier -> continue */
       if (MASK_temp[(dimX*dimY)*k + j*dimX+i] == MASK[(dimX*dimY)*k + j*dimX+i]) {
 	/* !One needs to work with a specific class to avoid overlaps */
-     if (MASK_temp[(dimX*dimY)*k + j*dimX+i] == selectedClass) {
+     if (MASK_temp[(dimX*dimY)*k + j*dimX+i] == ll) {
         Mask_update_main3D(MASK_temp, MASK_upd, CORRECTEDRegions, i, j, k, CorrectionWindow, (long)(dimX), (long)(dimY), (long)(dimZ));
        	  }}
       }}}
       /* copy the updated mask */
       copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));      
-      } /* iterations terminated*/      
-    }   
+          } /*end ll*/
+        } /* iterations terminated*/
+    }
     free(MASK_temp);
     return *MASK_upd;
 }
