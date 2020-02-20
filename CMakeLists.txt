@@ -12,10 +12,10 @@
 
 cmake_minimum_required (VERSION 3.0)
 
-project(i23seg)
+project(DIPOLS)
 
-set (i23seg_VERSION $ENV{i23seg_VERSION} CACHE INTERNAL "i23 segmentation modules" FORCE)
-message(STATUS "i23seg_VERSION set to " ${i23seg_VERSION})
+set (DIPOLS_VERSION $ENV{DIPOLS_VERSION} CACHE INTERNAL "i23 segmentation modules" FORCE)
+message(STATUS "DIPOLS_VERSION set to " ${DIPOLS_VERSION})
 
 # set the Python variables for the Conda environment
 option (BUILD_PYTHON_WRAPPER "Build Python Wrappers" ON)
@@ -24,7 +24,7 @@ option (CONDA_BUILD "Conda Build" OFF)
 set(PYTHON_DEST_DIR "" CACHE PATH "Directory of the Python wrappers")
 if (PYTHON_DEST_DIR)
  set(PYTHON_DEST "${PYTHON_DEST_DIR}")
-else() 
+else()
  set(PYTHON_DEST "${CMAKE_INSTALL_PREFIX}/python")
 endif()
 message(STATUS "Python wrappers will be installed in " ${PYTHON_DEST})

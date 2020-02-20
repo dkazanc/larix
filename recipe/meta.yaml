@@ -1,5 +1,5 @@
 package:
-  name: i23-seg
+  name: dipols
   version: {{ environ['VERSION'] }}
 
 
@@ -23,6 +23,6 @@ requirements:
     - libgcc-ng # [unix]
 
 about:
-  home: https://github.com/dkazanc/i23seg
+  home: https://github.com/dkazanc/dipols
   license:  Apache 2 license
-  summary: 'i23 segmentation module'
+  summary: 'A library of image processing methods'
