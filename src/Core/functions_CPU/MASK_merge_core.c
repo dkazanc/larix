@@ -1,11 +1,7 @@
-/*
- * This work is part of the Core Imaging Library developed by
- * Visual Analytics and Imaging System Group of the Science Technology
- * Facilities Council, STFC
+/* This works has been developed at Diamond Light Source Ltd.
  *
  * Copyright 2019 Daniil Kazantsev
- * Copyright 2019 Srikanth Nagella, Edoardo Pasca
- *
+  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -199,9 +195,9 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
 }
 
 
-float mask_merge_binary_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, int selectedClass, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ)
+float mask_morph_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions,  int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ)
 {
-    long i,j,k,l;
+    long i,j,k,l,ll;
     long DimTotal;
     unsigned char *MASK_temp;
     DimTotal = (long)(dimX*dimY*dimZ);
@@ -210,11 +206,11 @@ float mask_merge_binary_main(unsigned char *MASK, unsigned char *MASK_upd, unsig
 
     /* copy given MASK to MASK_upd*/
     copyIm_unchar(MASK, MASK_upd, (long)(dimX), (long)(dimY), (long)(dimZ));
-	
+
     if (dimZ == 1) {
      /********************** PERFORM 2D MASK PROCESSING ************************/
     /* start iterations */
-    for(k=0; k<iterationsNumb; k++) {   
+    for(k=0; k<iterationsNumb; k++) {
     #pragma omp parallel for shared(MASK,MASK_upd) private(i,j)
     for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
@@ -223,25 +219,26 @@ float mask_merge_binary_main(unsigned char *MASK, unsigned char *MASK_upd, unsig
         }}
     /* copy the updated MASK (clean of outliers) to MASK_temp*/
     copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));
-    
-    #pragma omp parallel for shared(MASK_temp,MASK_upd) private(i,j)
+
+    for(ll=0; ll<2; ll++) {
+    #pragma omp parallel for shared(MASK_temp,MASK_upd,k,ll) private(i,j)
     for(j=0; j<dimY; j++) {
-        for(i=0; i<dimX; i++) {        
+        for(i=0; i<dimX; i++) {
       /* The class of the central pixel has not changed, i.e. the central pixel is not an outlier -> continue */
       if (MASK_temp[j*dimX+i] == MASK[j*dimX+i]) {
     	/* !One needs to work with a specific class to avoid overlaps */
-       if (MASK_temp[j*dimX+i] == selectedClass) {
+       if (MASK_temp[j*dimX+i] == ll) {
         Mask_update_main2D(MASK_temp, MASK_upd, CORRECTEDRegions, i, j, CorrectionWindow, (long)(dimX), (long)(dimY));
        	  }}
       }}
       /* copy the updated mask */
-      copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));          
+      copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));
+        } /*end ll*/
       }
     }
     else {
     /********************** PERFORM 3D MASK PROCESSING ************************/
     /* start iterations */
-    long ll;
     for(l=0; l<iterationsNumb; l++) {
     #pragma omp parallel for shared(MASK,MASK_upd) private(i,j,k)
     for(k=0; k<dimZ; k++) {
@@ -252,7 +249,7 @@ float mask_merge_binary_main(unsigned char *MASK, unsigned char *MASK_upd, unsig
     	}}}
     /* copy the updated MASK (clean of outliers) */
     copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));
-    
+
     for(ll=0; ll<2; ll++) {
     #pragma omp parallel for shared(MASK_temp,MASK_upd,l,ll) private(i,j,k)
     for(k=0; k<dimZ; k++) {
@@ -266,7 +263,7 @@ float mask_merge_binary_main(unsigned char *MASK, unsigned char *MASK_upd, unsig
        	  }}
       }}}
       /* copy the updated mask */
-      copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));      
+      copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));
           } /*end ll*/
         } /* iterations terminated*/
     }

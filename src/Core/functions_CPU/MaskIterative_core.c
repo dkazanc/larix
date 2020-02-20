@@ -1,4 +1,4 @@
-/*
+/* This works has been developed at Diamond Light Source Ltd.
  *
  * Copyright 2019 Daniil Kazantsev
   *
@@ -35,12 +35,15 @@ void swap(float *xp, float *yp)
     *yp = temp;
 }
 
-float MASK_evolve_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_out, float threhsold, int iterations, int connectivity, int method, int dimX, int dimY, int dimZ)
+float MASK_evolve_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_out, float threhsold, int iterations, int connectivity, float value1, float value2, int dimX, int dimY, int dimZ)
 {
     int i;
     float *maskreg_value;
 
     maskreg_value = (float*) calloc (2,sizeof(float));
+
+    maskreg_value[0] = value1;
+    maskreg_value[1] = value2;
 
     /* copy given MASK to MASK_out*/
     copyIm_unchar(MASK_in, MASK_out, (long)(dimX), (long)(dimY), (long)(dimZ));
@@ -48,48 +51,55 @@ float MASK_evolve_main(float *Input, unsigned char *MASK_in, unsigned char *MASK
     if (dimZ == 1) {
       /*2D version*/
       /* calculate mean inside given MASK */
+      /*
       if (method == 1) mask_region_MADmean(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY));
       if (method == 2) mask_region_MADmedian(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY));
+      */
 
       /* iteratively updating the 2D mask */
       for(i=0; i<iterations; i++) {
-        if (connectivity == 8) mask_update8(Input, MASK_out, maskreg_value, threhsold, method, (long)(dimX), (long)(dimY));
-        else mask_update4(Input, MASK_out, maskreg_value, threhsold, method, (long)(dimX), (long)(dimY));
+        if (connectivity == 8) mask_update8(Input, MASK_out, maskreg_value, threhsold, (long)(dimX), (long)(dimY));
+        else mask_update4(Input, MASK_out, maskreg_value, threhsold, (long)(dimX), (long)(dimY));
         }
       }
     else {
     /* 3D version */
     /* calculate mean inside given MASK */
+    /*
     if (method == 1) mask_region_MADmean3D(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY), (long)(dimZ));
     if (method == 2) mask_region_MADmedian3D(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY), (long)(dimZ));
+    */
     //printf("%f\n", maskreg_value[0]);
 
     /* iteratively updating the 3D mask */
     for(i=0; i<iterations; i++) {
         if (connectivity == 4) {
           /* connectivity of 4 pixels in 2D space */
-          mask_update3D_4(Input, MASK_out, maskreg_value, threhsold, method, (long)(dimX), (long)(dimY), (long)(dimZ)); }
+          mask_update3D_4(Input, MASK_out, maskreg_value, threhsold, (long)(dimX), (long)(dimY), (long)(dimZ)); }
         else if (connectivity == 8) {
           /* connectivity of 8 pixels in 2D space */
-          mask_update3D_8(Input, MASK_out, maskreg_value, threhsold, method, (long)(dimX), (long)(dimY), (long)(dimZ));}
+          mask_update3D_8(Input, MASK_out, maskreg_value, threhsold, (long)(dimX), (long)(dimY), (long)(dimZ));}
         else if (connectivity == 26) {
           /* connectivity of 26 pixels in 3D space */
-          mask_update3D_26(Input, MASK_out, maskreg_value, threhsold, method, (long)(dimX), (long)(dimY), (long)(dimZ));}
+          mask_update3D_26(Input, MASK_out, maskreg_value, threhsold, (long)(dimX), (long)(dimY), (long)(dimZ));}
         else {
           /* by default the connectivity of 6 pixels in 3D space */
-          mask_update3D_6(Input, MASK_out, maskreg_value, threhsold, method, (long)(dimX), (long)(dimY), (long)(dimZ));}
+          mask_update3D_6(Input, MASK_out, maskreg_value, threhsold, (long)(dimX), (long)(dimY), (long)(dimZ));
+        }
        }
      }
     free(maskreg_value);
     return *MASK_out;
 }
 
-float MASK_evolve_conditional_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_conditional, unsigned char *MASK_out, float threhsold, int iterations, int connectivity, int method, int dimX, int dimY, int dimZ)
+float MASK_evolve_conditional_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_conditional, unsigned char *MASK_out, float threhsold, int iterations, int connectivity, float value1, float value2, int dimX, int dimY, int dimZ)
 {
     int i;
     float *maskreg_value;
 
     maskreg_value = (float*) calloc (2,sizeof(float));
+    maskreg_value[0] = value1;
+    maskreg_value[1] = value2;
 
     /* copy given MASK to MASK_out*/
     copyIm_unchar(MASK_in, MASK_out, (long)(dimX), (long)(dimY), (long)(dimZ));
@@ -97,42 +107,41 @@ float MASK_evolve_conditional_main(float *Input, unsigned char *MASK_in, unsigne
     if (dimZ == 1) {
       /*2D version*/
       /* calculate mean inside given MASK */
-      if (method == 1) mask_region_MADmean(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY));
-      if (method == 2) mask_region_MADmedian(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY));
+      //if (method == 1) mask_region_MADmean(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY));
+      //if (method == 2) mask_region_MADmedian(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY));
 
       /* iteratively updating the 2D mask */
       for(i=0; i<iterations; i++) {
-        if (connectivity == 8) mask_update_con8(Input, MASK_conditional, MASK_out, maskreg_value, threhsold, method, (long)(dimX), (long)(dimY));
-        else mask_update_con4(Input, MASK_conditional, MASK_out, maskreg_value, threhsold, method, (long)(dimX), (long)(dimY));
+        if (connectivity == 8) mask_update_con8(Input, MASK_conditional, MASK_out, maskreg_value, threhsold,  (long)(dimX), (long)(dimY));
+        else mask_update_con4(Input, MASK_conditional, MASK_out, maskreg_value, threhsold,  (long)(dimX), (long)(dimY));
         }
       }
     else {
     /* 3D version */
     /* calculate mean inside given MASK */
-    if (method == 1) mask_region_MADmean3D(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY), (long)(dimZ));
-    if (method == 2) mask_region_MADmedian3D(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY), (long)(dimZ));
+    //if (method == 1) mask_region_MADmean3D(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY), (long)(dimZ));
+    //if (method == 2) mask_region_MADmedian3D(Input, MASK_out, maskreg_value, (long)(dimX), (long)(dimY), (long)(dimZ));
     //printf("%f\n", maskreg_value[0]);
 
     /* iteratively updating the 3D mask */
     for(i=0; i<iterations; i++) {
         if (connectivity == 4) {
           /* connectivity of 4 pixels in 2D space */
-          mask_update_con3D_4(Input, MASK_conditional, MASK_out, maskreg_value, threhsold, method, (long)(dimX), (long)(dimY), (long)(dimZ)); }
+          mask_update_con3D_4(Input, MASK_conditional, MASK_out, maskreg_value, threhsold, (long)(dimX), (long)(dimY), (long)(dimZ)); }
         else if (connectivity == 8) {
           /* connectivity of 8 pixels in 2D space */
-          mask_update_con3D_8(Input, MASK_conditional, MASK_out, maskreg_value, threhsold, method, (long)(dimX), (long)(dimY), (long)(dimZ));}
+          mask_update_con3D_8(Input, MASK_conditional, MASK_out, maskreg_value, threhsold, (long)(dimX), (long)(dimY), (long)(dimZ));}
         else if (connectivity == 26) {
           /* connectivity of 26 pixels in 3D space */
-          mask_update_con3D_26(Input, MASK_conditional, MASK_out, maskreg_value, threhsold, method, (long)(dimX), (long)(dimY), (long)(dimZ));}
+          mask_update_con3D_26(Input, MASK_conditional, MASK_out, maskreg_value, threhsold, (long)(dimX), (long)(dimY), (long)(dimZ));}
         else {
           /* by default the connectivity of 6 pixels in 3D space */
-          mask_update_con3D_6(Input, MASK_conditional, MASK_out, maskreg_value, threhsold, method, (long)(dimX), (long)(dimY), (long)(dimZ));}
+          mask_update_con3D_6(Input, MASK_conditional, MASK_out, maskreg_value, threhsold, (long)(dimX), (long)(dimY), (long)(dimZ));}
        }
      }
     free(maskreg_value);
     return *MASK_out;
 }
-
 
 /********************************************************************/
 /***************************2D Functions*****************************/
@@ -232,11 +241,11 @@ float mask_region_MADmedian(float *Input, unsigned char *MASK, float *maskreg_va
 }
 
 /* connectivity of 4 pixels */
-float mask_update4(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, int method, long dimX, long dimY)
+float mask_update4(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY)
 {
     int index, j, i, i_s, i_n, j_e, j_w;
 
-#pragma omp parallel for shared (Input, MASK, maskreg_value, method) private(index, j, i, i_s, i_n, j_e, j_w)
+#pragma omp parallel for shared (Input, MASK, maskreg_value) private(index, j, i, i_s, i_n, j_e, j_w)
     for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
         i_s = i + 1;
@@ -249,29 +258,18 @@ float mask_update4(float *Input, unsigned char *MASK, float *maskreg_value, floa
         /* find if the closest pixels of the mask are equal to 1 */
         if ((MASK[j*dimX+i_s] == 1) || (MASK[j*dimX+i_n] == 1) || (MASK[j_e*dimX+i] == 1) || (MASK[j_w*dimX+i] == 1)) {
         /* test if the central pixel also belongs to the same class  as the neighbourhood*/
-        if ((method == 1) || (method == 2)) {
-            if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
-              /* make the central pixel part of the mask */
-                  MASK[index] = 1;
-                }
-        }
-        else {
-          if (fabs(Input[index]) <=  threhsold) {
-          /* make the central pixel part of the mask */
-              MASK[index] = 1;
-              }
-            }
+          if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) MASK[index] = 1; /* make the central pixel part of the mask */
           }
         }
     }}
     return *MASK;
 }
 /* connectivity of 8 pixels */
-float mask_update8(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, int method, long dimX, long dimY)
+float mask_update8(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY)
 {
     int index, j, i, i1, j1, i_m, j_m;
 
-#pragma omp parallel for shared (Input, MASK, maskreg_value, method) private(index, j, i, i1, j1, i_m, j_m)
+#pragma omp parallel for shared (Input, MASK, maskreg_value) private(index, j, i, i1, j1, i_m, j_m)
     for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
         index = j*dimX+i;
@@ -285,16 +283,7 @@ float mask_update8(float *Input, unsigned char *MASK, float *maskreg_value, floa
               /* find if the closest pixels of the mask are equal to 1 */
                if (MASK[j1*dimX+i1] == 1) {
               /* test if the central pixel also belongs to the same class  as the neighbourhood*/
-              if ((method == 1) || (method == 2)) {
-                  if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
-              /* make the central pixel part of the mask */
-                  MASK[index] = 1;  }
-              else {
-              if (fabs(Input[index]) <=  threhsold) {
-              /* make the central pixel part of the mask */
-                  MASK[index] = 1;  }
-                }
-            } /*((method == 1) || (method == 2))*/
+              if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) MASK[index] = 1; /* make the central pixel part of the mask */
          }
        }
      }}
@@ -302,13 +291,12 @@ float mask_update8(float *Input, unsigned char *MASK, float *maskreg_value, floa
     return *MASK;
 }
 
-
 /* mask conditional  connectivity of 4 pixels */
-float mask_update_con4(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, int method, long dimX, long dimY)
+float mask_update_con4(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY)
 {
     int index, j, i, i_s, i_n, j_e, j_w;
 
-#pragma omp parallel for shared (Input, MASK, MASK_conditional, maskreg_value, method) private(index, j, i, i_s, i_n, j_e, j_w)
+#pragma omp parallel for shared (Input, MASK, MASK_conditional, maskreg_value) private(index, j, i, i_s, i_n, j_e, j_w)
     for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
         i_s = i + 1;
@@ -322,18 +310,7 @@ float mask_update_con4(float *Input, unsigned char *MASK_conditional, unsigned c
         /* find if the closest pixels of the mask are equal to 1 */
         if ((MASK[j*dimX+i_s] > 0) || (MASK[j*dimX+i_n] > 0) || (MASK[j_e*dimX+i] > 0) || (MASK[j_w*dimX+i] > 0)) {
         /* test if the central pixel also belongs to the same class  as the neighbourhood*/
-        if ((method == 1) || (method == 2)) {
-            if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
-              /* make the central pixel part of the mask */
-                  MASK[index] = 1;
-                }
-        }
-        else {
-          if (fabs(Input[index]) <=  threhsold) {
-          /* make the central pixel part of the mask */
-              MASK[index] = 1;
-              }
-            }
+          if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) MASK[index] = 1; /* make the central pixel part of the mask */
           }
         }
       }
@@ -341,11 +318,11 @@ float mask_update_con4(float *Input, unsigned char *MASK_conditional, unsigned c
     return *MASK;
 }
 /* mask conditional connectivity of 8 pixels */
-float mask_update_con8(float *Input, unsigned char *MASK_conditional,  unsigned char *MASK, float *maskreg_value, float threhsold, int method, long dimX, long dimY)
+float mask_update_con8(float *Input, unsigned char *MASK_conditional,  unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY)
 {
     int index, j, i, i1, j1, i_m, j_m;
 
-#pragma omp parallel for shared (Input, MASK, MASK_conditional, maskreg_value, method) private(index, j, i, i1, j1, i_m, j_m)
+#pragma omp parallel for shared (Input, MASK, MASK_conditional, maskreg_value) private(index, j, i, i1, j1, i_m, j_m)
     for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
         index = j*dimX+i;
@@ -360,16 +337,7 @@ float mask_update_con8(float *Input, unsigned char *MASK_conditional,  unsigned 
               /* find if the closest pixels of the mask are equal to 1 */
                if (MASK[j1*dimX+i1] > 0) {
               /* test if the central pixel also belongs to the same class  as the neighbourhood*/
-              if ((method == 1) || (method == 2)) {
-                  if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
-              /* make the central pixel part of the mask */
-                  MASK[index] = 1;  }
-              else {
-              if (fabs(Input[index]) <=  threhsold) {
-              /* make the central pixel part of the mask */
-                  MASK[index] = 1;  }
-                }
-            } /*((method == 1) || (method == 2))*/
+          if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) MASK[index] = 1; /* make the central pixel part of the mask */
           }
         }
       }}
@@ -377,10 +345,6 @@ float mask_update_con8(float *Input, unsigned char *MASK_conditional,  unsigned 
     }}
     return *MASK;
 }
-
-
-
-
 /********************************************************************/
 /***************************3D Functions*****************************/
 /********************************************************************/
@@ -422,14 +386,13 @@ float mask_region_MADmean3D(float *Input, unsigned char *MASK, float *maskreg_va
     return *maskreg_value;
 }
 
-
 float mask_region_MADmedian3D(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY, long dimZ)
 {
-    float *Values_Vec, median_final, MAD_abs_final;
-    int index, j, i, k, x, y, counter, midval;
+  float *Values_Vec, *Values_Vec2, median_final, MAD_abs_final;
+  int index, j, i, k, x, y, counter, counter2, counter3, midval;
 
-    median_final = 0.0f;
-    counter = 0;
+   median_final = 0.0f;
+   counter = 0;
    for(k=0; k<dimZ; k++) {
     for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
@@ -438,56 +401,62 @@ float mask_region_MADmedian3D(float *Input, unsigned char *MASK, float *maskreg_
         counter++; }
     }}}
 
-    Values_Vec = (float*) calloc (counter, sizeof(float));
-    counter = 0;
-  for(k=0; k<dimZ; k++) {
-    for(j=0; j<dimY; j++) {
-        for(i=0; i<dimX; i++) {
-        index = (dimX*dimY)*k + j*dimX+i;
-        if (MASK[index] != 0) {
-        Values_Vec[counter] = Input[index];
-        counter++; }
-    }}}
-
-    midval = (int)(0.5f*counter) - 1;
     if (counter != 0) {
+
+    Values_Vec = (float*) calloc (counter, sizeof(float));
+
+    counter2 = 0;
+    for(k=0; k<dimZ; k++) {
+      for(j=0; j<dimY; j++) {
+          for(i=0; i<dimX; i++) {
+          index = (dimX*dimY)*k + j*dimX+i;
+          if (MASK[index] != 0) {
+          Values_Vec[counter2] = Input[index];
+          counter2++; }
+      }}}
+
+    midval = (int)(0.5f*counter2) - 1;
+
     /* perform sorting of the vector array */
-    for (x = 0; x < counter-1; x++)  {
-        for (y = 0; y < counter-x-1; y++)  {
+    for (x = 0; x < counter2-1; x++)  {
+        for (y = 0; y < counter2-x-1; y++)  {
             if (Values_Vec[y] > Values_Vec[y+1]) {
                 swap(&Values_Vec[y], &Values_Vec[y+1]);
             }}}
     median_final = Values_Vec[midval];
+    free(Values_Vec);
 
-    counter = 0;
+    Values_Vec2 = (float*) calloc (counter, sizeof(float));
+    counter3 = 0;
     for(k=0; k<dimZ; k++) {
         for(j=0; j<dimY; j++) {
             for(i=0; i<dimX; i++) {
             index = (dimX*dimY)*k + j*dimX+i;
         if (MASK[index] != 0) {
-        Values_Vec[counter] = fabs(Input[index] - median_final);
-        counter++;}
+        Values_Vec2[counter3] = fabs(Input[index] - median_final);
+        counter3++;}
     }}}
-    /* perform sorting of the vector array */
-    for (x = 0; x < counter-1; x++)  {
-        for (y = 0; y < counter-x-1; y++)  {
-            if (Values_Vec[y] > Values_Vec[y+1]) {
-                swap(&Values_Vec[y], &Values_Vec[y+1]);
+
+    for (x = 0; x < counter3-1; x++)  {
+        for (y = 0; y < counter3-x-1; y++)  {
+            if (Values_Vec2[y] > Values_Vec2[y+1]) {
+                swap(&Values_Vec2[y], &Values_Vec2[y+1]);
             }}}
-    MAD_abs_final = Values_Vec[midval];
+    MAD_abs_final = Values_Vec2[midval];
 
     maskreg_value[0] = median_final;
     maskreg_value[1] = 1.4826*MAD_abs_final;
+    free(Values_Vec2);
+
     }
-    free(Values_Vec);
     return *maskreg_value;
 }
 
-float mask_update3D_4(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, int method, long dimX, long dimY, long dimZ)
+float mask_update3D_4(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ)
 {
     int index, j, i, k, i_s, i_n, j_e, j_w;
 
-#pragma omp parallel for shared (Input, MASK, maskreg_value, method) private(index, j, i, k, i_s, i_n, j_e, j_w)
+#pragma omp parallel for shared (Input, MASK, maskreg_value) private(index, j, i, k, i_s, i_n, j_e, j_w)
     for(k=0; k<dimZ; k++) {
       for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
@@ -501,29 +470,18 @@ float mask_update3D_4(float *Input, unsigned char *MASK, float *maskreg_value, f
           /* find if the closest pixels of the mask are equal to 1 */
         if ((MASK[(dimX*dimY)*k + j*dimX+i_s] == 1) || (MASK[(dimX*dimY)*k + j*dimX+i_n] == 1) || (MASK[(dimX*dimY)*k + j_e*dimX+i] == 1) || (MASK[(dimX*dimY)*k + j_w*dimX+i] == 1)) {
         /* test if the central pixel also belongs to the same class  as the neighbourhood*/
-        if ((method == 1) || (method == 2)) {
-            if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
-              /* make the central pixel part of the mask */
-                  MASK[index] = 1;
-            }
-        }
-        else {
-          if (fabs(Input[index]) <=  threhsold) {
-          /* make the central pixel part of the mask */
-              MASK[index] = 1;
-                  }
-        }
+          if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) MASK[index] = 1; /* make the central pixel part of the mask */
             }
         }
     }}}
     return *MASK;
 }
 
-float mask_update3D_6(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, int method, long dimX, long dimY, long dimZ)
+float mask_update3D_6(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ)
 {
-    int index, j, i, k, i_s, i_n, j_e, j_w, k_u, k_d;
+  int index, j, i, k, i_s, i_n, j_e, j_w, k_u, k_d;
 
-#pragma omp parallel for shared (Input, MASK, maskreg_value, method) private(index, j, i, k, i_s, i_n, j_e, j_w, k_u, k_d)
+#pragma omp parallel for shared (Input, MASK, maskreg_value) private(index, j, i, k, i_s, i_n, j_e, j_w, k_u, k_d)
     for(k=0; k<dimZ; k++) {
       for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
@@ -539,29 +497,18 @@ float mask_update3D_6(float *Input, unsigned char *MASK, float *maskreg_value, f
         /* find if the closest pixels of the mask are equal to 1 */
         if ((MASK[(dimX*dimY)*k + j*dimX+i_s] == 1) || (MASK[(dimX*dimY)*k + j*dimX+i_n] == 1) || (MASK[(dimX*dimY)*k + j_e*dimX+i] == 1) || (MASK[(dimX*dimY)*k + j_w*dimX+i] == 1) || (MASK[(dimX*dimY)*k_d + j*dimX+i] == 1) || (MASK[(dimX*dimY)*k_u + j*dimX+i] == 1)) {
         /* test if the central pixel also belongs to the same class  as the neighbourhood*/
-        if ((method == 1) || (method == 2)) {
-            if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
-              /* make the central pixel part of the mask */
-                  MASK[index] = 1;
-            }
-        }
-        else {
-          if (fabs(Input[index]) <=  threhsold) {
-          /* make the central pixel part of the mask */
-              MASK[index] = 1;
-                  }
-        }
-            }
+          if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) MASK[index] = 1; /* make the central pixel part of the mask */
+          }
         }
     }}}
     return *MASK;
 }
 
-float mask_update3D_8(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, int method, long dimX, long dimY, long dimZ)
+float mask_update3D_8(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ)
 {
-    int index, j, i, k, i_m, j_m, i1, j1;
+int index, j, i, k, i_m, j_m, i1, j1;
 
-#pragma omp parallel for shared (Input, MASK, maskreg_value, method) private(index, j, i, k, i_m, j_m, i1, j1)
+#pragma omp parallel for shared (Input, MASK, maskreg_value) private(index, j, i, k, i_m, j_m, i1, j1)
     for(k=0; k<dimZ; k++) {
       for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
@@ -577,18 +524,7 @@ float mask_update3D_8(float *Input, unsigned char *MASK, float *maskreg_value, f
                 /* find if the closest pixels of the mask are equal to 1 */
                 if (MASK[(dimX*dimY)*k + j1*dimX+i1] == 1) {
                 /* test if the central pixel also belongs to the same class  as the neighbourhood*/
-                if ((method == 1) || (method == 2)) {
-                  if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
-                    /* make the central pixel part of the mask */
-                    MASK[index] = 1;
-                  }
-                }
-                else {
-                  if (fabs(Input[index]) <=  threhsold) {
-                    /* make the central pixel part of the mask */
-                    MASK[index] = 1;
-                    }
-                  }
+                if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) MASK[index] = 1; /* make the central pixel part of the mask */
                 }
               }
         }}
@@ -596,13 +532,11 @@ float mask_update3D_8(float *Input, unsigned char *MASK, float *maskreg_value, f
     return *MASK;
 }
 
-
-
-float mask_update3D_26(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, int method, long dimX, long dimY, long dimZ)
+float mask_update3D_26(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ)
 {
     int index, j, i, k, i_m, j_m, k_m, i1, j1, k1;
 
-#pragma omp parallel for shared (Input, MASK, maskreg_value, method) private(index, j, i, k, i_m, j_m, k_m, i1, j1, k1)
+#pragma omp parallel for shared (Input, MASK, maskreg_value) private(index, j, i, k, i_m, j_m, k_m, i1, j1, k1)
     for(k=0; k<dimZ; k++) {
       for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
@@ -619,18 +553,7 @@ float mask_update3D_26(float *Input, unsigned char *MASK, float *maskreg_value, 
               /* find if the closest pixels of the mask are equal to 1 */
               if (MASK[(dimX*dimY)*k1 + j1*dimX+i1] == 1) {
                 /* test if the central pixel also belongs to the same class as the neighbourhood*/
-                if ((method == 1) || (method == 2)) {
-                  if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
-                    /* make the central pixel part of the mask */
-                    MASK[index] = 1;
-                  }
-                }
-                else {
-                  if (fabs(Input[index]) <=  threhsold) {
-                    /* make the central pixel part of the mask */
-                    MASK[index] = 1;
-                    }
-                  }
+                if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) MASK[index] = 1; /* make the central pixel part of the mask */
                 }
               }
         }}}
@@ -640,11 +563,11 @@ float mask_update3D_26(float *Input, unsigned char *MASK, float *maskreg_value, 
 
 /* mask conditioned modules */
 /*************************************************************************/
-float mask_update_con3D_4(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, int method, long dimX, long dimY, long dimZ)
+float mask_update_con3D_4(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ)
 {
     int index, j, i, k, i_s, i_n, j_e, j_w;
 
-#pragma omp parallel for shared (Input, MASK, MASK_conditional, maskreg_value, method) private(index, j, i, k, i_s, i_n, j_e, j_w)
+#pragma omp parallel for shared (Input, MASK, MASK_conditional, maskreg_value) private(index, j, i, k, i_s, i_n, j_e, j_w)
     for(k=0; k<dimZ; k++) {
       for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
@@ -659,18 +582,7 @@ float mask_update_con3D_4(float *Input, unsigned char *MASK_conditional, unsigne
           /* find if the closest pixels of the mask are equal to 1 */
         if ((MASK[(dimX*dimY)*k + j*dimX+i_s] > 0) || (MASK[(dimX*dimY)*k + j*dimX+i_n] > 0) || (MASK[(dimX*dimY)*k + j_e*dimX+i] > 0) || (MASK[(dimX*dimY)*k + j_w*dimX+i] > 0)) {
         /* test if the central pixel also belongs to the same class  as the neighbourhood*/
-        if ((method == 1) || (method == 2)) {
-            if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
-              /* make the central pixel part of the mask */
-                  MASK[index] = 1;
-            }
-        }
-        else {
-          if (fabs(Input[index]) <=  threhsold) {
-          /* make the central pixel part of the mask */
-              MASK[index] = 1;
-                  }
-        }
+        if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) MASK[index] = 1; /* make the central pixel part of the mask */
             }
           }
       }
@@ -678,11 +590,11 @@ float mask_update_con3D_4(float *Input, unsigned char *MASK_conditional, unsigne
     return *MASK;
 }
 
-float mask_update_con3D_6(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, int method, long dimX, long dimY, long dimZ)
+float mask_update_con3D_6(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ)
 {
     int index, j, i, k, i_s, i_n, j_e, j_w, k_u, k_d;
 
-#pragma omp parallel for shared (Input, MASK, MASK_conditional, maskreg_value, method) private(index, j, i, k, i_s, i_n, j_e, j_w, k_u, k_d)
+#pragma omp parallel for shared (Input, MASK, MASK_conditional, maskreg_value) private(index, j, i, k, i_s, i_n, j_e, j_w, k_u, k_d)
     for(k=0; k<dimZ; k++) {
       for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
@@ -699,18 +611,7 @@ float mask_update_con3D_6(float *Input, unsigned char *MASK_conditional, unsigne
         /* find if the closest pixels of the mask are equal to 1 */
         if ((MASK[(dimX*dimY)*k + j*dimX+i_s] > 0) || (MASK[(dimX*dimY)*k + j*dimX+i_n] > 0) || (MASK[(dimX*dimY)*k + j_e*dimX+i] > 0) || (MASK[(dimX*dimY)*k + j_w*dimX+i] > 0) || (MASK[(dimX*dimY)*k_d + j*dimX+i] > 0) || (MASK[(dimX*dimY)*k_u + j*dimX+i] > 0)) {
         /* test if the central pixel also belongs to the same class  as the neighbourhood*/
-        if ((method == 1) || (method == 2)) {		
-            if ((fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1])) {
-              /* make the central pixel part of the mask */
-                  MASK[index] = 1;
-            }
-        }
-        else {
-          if (fabs(Input[index]) <=  threhsold) {
-          /* make the central pixel part of the mask */
-              MASK[index] = 1;
-                  }
-        }
+        if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) MASK[index] = 1; /* make the central pixel part of the mask */
             }
         }
       }
@@ -718,11 +619,11 @@ float mask_update_con3D_6(float *Input, unsigned char *MASK_conditional, unsigne
     return *MASK;
 }
 
-float mask_update_con3D_8(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, int method, long dimX, long dimY, long dimZ)
+float mask_update_con3D_8(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ)
 {
     int index, j, i, k, i_m, j_m, i1, j1;
 
-#pragma omp parallel for shared (Input, MASK, MASK_conditional, maskreg_value, method) private(index, j, i, k, i_m, j_m, i1, j1)
+#pragma omp parallel for shared (Input, MASK, MASK_conditional, maskreg_value) private(index, j, i, k, i_m, j_m, i1, j1)
     for(k=0; k<dimZ; k++) {
       for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
@@ -739,18 +640,7 @@ float mask_update_con3D_8(float *Input, unsigned char *MASK_conditional, unsigne
                 /* find if the closest pixels of the mask are equal to 1 */
                 if (MASK[(dimX*dimY)*k + j1*dimX+i1] > 0) {
                 /* test if the central pixel also belongs to the same class  as the neighbourhood*/
-                if ((method == 1) || (method == 2)) {
-                  if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
-                    /* make the central pixel part of the mask */
-                    MASK[index] = 1;
-                  }
-                }
-                else {
-                  if (fabs(Input[index]) <=  threhsold) {
-                    /* make the central pixel part of the mask */
-                    MASK[index] = 1;
-                    }
-                  }
+                  if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) MASK[index] = 1; /* make the central pixel part of the mask */
                 }
               }
         }}
@@ -759,13 +649,11 @@ float mask_update_con3D_8(float *Input, unsigned char *MASK_conditional, unsigne
     return *MASK;
 }
 
-
-
-float mask_update_con3D_26(float *Input, unsigned char *MASK_conditional,  unsigned char *MASK, float *maskreg_value, float threhsold, int method, long dimX, long dimY, long dimZ)
+float mask_update_con3D_26(float *Input, unsigned char *MASK_conditional,  unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ)
 {
-    int index, j, i, k, i_m, j_m, k_m, i1, j1, k1;
+  int index, j, i, k, i_m, j_m, k_m, i1, j1, k1;
 
-#pragma omp parallel for shared (Input, MASK, MASK_conditional, maskreg_value, method) private(index, j, i, k, i_m, j_m, k_m, i1, j1, k1)
+#pragma omp parallel for shared (Input, MASK, MASK_conditional, maskreg_value) private(index, j, i, k, i_m, j_m, k_m, i1, j1, k1)
     for(k=0; k<dimZ; k++) {
       for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
@@ -784,18 +672,7 @@ float mask_update_con3D_26(float *Input, unsigned char *MASK_conditional,  unsig
               /* find if the closest pixels of the mask are equal to 1 */
               if (MASK[(dimX*dimY)*k1 + j1*dimX+i1] > 0) {
                 /* test if the central pixel also belongs to the same class as the neighbourhood*/
-                if ((method == 1) || (method == 2)) {
-                  if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) {
-                    /* make the central pixel part of the mask */
-                    MASK[index] = 1;
-                  }
-                }
-                else {
-                  if (fabs(Input[index]) <=  threhsold) {
-                    /* make the central pixel part of the mask */
-                    MASK[index] = 1;
-                    }
-                  }
+                if (fabs(Input[index] - maskreg_value[0]) <=  threhsold*maskreg_value[1]) MASK[index] = 1; /* make the central pixel part of the mask */
                 }
               }
         }}}
