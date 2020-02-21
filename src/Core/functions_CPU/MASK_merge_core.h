@@ -45,7 +45,7 @@
 extern "C" {
 #endif
 float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, unsigned char *ComboClasses, int tot_combinations, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
-float mask_morph_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
+float mask_morph_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, int primeClass, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
 /************2D functions ***********/
 float OutiersRemoval2D(unsigned char *MASK, unsigned char *MASK_upd, long i, long j, long dimX, long dimY);
 float Mask_update_main2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, long i, long j, int CorrectionWindow, long dimX, long dimY);

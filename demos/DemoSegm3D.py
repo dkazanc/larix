@@ -16,24 +16,25 @@ from dipols.methods.segmentation import MASK_EVOLVE, MASK_MORPH
 
 #  Load the 3D sample data (i23 beamline, DLS)
 #sample_data =  np.load('../data/sample1_2D.npy')
-sample_data =  np.load('/home/algol/Documents/DEV/i23seg/data/sample13076_3D.npy')
+sample_data =  np.load('/home/kjy41806/Documents/SOFT/i23seg/data/sample13076_3D.npy')
 
 mask_init = np.uint8(np.zeros(np.shape(sample_data)))
 mask_init[20:100,325:414,230:317] = 1
 
+selected_slice_vis = 30
 fig= plt.figure()
 plt.rcParams.update({'font.size': 21})
 plt.subplot(121)
-plt.imshow(sample_data[50,:,:], vmin=0, vmax=0.5, cmap="gray")
+plt.imshow(sample_data[selected_slice_vis,:,:], vmin=0, vmax=0.5, cmap="gray")
 plt.title('Original Image')
 plt.subplot(122)
-plt.imshow(mask_init[50,:,:], vmin=0, vmax=1, cmap="gray")
+plt.imshow(mask_init[selected_slice_vis,:,:], vmin=0, vmax=1, cmap="gray")
 plt.title('Phase specific initialised mask')
 plt.show()
 #%%
 print("Runnning mask evolving segmentation in 3D...")
 
-pars = {'input_data' : sample_data, # input mask
+pars = {'input_data' : sample_data, # input grayscale volume
         'maskData' : mask_init,     # generated initialisation mask
         'threhsold' : 9.0 ,         # threhsold controls where evolution stops (>=1)
         'iterationsNumb' : 250,     # the number of iterations (depends on the size of the phase)
@@ -47,29 +48,30 @@ mask_evolved = MASK_EVOLVE(pars['input_data'], pars['maskData'],\
 fig= plt.figure()
 plt.rcParams.update({'font.size': 21})
 plt.subplot(121)
-plt.imshow(sample_data[50,:,:], vmin=0, vmax=0.5, cmap="gray")
+plt.imshow(sample_data[selected_slice_vis,:,:], vmin=0, vmax=0.5, cmap="gray")
 plt.title('Original Volume')
 plt.subplot(122)
-plt.imshow(mask_evolved[50,:,:], vmin=0, vmax=1, cmap="gray")
+plt.imshow(mask_evolved[selected_slice_vis,:,:], vmin=0, vmax=1, cmap="gray")
 plt.title('Evolution of the 3D mask')
 plt.show()
 #%%
 print("Morphological processing the resulting mask in 3D (will take some time)...")
 
-pars = {'maskdata' : mask_evolved,\
-        'CorrectionWindow' : 7 ,\
-        'iterationsNumb' : 2}
+pars = {'maskdata' : mask_evolved,# input binary mask
+        'primeClass' : 0,         # class to start morphological processing from        
+        'CorrectionWindow' : 7 ,  # the non-local neighboorhood window 
+        'iterationsNumb' : 2}     # iterations number (less for 3D than 2D)
 
-mask_morphed = MASK_MORPH(pars['maskdata'], pars['CorrectionWindow'], \
-                               pars['iterationsNumb'])
+mask_morphed = MASK_MORPH(pars['maskdata'], pars['primeClass'], 
+                          pars['CorrectionWindow'], pars['iterationsNumb'])
 
 fig= plt.figure()
 plt.rcParams.update({'font.size': 21})
 plt.subplot(121)
-plt.imshow(mask_evolved[50,:,:], vmin=0, vmax=1, cmap="gray")
+plt.imshow(mask_evolved[selected_slice_vis,:,:], vmin=0, vmax=1, cmap="gray")
 plt.title('Evolved mask')
 plt.subplot(122)
-plt.imshow(mask_morphed[50,:,:], vmin=0, vmax=1, cmap="gray")
+plt.imshow(mask_morphed[selected_slice_vis,:,:], vmin=0, vmax=1, cmap="gray")
 plt.title('Processed 3D mask')
 plt.show()
 #%%
@@ -80,7 +82,7 @@ mask_init[60:70,135:171,165:199] = 1
 
 print("Runnning mask evolving segmentation in 3D...")
 
-pars = {'input_data' : sample_data, # input mask
+pars = {'input_data' : sample_data, # input grayscale volume
         'maskData' : mask_init,     # generated initialisation mask
         'threhsold' : 9.0 ,         # threhsold controls where evolution stops (>=1)
         'iterationsNumb' : 250,     # the number of iterations (depends on the size of the phase)
@@ -94,40 +96,39 @@ mask_evolved = MASK_EVOLVE(pars['input_data'], pars['maskData'],\
 fig= plt.figure()
 plt.rcParams.update({'font.size': 21})
 plt.subplot(121)
-plt.imshow(sample_data[50,:,:], vmin=0, vmax=0.5, cmap="gray")
+plt.imshow(sample_data[selected_slice_vis,:,:], vmin=0, vmax=0.5, cmap="gray")
 plt.title('Original Volume')
 plt.subplot(122)
-plt.imshow(mask_evolved[50,:,:], vmin=0, vmax=1, cmap="gray")
+plt.imshow(mask_evolved[selected_slice_vis,:,:], vmin=0, vmax=1, cmap="gray")
 plt.title('Evolution of the 3D mask')
 plt.show()
 #%%
 print("Morphological processing of the resulting mask in 3D (will take some time)...")
 
-pars = {'maskdata' : mask_evolved,\
-        'CorrectionWindow' : 5 ,\
-        'iterationsNumb' : 3}
+pars = {'maskdata' : mask_evolved, # input binary mask
+        'primeClass' : 1,          # class to start morphological processing from        
+        'CorrectionWindow' : 6,    # the non-local neighboorhood window 
+        'iterationsNumb' : 2}      # iterations number (less for 3D than 2D)
 
-mask_morphed = MASK_MORPH(pars['maskdata'], pars['CorrectionWindow'], \
-                               pars['iterationsNumb'])
+mask_morphed = MASK_MORPH(pars['maskdata'], pars['primeClass'], 
+                          pars['CorrectionWindow'], pars['iterationsNumb'])
 
 fig= plt.figure()
 plt.rcParams.update({'font.size': 21})
 plt.subplot(121)
-plt.imshow(mask_evolved[50,:,:], vmin=0, vmax=1, cmap="gray")
+plt.imshow(mask_evolved[selected_slice_vis,:,:], vmin=0, vmax=1, cmap="gray")
 plt.title('Evolved mask')
 plt.subplot(122)
-plt.imshow(mask_morphed[50,:,:], vmin=0, vmax=1, cmap="gray")
+plt.imshow(mask_morphed[selected_slice_vis,:,:], vmin=0, vmax=1, cmap="gray")
 plt.title('Processed 3D mask')
 plt.show()
 #%%
-
-
 # save images and superimpose
 from PIL import Image
 import matplotlib
 
-matplotlib.image.imsave('background3d.png', sample_data[50,:,:])
-matplotlib.image.imsave('foreground3d.png', mask_morphed[50,:,:])
+matplotlib.image.imsave('background3d.png', sample_data[selected_slice_vis,:,:])
+matplotlib.image.imsave('foreground3d.png', mask_morphed[selected_slice_vis,:,:])
 
 background = Image.open("background3d.png")
 overlay = Image.open("foreground3d.png")

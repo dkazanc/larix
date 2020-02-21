@@ -1,5 +1,5 @@
 # Only need to change these two variables
-PKG_NAME=i23-seg
+PKG_NAME=dipols
 USER=dkazanc
 
 OS=$TRAVIS_OS_NAME-64

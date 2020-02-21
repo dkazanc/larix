@@ -14,11 +14,6 @@ matrix:
     - python: 3.6
       env: NUMPY=1.15
 
-    - python: 3.8
-      env: NUMPY=1.18
-
-    - python: 3.8
-      env: NUMPY=1.15
 os:
   - linux
 

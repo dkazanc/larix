@@ -16,7 +16,7 @@ import numpy as np
 cimport numpy as np
 
 cdef extern float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, unsigned char *ComboClasses, int tot_combinations, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
-cdef extern float mask_morph_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
+cdef extern float mask_morph_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, int primeClass, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
 cdef extern float MASK_evolve_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_out, float threhsold, int iterations, int connectivity, float value1, float value2, int dimX, int dimY, int dimZ);
 cdef extern float MASK_evolve_conditional_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_conditional, unsigned char *MASK_out, float threhsold, int iterations, int connectivity, float value1, float value2, int dimX, int dimY, int dimZ);
 ##############################################################################
@@ -118,13 +118,14 @@ def MASK_CORR_3D(np.ndarray[np.uint8_t, ndim=3, mode="c"] maskData,
 ################Morphological mask processing####################
 #################################################################
 
-def MASK_MORPH(maskData, correctionWindow, iterationsNumb):
+def MASK_MORPH(maskData, primeClass, correctionWindow, iterationsNumb):
     if maskData.ndim == 2:
-        return MASK_MORPH_2D(maskData, correctionWindow, iterationsNumb)
+        return MASK_MORPH_2D(maskData, primeClass, correctionWindow, iterationsNumb)
     elif maskData.ndim == 3:
-        return MASK_MORPH_3D(maskData, correctionWindow, iterationsNumb)
+        return MASK_MORPH_3D(maskData, primeClass, correctionWindow, iterationsNumb)
 
 def MASK_MORPH_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
+	 	     int primeClass,
                      int correctionWindow,
                      int iterationsNumb):
 
@@ -139,11 +140,12 @@ def MASK_MORPH_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
 
     # Run the function to process given MASK
     mask_morph_main(&maskData[0,0], &mask_upd[0,0],
-                    &corr_regions[0,0], correctionWindow,
+                    &corr_regions[0,0], primeClass, correctionWindow,
                     iterationsNumb, dims[1], dims[0], 1)
     return mask_upd
 
 def MASK_MORPH_3D(np.ndarray[np.uint8_t, ndim=3, mode="c"] maskData,
+	 	     int primeClass,
                      int correctionWindow,
                      int iterationsNumb):
 
@@ -159,7 +161,7 @@ def MASK_MORPH_3D(np.ndarray[np.uint8_t, ndim=3, mode="c"] maskData,
 
    # Run the function to process given MASK
     mask_morph_main(&maskData[0,0,0], &mask_upd[0,0,0],
-                    &corr_regions[0,0,0], correctionWindow,
+                    &corr_regions[0,0,0], primeClass, correctionWindow,
                     iterationsNumb, dims[2], dims[1], dims[0])
     return mask_upd
 
