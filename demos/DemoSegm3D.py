@@ -36,7 +36,7 @@ print("Runnning mask evolving segmentation in 3D...")
 
 pars = {'input_data' : sample_data, # input grayscale volume
         'maskData' : mask_init,     # generated initialisation mask
-        'threhsold' : 9.0 ,         # threhsold controls where evolution stops (>=1)
+        'threhsold' : 9.8 ,         # threhsold controls where evolution stops (>=1)
         'iterationsNumb' : 250,     # the number of iterations (depends on the size of the phase)
         'connectivity' : 6,         # voxel connectivity rule, choose between 4 (2D), 6, 8 (2D), and 26
         'method' : 'mean'}          # method to collect statistics from the mask (mean. median, value)
@@ -60,7 +60,7 @@ print("Morphological processing the resulting mask in 3D (will take some time)..
 pars = {'maskdata' : mask_evolved,# input binary mask
         'primeClass' : 0,         # class to start morphological processing from        
         'CorrectionWindow' : 7 ,  # the non-local neighboorhood window 
-        'iterationsNumb' : 2}     # iterations number (less for 3D than 2D)
+        'iterationsNumb' : 3}     # iterations number (less for 3D than 2D)
 
 mask_morphed = MASK_MORPH(pars['maskdata'], pars['primeClass'], 
                           pars['CorrectionWindow'], pars['iterationsNumb'])
