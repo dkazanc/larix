@@ -10,8 +10,8 @@ import sys
 import numpy
 import platform
 
-dipols_version=os.environ['VERSION']
-if  dipols_version == '':
+colleda_version=os.environ['VERSION']
+if  colleda_version == '':
     print("Please set the environmental variable VERSION")
     sys.exit(1)
 
@@ -30,7 +30,7 @@ extra_compile_args = []
 extra_library_dirs = [library_lib_path]
 extra_compile_args = []
 extra_link_args = []
-extra_libraries = ['dipols']
+extra_libraries = ['colleda']
 
 print ("extra_library_dirs " , extra_library_dirs)
 
@@ -45,11 +45,11 @@ else:
     extra_libraries += [@EXTRA_OMP_LIB@]
 
 setup(
-    name='dipols',
-	description='dipols is image processing library',
-	version=dipols_version,
+    name='colleda',
+	description='A collection of data and image processing methods',
+	version=colleda_version,
     cmdclass = {'build_ext': build_ext},
-    ext_modules = [Extension("dipols.methods.segmentation",
+    ext_modules = [Extension("colleda.methods.segmentation",
                              sources=[os.path.join("." , "src", "cpu_segmentation.pyx") ],
                              include_dirs=extra_include_dirs,
 							 library_dirs=extra_library_dirs,
@@ -58,5 +58,5 @@ setup(
 
     ],
 	zip_safe = False,
-	packages = {'dipols', 'dipols.methods'},
+	packages = {'colleda', 'colleda.methods'},
 )

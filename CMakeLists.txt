@@ -12,10 +12,10 @@
 
 cmake_minimum_required (VERSION 3.0)
 
-project(DIPOLS)
+project(COLLEDA)
 
-set (DIPOLS_VERSION $ENV{DIPOLS_VERSION} CACHE INTERNAL "i23 segmentation modules" FORCE)
-message(STATUS "DIPOLS_VERSION set to " ${DIPOLS_VERSION})
+set (COLLEDA_VERSION $ENV{COLLEDA_VERSION} CACHE INTERNAL "Colleda software" FORCE)
+message(STATUS "COLLEDA_VERSION set to " ${COLLEDA_VERSION})
 
 # set the Python variables for the Conda environment
 option (BUILD_PYTHON_WRAPPER "Build Python Wrappers" ON)

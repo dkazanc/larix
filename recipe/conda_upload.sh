@@ -1,5 +1,5 @@
 # Only need to change these two variables
-PKG_NAME=dipols
+PKG_NAME=colleda
 USER=dkazanc
 
 OS=$TRAVIS_OS_NAME-64

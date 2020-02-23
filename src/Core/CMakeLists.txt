@@ -1,12 +1,12 @@
 #cmake_minimum_required (VERSION 3.0)
 
-project(dipols_core)
+project(colleda_core)
 
 # The version number.
-set (dipols_VERSION $ENV{dipols_VERSION} CACHE INTERNAL "dipols is image processing library" FORCE)
+set (colleda_VERSION $ENV{colleda_VERSION} CACHE INTERNAL "colleda is image processing library" FORCE)
 
 # conda orchestrated build
-message("dipols_VERSION ${dipols_VERSION}")
+message("colleda_VERSION ${colleda_VERSION}")
 #include (GenerateExportHeader)
 
 
@@ -53,13 +53,13 @@ message("CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}")
 
 message("Adding i23 segmentation as a shared library")
 
-add_library(dipols SHARED
+add_library(colleda SHARED
     	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/MASK_merge_core.c
 	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/MaskIterative_core.c
     	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/utils.c
 	    )
-target_link_libraries(dipols ${EXTRA_LIBRARIES} )
-include_directories(dipols PUBLIC
+target_link_libraries(colleda ${EXTRA_LIBRARIES} )
+include_directories(colleda PUBLIC
                       ${LIBRARY_INC}/include
 					  ${CMAKE_CURRENT_SOURCE_DIR}
 		              ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/ )
@@ -67,13 +67,13 @@ include_directories(dipols PUBLIC
 ## Install
 if (UNIX)
 message ("I'd install into ${CMAKE_INSTALL_PREFIX}/lib")
-install(TARGETS dipols
+install(TARGETS colleda
 	LIBRARY DESTINATION lib
 	CONFIGURATIONS ${CMAKE_BUILD_TYPE}
 	)
 elseif(WIN32)
 message ("I'd install into ${CMAKE_INSTALL_PREFIX} lib bin")
-  install(TARGETS dipols
+  install(TARGETS colleda
 	RUNTIME DESTINATION bin
 	ARCHIVE DESTINATION lib
 	CONFIGURATIONS ${CMAKE_BUILD_TYPE}

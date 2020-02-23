@@ -6,17 +6,19 @@ Created on Wed Feb 19 21:39:47 2020
 Demo to show the capability of segmenting the phase of the 3D data with the 
 subsequent morphological processing 
 -----------------------------------------------------
-Get the data from 
+Download the data from the Zenodo archive here:
+https://doi.org/10.5281/zenodo.3685282
+
+Place the downloaded file sample13076_3D.npy into the "data" folder
 -----------------------------------------------------
 @author: Daniil Kazantsev 
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from dipols.methods.segmentation import MASK_EVOLVE, MASK_MORPH
+from colleda.methods.segmentation import MASK_EVOLVE, MASK_MORPH
 
 #  Load the 3D sample data (i23 beamline, DLS)
-#sample_data =  np.load('../data/sample1_2D.npy')
-sample_data =  np.load('/home/kjy41806/Documents/SOFT/i23seg/data/sample13076_3D.npy')
+sample_data =  np.load('../data/sample13076_3D.npy')
 
 mask_init = np.uint8(np.zeros(np.shape(sample_data)))
 mask_init[20:100,325:414,230:317] = 1

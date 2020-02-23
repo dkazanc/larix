@@ -10,11 +10,10 @@ subsequent morphological processing
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from dipols.methods.segmentation import MASK_EVOLVE, MASK_MORPH
+from colleda.methods.segmentation import MASK_EVOLVE, MASK_MORPH
 
 #  Load the 2D sample data (i23 beamline, DLS)
-#sample_data =  np.load('../data/sample1_2D.npy')
-sample_data =  np.load('/home/kjy41806/Documents/SOFT/i23seg/data/sample13076_2D.npy')
+sample_data =  np.load('../data/sample13076_2D.npy')
 
 mask_init = np.uint8(np.zeros(np.shape(sample_data)))
 mask_init[382:520,217:330] = 1

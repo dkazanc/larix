@@ -20,7 +20,6 @@
 #include "omp.h"
 #include "utils.h"
 
-
 /* A method to ensure connectivity within regions of the segmented image/volume. Here we assume
  * that the MASK has been obtained using some classification/segmentation method such as k-means or gaussian
  * mixture. Some pixels/voxels have been misclassified and we check the spatial dependences

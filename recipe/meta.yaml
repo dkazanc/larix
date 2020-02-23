@@ -1,5 +1,5 @@
 package:
-  name: dipols
+  name: colleda
   version: {{ environ['VERSION'] }}
 
 
@@ -23,6 +23,6 @@ requirements:
     - libgcc-ng # [unix]
 
 about:
-  home: https://github.com/dkazanc/dipols
+  home: https://github.com/dkazanc/colleda
   license:  Apache 2 license
-  summary: 'A library of image processing methods'
+  summary: 'A collection of data and image processing methods'

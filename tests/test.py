@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from dipols.methods.segmentation import MASK_EVOLVE
+from colleda.methods.segmentation import MASK_EVOLVE
 
 ###############################################################################
 
