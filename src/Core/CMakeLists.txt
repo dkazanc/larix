@@ -1,12 +1,12 @@
 #cmake_minimum_required (VERSION 3.0)
 
-project(i23seg_core)
+project(larix_core)
 
 # The version number.
-set (i23seg_VERSION $ENV{i23seg_VERSION} CACHE INTERNAL "i23 segmentation module" FORCE)
+set (larix_VERSION $ENV{larix_VERSION} CACHE INTERNAL "larix is image processing library" FORCE)
 
 # conda orchestrated build
-message("i23seg_VERSION ${i23seg_VERSION}")
+message("larix_VERSION ${larix_VERSION}")
 #include (GenerateExportHeader)
 
 
@@ -17,7 +17,7 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
    set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_SHARED_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
    set (CMAKE_STATIC_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_STATIC_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
-   
+
 endif()
 
 message("CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}")
@@ -33,49 +33,49 @@ if(WIN32)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FLAGS}")
   set (CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${FLAGS}")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:MSVCRT.lib")
-  
+
   set (EXTRA_LIBRARIES)
-		
+
   message("library lib: ${LIBRARY_LIB}")
-  
+
 elseif(UNIX)
-   set (FLAGS "-O2 -funsigned-char -Wall  -Wl,--no-undefined")  
+   set (FLAGS "-O2 -funsigned-char -Wall  -Wl,--no-undefined")
    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FLAGS}")
    set (CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${FLAGS}")
-  
-   set (EXTRA_LIBRARIES 
+
+   set (EXTRA_LIBRARIES
 		"gomp"
 		"m"
 		)
-   
+
 endif()
 message("CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}")
 
 message("Adding i23 segmentation as a shared library")
 
-add_library(i23seg SHARED
+add_library(larix SHARED
     	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/MASK_merge_core.c
 	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/MaskIterative_core.c
     	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/utils.c
 	    )
-target_link_libraries(i23seg ${EXTRA_LIBRARIES} )
-include_directories(i23seg PUBLIC 
-                      ${LIBRARY_INC}/include 
+target_link_libraries(larix ${EXTRA_LIBRARIES} )
+include_directories(larix PUBLIC
+                      ${LIBRARY_INC}/include
 					  ${CMAKE_CURRENT_SOURCE_DIR}
 		              ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/ )
 
 ## Install
 if (UNIX)
 message ("I'd install into ${CMAKE_INSTALL_PREFIX}/lib")
-install(TARGETS i23seg
+install(TARGETS larix
 	LIBRARY DESTINATION lib
-	CONFIGURATIONS ${CMAKE_BUILD_TYPE} 
+	CONFIGURATIONS ${CMAKE_BUILD_TYPE}
 	)
 elseif(WIN32)
 message ("I'd install into ${CMAKE_INSTALL_PREFIX} lib bin")
-  install(TARGETS i23seg 
+  install(TARGETS larix
 	RUNTIME DESTINATION bin
 	ARCHIVE DESTINATION lib
-	CONFIGURATIONS ${CMAKE_BUILD_TYPE} 
+	CONFIGURATIONS ${CMAKE_BUILD_TYPE}
 	)
 endif()

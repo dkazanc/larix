@@ -10,8 +10,8 @@ import sys
 import numpy
 import platform
 
-i23_version=os.environ['VERSION']
-if  i23_version == '':
+larix_version=os.environ['VERSION']
+if  larix_version == '':
     print("Please set the environmental variable VERSION")
     sys.exit(1)
 
@@ -30,7 +30,7 @@ extra_compile_args = []
 extra_library_dirs = [library_lib_path]
 extra_compile_args = []
 extra_link_args = []
-extra_libraries = ['i23seg']
+extra_libraries = ['larix']
 
 print ("extra_library_dirs " , extra_library_dirs)
 
@@ -45,11 +45,11 @@ else:
     extra_libraries += [@EXTRA_OMP_LIB@]
 
 setup(
-    name='i23seg',
-	description='i23 segmentation module',
-	version=i23_version,
+    name='larix',
+	description='A collection of data and image processing methods',
+	version=larix_version,
     cmdclass = {'build_ext': build_ext},
-    ext_modules = [Extension("i23.methods.segmentation",
+    ext_modules = [Extension("larix.methods.segmentation",
                              sources=[os.path.join("." , "src", "cpu_segmentation.pyx") ],
                              include_dirs=extra_include_dirs,
 							 library_dirs=extra_library_dirs,
@@ -58,5 +58,5 @@ setup(
 
     ],
 	zip_safe = False,
-	packages = {'i23', 'i23.methods'},
+	packages = {'larix', 'larix.methods'},
 )

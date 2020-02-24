@@ -16,9 +16,9 @@ import numpy as np
 cimport numpy as np
 
 cdef extern float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, unsigned char *ComboClasses, int tot_combinations, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
-cdef extern float mask_merge_binary_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, int selectedClass, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
-cdef extern float MASK_evolve_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_out, float threhsold, int iterations, int connectivity, int method, int dimX, int dimY, int dimZ);
-cdef extern float MASK_evolve_conditional_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_conditional, unsigned char *MASK_out, float threhsold, int iterations, int connectivity, int method, int dimX, int dimY, int dimZ);
+cdef extern float mask_morph_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, int primeClass, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
+cdef extern float MASK_evolve_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_out, float threhsold, int iterations, int connectivity, float value1, float value2, int dimX, int dimY, int dimZ);
+cdef extern float MASK_evolve_conditional_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_conditional, unsigned char *MASK_out, float threhsold, int iterations, int connectivity, float value1, float value2, int dimX, int dimY, int dimZ);
 ##############################################################################
 #****************************************************************#
 #********Mask (segmented image) correction module **************#
@@ -114,16 +114,18 @@ def MASK_CORR_3D(np.ndarray[np.uint8_t, ndim=3, mode="c"] maskData,
                     iterationsNumb, dims[2], dims[1], dims[0])
     return mask_upd
 
-##################################################################
+#################################################################
+################Morphological mask processing####################
+#################################################################
 
-def MASK_CORR_BINARY(maskData, selectedClass, correctionWindow, iterationsNumb):
+def MASK_MORPH(maskData, primeClass, correctionWindow, iterationsNumb):
     if maskData.ndim == 2:
-        return MASK_CORR_BIN_2D(maskData, selectedClass, correctionWindow, iterationsNumb)
+        return MASK_MORPH_2D(maskData, primeClass, correctionWindow, iterationsNumb)
     elif maskData.ndim == 3:
-        return MASK_CORR_BIN_3D(maskData, selectedClass, correctionWindow, iterationsNumb)
+        return MASK_MORPH_3D(maskData, primeClass, correctionWindow, iterationsNumb)
 
-def MASK_CORR_BIN_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,                    
-                     int selectedClass,
+def MASK_MORPH_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
+	 	     int primeClass,
                      int correctionWindow,
                      int iterationsNumb):
 
@@ -137,13 +139,13 @@ def MASK_CORR_BIN_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
             np.zeros([dims[0],dims[1]], dtype='uint8')
 
     # Run the function to process given MASK
-    mask_merge_binary_main(&maskData[0,0], &mask_upd[0,0],
-                    &corr_regions[0,0], selectedClass, correctionWindow,
+    mask_morph_main(&maskData[0,0], &mask_upd[0,0],
+                    &corr_regions[0,0], primeClass, correctionWindow,
                     iterationsNumb, dims[1], dims[0], 1)
     return mask_upd
 
-def MASK_CORR_BIN_3D(np.ndarray[np.uint8_t, ndim=3, mode="c"] maskData,
-                     int selectedClass,
+def MASK_MORPH_3D(np.ndarray[np.uint8_t, ndim=3, mode="c"] maskData,
+	 	     int primeClass,
                      int correctionWindow,
                      int iterationsNumb):
 
@@ -158,26 +160,44 @@ def MASK_CORR_BIN_3D(np.ndarray[np.uint8_t, ndim=3, mode="c"] maskData,
             np.zeros([dims[0],dims[1],dims[2]], dtype='uint8')
 
    # Run the function to process given MASK
-    mask_merge_binary_main(&maskData[0,0,0], &mask_upd[0,0,0],
-                    &corr_regions[0,0,0], selectedClass, correctionWindow,                    
+    mask_morph_main(&maskData[0,0,0], &mask_upd[0,0,0],
+                    &corr_regions[0,0,0], primeClass, correctionWindow,
                     iterationsNumb, dims[2], dims[1], dims[0])
     return mask_upd
 
 #################################################################
 ##########################EVOLVING MASK##########################
 #################################################################
-def MASK_ITERATE(Input, maskData, threhsold, iterationsNumb, connectivity, method):
+def MASK_EVOLVE(Input, maskData, threhsold, iterationsNumb, connectivity, method):
+    value1 = 0.0
+    value2 = 1.0
+    mult = np.multiply(Input,maskData)
+    arr = mult[np.nonzero(mult)]
+    if (str(method) is 'mean'):
+        value1 = np.mean(arr)
+        arr = np.abs(arr - value1)
+        value2 = 1.4826*np.mean(arr)
+    elif (str(method) is 'median'):
+        value1 = np.median(arr)
+        arr = np.abs(arr - value1)
+        value2 = 1.4826*np.median(arr)
+    elif (str(method) is 'value'):
+        value1 = 0.0
+        value2 = 1.0
+    else:
+        print("Please select the mask statistics collection method: 'mean', 'median' or 'value'")
     if maskData.ndim == 2:
-        return MASK_ITERATE_2D(Input, maskData, threhsold, iterationsNumb, connectivity, method)
+        return MASK_EVOLVE_2D(Input, maskData, threhsold, iterationsNumb, connectivity, value1, value2)
     elif maskData.ndim == 3:
-        return MASK_ITERATE_3D(Input, maskData, threhsold, iterationsNumb, connectivity, method)
+        return MASK_EVOLVE_3D(Input, maskData, threhsold, iterationsNumb, connectivity, value1, value2)
 
-def MASK_ITERATE_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
+def MASK_EVOLVE_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
                     np.ndarray[np.uint8_t, ndim=2, mode="c"] MASK_in,
                      float threhsold,
                      int iterationsNumb,
                      int connectivity,
-                     int method):
+                     float value1,
+                     float value2):
 
     cdef long dims[2]
     dims[0] = Input.shape[0]
@@ -187,15 +207,16 @@ def MASK_ITERATE_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
             np.zeros([dims[0],dims[1]], dtype='uint8')
 
     MASK_evolve_main(&Input[0,0], &MASK_in[0,0], &MASK_out[0,0], threhsold,
-                    iterationsNumb, connectivity, method, dims[1], dims[0], 1)
+                    iterationsNumb, connectivity, value1, value2, dims[1], dims[0], 1)
     return MASK_out
 
-def MASK_ITERATE_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
+def MASK_EVOLVE_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
                     np.ndarray[np.uint8_t, ndim=3, mode="c"] MASK_in,
                      float threhsold,
                      int iterationsNumb,
                      int connectivity,
-                     int method):
+                     float value1,
+                     float value2):
 
     cdef long dims[3]
     dims[0] = Input.shape[0]
@@ -206,23 +227,41 @@ def MASK_ITERATE_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
             np.zeros([dims[0],dims[1],dims[2]], dtype='uint8')
 
     MASK_evolve_main(&Input[0,0,0], &MASK_in[0,0,0], &MASK_out[0,0,0], threhsold,
-                    iterationsNumb, connectivity, method, dims[2], dims[1], dims[0])
+                    iterationsNumb, connectivity, value1, value2, dims[2], dims[1], dims[0])
     return MASK_out
 
 #################################################################################
-def MASK_CONDITIONAL_ITERATE(Input, maskData, condmask, threhsold, iterationsNumb, connectivity, method):
+def MASK_CONDITIONAL_EVOLVE(Input, maskData, condmask, threhsold, iterationsNumb, connectivity, method):
+    value1 = 0.0
+    value2 = 1.0
+    mult = np.multiply(Input,maskData)
+    arr = mult[np.nonzero(mult)]
+    if (str(method) is 'mean'):
+        value1 = np.mean(arr)
+        arr = np.abs(arr - value1)
+        value2 = 1.4826*np.mean(arr)
+    elif (str(method) is 'median'):
+        value1 = np.median(arr)
+        arr = np.abs(arr - value1)
+        value2 = 1.4826*np.median(arr)
+    elif (str(method) is 'value'):
+        value1 = 0.0
+        value2 = 1.0
+    else:
+        print("Please select the mask statistics collection method: 'mean', 'median' or 'value'")
     if maskData.ndim == 2:
-        return MASK_CONDITIONAL_ITERATE_2D(Input, maskData, condmask, threhsold, iterationsNumb, connectivity, method)
+        return MASK_CONDITIONAL_EVOLVE_2D(Input, maskData, condmask, threhsold, iterationsNumb, connectivity, value1, value2)
     elif maskData.ndim == 3:
-        return MASK_CONDITIONAL_ITERATE_3D(Input, maskData, condmask, threhsold, iterationsNumb, connectivity, method)
+        return MASK_CONDITIONAL_EVOLVE_3D(Input, maskData, condmask, threhsold, iterationsNumb, connectivity, value1, value2)
 
-def MASK_CONDITIONAL_ITERATE_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
+def MASK_CONDITIONAL_EVOLVE_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
                     np.ndarray[np.uint8_t, ndim=2, mode="c"] MASK_in,
                     np.ndarray[np.uint8_t, ndim=2, mode="c"] MASK_conditional,
                     float threhsold,
                     int iterationsNumb,
                     int connectivity,
-                    int method):
+                    float value1,
+                    float value2):
 
     cdef long dims[2]
     dims[0] = Input.shape[0]
@@ -232,16 +271,17 @@ def MASK_CONDITIONAL_ITERATE_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input
             np.zeros([dims[0],dims[1]], dtype='uint8')
 
     MASK_evolve_conditional_main(&Input[0,0], &MASK_in[0,0], &MASK_conditional[0,0], &MASK_out[0,0], threhsold,
-                    iterationsNumb, connectivity, method, dims[1], dims[0], 1)
+                    iterationsNumb, connectivity, value1, value2, dims[1], dims[0], 1)
     return MASK_out
 
-def MASK_CONDITIONAL_ITERATE_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
+def MASK_CONDITIONAL_EVOLVE_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
                     np.ndarray[np.uint8_t, ndim=3, mode="c"] MASK_in,
                     np.ndarray[np.uint8_t, ndim=3, mode="c"] MASK_conditional,
                     float threhsold,
                     int iterationsNumb,
                     int connectivity,
-                    int method):
+                    float value1,
+                    float value2):
 
     cdef long dims[3]
     dims[0] = Input.shape[0]
@@ -252,5 +292,5 @@ def MASK_CONDITIONAL_ITERATE_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input
             np.zeros([dims[0],dims[1],dims[2]], dtype='uint8')
 
     MASK_evolve_conditional_main(&Input[0,0,0], &MASK_in[0,0,0], &MASK_conditional[0,0,0], &MASK_out[0,0,0], threhsold,
-                    iterationsNumb, connectivity, method, dims[2], dims[1], dims[0])
+                    iterationsNumb, connectivity, value1, value2, dims[2], dims[1], dims[0])
     return MASK_out

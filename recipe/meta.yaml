@@ -1,5 +1,5 @@
 package:
-  name: i23-seg
+  name: larix
   version: {{ environ['VERSION'] }}
 
 
@@ -23,6 +23,6 @@ requirements:
     - libgcc-ng # [unix]
 
 about:
-  home: https://github.com/dkazanc/i23seg
+  home: https://github.com/dkazanc/larix
   license:  Apache 2 license
-  summary: 'i23 segmentation module'
+  summary: 'Larix: is a set of data and image processing tools'
