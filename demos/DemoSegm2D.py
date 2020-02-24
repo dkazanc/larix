@@ -10,7 +10,7 @@ subsequent morphological processing
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from colleda.methods.segmentation import MASK_EVOLVE, MASK_MORPH
+from larix.methods.segmentation import MASK_EVOLVE, MASK_MORPH
 
 #  Load the 2D sample data (i23 beamline, DLS)
 sample_data =  np.load('../data/sample13076_2D.npy')

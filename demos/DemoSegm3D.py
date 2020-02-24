@@ -15,7 +15,7 @@ Place the downloaded file sample13076_3D.npy into the "data" folder
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from colleda.methods.segmentation import MASK_EVOLVE, MASK_MORPH
+from larix.methods.segmentation import MASK_EVOLVE, MASK_MORPH
 
 #  Load the 3D sample data (i23 beamline, DLS)
 sample_data =  np.load('../data/sample13076_3D.npy')

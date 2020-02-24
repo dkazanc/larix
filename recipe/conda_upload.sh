@@ -1,5 +1,5 @@
 # Only need to change these two variables
-PKG_NAME=colleda
+PKG_NAME=larix
 USER=dkazanc
 
 OS=$TRAVIS_OS_NAME-64

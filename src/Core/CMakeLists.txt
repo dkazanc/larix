@@ -1,12 +1,12 @@
 #cmake_minimum_required (VERSION 3.0)
 
-project(colleda_core)
+project(larix_core)
 
 # The version number.
-set (colleda_VERSION $ENV{colleda_VERSION} CACHE INTERNAL "colleda is image processing library" FORCE)
+set (larix_VERSION $ENV{larix_VERSION} CACHE INTERNAL "larix is image processing library" FORCE)
 
 # conda orchestrated build
-message("colleda_VERSION ${colleda_VERSION}")
+message("larix_VERSION ${larix_VERSION}")
 #include (GenerateExportHeader)
 
 
@@ -53,13 +53,13 @@ message("CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}")
 
 message("Adding i23 segmentation as a shared library")
 
-add_library(colleda SHARED
+add_library(larix SHARED
     	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/MASK_merge_core.c
 	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/MaskIterative_core.c
     	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/utils.c
 	    )
-target_link_libraries(colleda ${EXTRA_LIBRARIES} )
-include_directories(colleda PUBLIC
+target_link_libraries(larix ${EXTRA_LIBRARIES} )
+include_directories(larix PUBLIC
                       ${LIBRARY_INC}/include
 					  ${CMAKE_CURRENT_SOURCE_DIR}
 		              ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/ )
@@ -67,13 +67,13 @@ include_directories(colleda PUBLIC
 ## Install
 if (UNIX)
 message ("I'd install into ${CMAKE_INSTALL_PREFIX}/lib")
-install(TARGETS colleda
+install(TARGETS larix
 	LIBRARY DESTINATION lib
 	CONFIGURATIONS ${CMAKE_BUILD_TYPE}
 	)
 elseif(WIN32)
 message ("I'd install into ${CMAKE_INSTALL_PREFIX} lib bin")
-  install(TARGETS colleda
+  install(TARGETS larix
 	RUNTIME DESTINATION bin
 	ARCHIVE DESTINATION lib
 	CONFIGURATIONS ${CMAKE_BUILD_TYPE}

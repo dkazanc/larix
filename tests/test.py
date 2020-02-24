@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from colleda.methods.segmentation import MASK_EVOLVE
+from larix.methods.segmentation import MASK_EVOLVE
 
 ###############################################################################
 

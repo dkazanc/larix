@@ -36,7 +36,7 @@ install:
   - conda config --set anaconda_upload no
   - export VERSION=`date +%Y.%m`
   - conda build recipe/ --numpy=$NUMPY --python=$TRAVIS_PYTHON_VERSION
-  - conda install --channel /home/travis/miniconda/envs/test-environment/conda-bld/ colleda --offline --override-channels
+  - conda install --channel /home/travis/miniconda/envs/test-environment/conda-bld/ larix --offline --override-channels
 
 after_success:
   - chmod +x recipe/conda_upload.sh

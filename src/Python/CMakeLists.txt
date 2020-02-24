@@ -1,11 +1,11 @@
 cmake_minimum_required (VERSION 3.0)
 
-project(colledaPython)
+project(larixPython)
 
 # The version number.
 message("Creating Python Wrapper")
 # conda orchestrated build
-message("colleda_VERSION: ${colleda_VERSION}")
+message("larix_VERSION: ${larix_VERSION}")
 #include (GenerateExportHeader)
 
 find_package(PythonInterp REQUIRED)
@@ -32,7 +32,7 @@ elseif(UNIX)
 		)
 endif()
 
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/setup-colleda.py.in" "${CMAKE_CURRENT_BINARY_DIR}/setup-colleda.py")
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/setup-larix.py.in" "${CMAKE_CURRENT_BINARY_DIR}/setup-larix.py")
 
 find_package(PythonInterp)
 find_package(PythonLibs)
@@ -47,8 +47,8 @@ endif()
 
 if (PYTHONINTERP_FOUND)
     message("Python found " ${PYTHON_EXECUTABLE})
-    set(SETUP_PY_IN "${CMAKE_CURRENT_SOURCE_DIR}/setup-colleda.py.in")
-    set(SETUP_PY    "${CMAKE_CURRENT_BINARY_DIR}/setup-colleda.py")
+    set(SETUP_PY_IN "${CMAKE_CURRENT_SOURCE_DIR}/setup-larix.py.in")
+    set(SETUP_PY    "${CMAKE_CURRENT_BINARY_DIR}/setup-larix.py")
     set (DEPS       "${CMAKE_BINARY_DIR}/src/Core/")
     set(OUTPUT      "${CMAKE_CURRENT_BINARY_DIR}/build/timestamp")
 
@@ -59,40 +59,40 @@ if (PYTHONINTERP_FOUND)
     if (CONDA_BUILD)
       add_custom_command(OUTPUT ${OUTPUT}
                        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src
-                       COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/colleda ${CMAKE_CURRENT_BINARY_DIR}/colleda
-                       COMMAND ${CMAKE_COMMAND} -E env colleda_VERSION=${colleda_VERSION}
+                       COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/larix ${CMAKE_CURRENT_BINARY_DIR}/larix
+                       COMMAND ${CMAKE_COMMAND} -E env larix_VERSION=${larix_VERSION}
                                                        PREFIX=${CMAKE_SOURCE_DIR}/src/Core
                                                        LIBRARY_INC=${CMAKE_SOURCE_DIR}/src/Core
                                                        LIBRARY_LIB=${CMAKE_BINARY_DIR}/src/Core
                                                        ${PYTHON_EXECUTABLE} ${SETUP_PY} install
                        COMMAND ${CMAKE_COMMAND} -E touch ${OUTPUT}
-                       DEPENDS colleda)
+                       DEPENDS larix)
 
     else()
       if (WIN32)
         add_custom_command(OUTPUT ${OUTPUT}
                        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src
-                       COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/colleda ${CMAKE_CURRENT_BINARY_DIR}/colleda
-                       COMMAND ${CMAKE_COMMAND} -E env colleda_VERSION=${colleda_VERSION}
+                       COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/larix ${CMAKE_CURRENT_BINARY_DIR}/larix
+                       COMMAND ${CMAKE_COMMAND} -E env larix_VERSION=${larix_VERSION}
                                                        PREFIX=${CMAKE_SOURCE_DIR}/src/Core
                                                        LIBRARY_INC=${CMAKE_SOURCE_DIR}/src/Core
                                                        LIBRARY_LIB=${CMAKE_BINARY_DIR}/src/Core/${CMAKE_BUILD_TYPE}
                                                        ${PYTHON_EXECUTABLE} ${SETUP_PY} build_ext --inplace
                        COMMAND ${CMAKE_COMMAND} -E touch ${OUTPUT}
-                       DEPENDS colleda)
+                       DEPENDS larix)
       else()
         add_custom_command(OUTPUT ${OUTPUT}
                        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src
-                       COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/colleda ${CMAKE_CURRENT_BINARY_DIR}/colleda
-                       COMMAND ${CMAKE_COMMAND} -E env colleda_VERSION=${colleda_VERSION}
+                       COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/larix ${CMAKE_CURRENT_BINARY_DIR}/larix
+                       COMMAND ${CMAKE_COMMAND} -E env larix_VERSION=${larix_VERSION}
                                                        PREFIX=${CMAKE_SOURCE_DIR}/src/Core
                                                        LIBRARY_INC=${CMAKE_SOURCE_DIR}/src/Core
                                                        LIBRARY_LIB=${CMAKE_BINARY_DIR}/src/Core
                                                        ${PYTHON_EXECUTABLE} ${SETUP_PY} build_ext --inplace
                        COMMAND ${CMAKE_COMMAND} -E touch ${OUTPUT}
-                       DEPENDS colleda)
+                       DEPENDS larix)
       endif()
-      install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/colleda
+      install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/larix
               DESTINATION ${PYTHON_DEST})
     endif()
 

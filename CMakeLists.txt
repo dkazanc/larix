@@ -12,10 +12,10 @@
 
 cmake_minimum_required (VERSION 3.0)
 
-project(COLLEDA)
+project(LARIX)
 
-set (COLLEDA_VERSION $ENV{COLLEDA_VERSION} CACHE INTERNAL "Colleda software" FORCE)
-message(STATUS "COLLEDA_VERSION set to " ${COLLEDA_VERSION})
+set (LARIX_VERSION $ENV{LARIX_VERSION} CACHE INTERNAL "LARIX software" FORCE)
+message(STATUS "LARIX_VERSION set to " ${LARIX_VERSION})
 
 # set the Python variables for the Conda environment
 option (BUILD_PYTHON_WRAPPER "Build Python Wrappers" ON)
