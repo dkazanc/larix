@@ -25,4 +25,4 @@ requirements:
 about:
   home: https://github.com/dkazanc/larix
   license:  Apache 2 license
-  summary: 'A collection of data and image processing methods'
+  summary: 'Larix: is a set of data and image processing tools'
