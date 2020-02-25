@@ -1,6 +1,6 @@
 | Master | Anaconda binaries |
 |--------|-------------------|
-| [![Build Status](https://travis-ci.org/dkazanc/i23seg.svg?branch=master)](https://travis-ci.org/dkazanc/i23seg.svg?branch=master) | ![conda version](https://anaconda.org/dkazanc/i23-seg/badges/version.svg) ![conda last release](https://anaconda.org/dkazanc/i23-seg/badges/latest_release_date.svg) [![conda platforms](https://anaconda.org/dkazanc/i23-seg/badges/platforms.svg) ![conda dowloads](https://anaconda.org/dkazanc/i23-seg/badges/downloads.svg)](https://anaconda.org/dkazanc/i23-seg/) |
+| [![Build Status](https://travis-ci.org/dkazanc/larix.svg?branch=master)](https://travis-ci.org/dkazanc/larix.svg?branch=master) | ![conda version](https://anaconda.org/dkazanc/larix/badges/version.svg) ![conda last release](https://anaconda.org/dkazanc/larix/badges/latest_release_date.svg) [![conda platforms](https://anaconda.org/dkazanc/larix/badges/platforms.svg) ![conda dowloads](https://anaconda.org/dkazanc/larix/badges/downloads.svg)](https://anaconda.org/dkazanc/larix/) |
 
 # Larix: is a set of data and image processing tools
 
