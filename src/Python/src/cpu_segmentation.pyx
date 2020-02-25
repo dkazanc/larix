@@ -19,6 +19,7 @@ cdef extern float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, 
 cdef extern float mask_morph_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, int primeClass, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ);
 cdef extern float MASK_evolve_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_out, float threhsold, int iterations, int connectivity, float value1, float value2, int dimX, int dimY, int dimZ);
 cdef extern float MASK_evolve_conditional_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_conditional, unsigned char *MASK_out, float threhsold, int iterations, int connectivity, float value1, float value2, int dimX, int dimY, int dimZ);
+cdef extern float autocropper_main(float *Input, float *mask_box, float *crop_indeces, int margin_size, int statbox_size, int dimX, int dimY, int dimZ);
 ##############################################################################
 #****************************************************************#
 #********Mask (segmented image) correction module **************#
@@ -294,3 +295,34 @@ def MASK_CONDITIONAL_EVOLVE_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
     MASK_evolve_conditional_main(&Input[0,0,0], &MASK_in[0,0,0], &MASK_conditional[0,0,0], &MASK_out[0,0,0], threhsold,
                     iterationsNumb, connectivity, value1, value2, dims[2], dims[1], dims[0])
     return MASK_out
+#################################################################
+##########################Autocropper ###########################
+#################################################################
+def AUTOCROP(Input, margin_size, statbox_size):
+    if Input.ndim == 2:
+        return AUTOCROP_2D(Input, margin_size, statbox_size)
+    elif Input.ndim == 3:
+        return 0
+
+def AUTOCROP_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
+                np.ndarray[np.float32_t, ndim=2, mode="c"] mask,
+                np.ndarray[np.float32_t, ndim=1, mode="c"] crop_val_ar,
+                int margin_size,
+                int statbox_size):
+
+    cdef long dims[2]
+    dims[0] = Input.shape[0]
+    dims[1] = Input.shape[1]
+
+    cdef np.ndarray[np.float32_t, ndim=2, mode="c"] mask = \
+            np.zeros([dims[0],dims[1]], dtype='float32')
+
+           
+    cdef np.ndarray[np.float32_t, ndim=1, mode="c"] crop_val_ar = \
+            np.zeros([4], dtype='float32')            
+        
+    autocropper_main(&Input[0,0], &mask[0,0], &crop_val_ar[0], margin_size, statbox_size, dims[1], dims[0], 1)
+    return mask
+
+
+#################################################################################
