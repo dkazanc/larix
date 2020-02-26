@@ -55,8 +55,14 @@ setup(
 							 library_dirs=extra_library_dirs,
 							 extra_compile_args=extra_compile_args,
 							 libraries=extra_libraries ),
+		   Extension("larix.methods.misc",
+                             sources=[os.path.join("." , "src", "cpu_misc.pyx") ],
+                             include_dirs=extra_include_dirs,
+							 library_dirs=extra_library_dirs,
+							 extra_compile_args=extra_compile_args,
+							 libraries=extra_libraries ),
 
-    ],
+    ],                  
 	zip_safe = False,
 	packages = {'larix', 'larix.methods'},
 )

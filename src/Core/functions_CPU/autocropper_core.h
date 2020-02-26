@@ -24,11 +24,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-float autocropper_main(float *Input, float *mask_box, float *crop_indeces, int margin_size, int statbox_size, int dimX, int dimY, int dimZ);
+float Autocrop_main(float *Input, float *mask_box, float *crop_indeces, float threshold, int margin_skip, int statbox_size, int increase_crop, int dimX, int dimY, int dimZ);
 /************2D functions ***********/
-float stat_collector2D(float *Input, float *mask_box, int statbox_size, int dimX, int dimY);
+float stat_collector2D(float *Input, float *maskMean_value, int statbox_size, int dimX, int dimY);
+float diff_mask2D(float *Input, float *mask_box, float *maskMean_value, int margin_skip, int dimX, int dimY);
+float get_indices2D(float *Input, float *mask_box, float *crop_indeces, float threshold, int increase_crop, int dimX, int dimY);
 /************3D functions ***********/
-
 #ifdef __cplusplus
 }
 #endif
