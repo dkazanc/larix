@@ -51,11 +51,12 @@ elseif(UNIX)
 endif()
 message("CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}")
 
-message("Adding i23 segmentation as a shared library")
+message("Adding Larix software as a shared library")
 
 add_library(larix SHARED
     	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/MASK_merge_core.c
-	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/MaskIterative_core.c
+    	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/MaskIterative_core.c
+    	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/autocropper_core.c
     	    ${CMAKE_CURRENT_SOURCE_DIR}/functions_CPU/utils.c
 	    )
 target_link_libraries(larix ${EXTRA_LIBRARIES} )
