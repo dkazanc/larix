@@ -218,15 +218,15 @@ float mask_morph_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
     OutiersRemoval2D(MASK, MASK_upd, i, j, (long)(dimX), (long)(dimY));
         }}
     /* copy the updated MASK (clean of outliers) to MASK_temp*/
-    copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));   
-   
+    copyIm_unchar(MASK_upd, MASK_temp, (long)(dimX), (long)(dimY), (long)(dimZ));
+
     for(ll=0; ll<2; ll++) {
     #pragma omp parallel for shared(MASK_temp,MASK_upd,k,ll) private(i,j)
     for(j=0; j<dimY; j++) {
         for(i=0; i<dimX; i++) {
       /* The class of the central pixel has not changed, i.e. the central pixel is not an outlier -> continue */
       if (MASK_temp[j*dimX+i] == MASK[j*dimX+i]) {
-	if ((primeClass != 0) && (k == 0)) class_select = 1;
+	if ((primeClass != 0) && (k == 0)) class_select = primeClass;
 	else class_select = ll;
     	/* One needs to work with a specific class to avoid possible overlaps */
        if (MASK_temp[j*dimX+i] == class_select) {
@@ -259,7 +259,7 @@ float mask_morph_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
             for(i=0; i<dimX; i++) {
     /* The class of the central pixel has not changed, i.e. the central pixel is not an outlier -> continue */
       if (MASK_temp[(dimX*dimY)*k + j*dimX+i] == MASK[(dimX*dimY)*k + j*dimX+i]) {
-	if ((primeClass != 0) && (l == 0)) class_select = 1;
+	if ((primeClass != 0) && (l == 0)) class_select = primeClass;
 	else class_select = ll;
 	/* One needs to work with a specific class to avoid possible overlaps */
      if (MASK_temp[(dimX*dimY)*k + j*dimX+i] == class_select) {

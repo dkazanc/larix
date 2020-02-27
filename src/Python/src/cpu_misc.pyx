@@ -23,7 +23,7 @@ def AUTOCROP(Input, threshold, margin_skip, statbox_size, increase_crop):
     if Input.ndim == 2:
         return AUTOCROP_2D(Input, threshold, margin_skip, statbox_size, increase_crop)
     elif Input.ndim == 3:
-        return 1
+        return AUTOCROP_3D(Input, threshold, margin_skip, statbox_size, increase_crop)
 
 def AUTOCROP_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
 	float threshold,
@@ -37,11 +37,29 @@ def AUTOCROP_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
 
     cdef np.ndarray[np.float32_t, ndim=2, mode="c"] mask = \
             np.zeros([dims[0],dims[1]], dtype='float32')
-           
+
     cdef np.ndarray[np.float32_t, ndim=1, mode="c"] crop_val_ar = \
-            np.zeros([4], dtype='float32')            
-                    
+            np.zeros([4], dtype='float32')
+
     Autocrop_main(&Input[0,0], &mask[0,0], &crop_val_ar[0], threshold, margin_skip, statbox_size, increase_crop, dims[1], dims[0], 1)
     return crop_val_ar
 
+def AUTOCROP_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
+	float threshold,
+	int margin_skip,
+	int statbox_size,
+	int increase_crop):
 
+    cdef long dims[3]
+    dims[0] = Input.shape[0]
+    dims[1] = Input.shape[1]
+    dims[2] = Input.shape[2]
+
+    cdef np.ndarray[np.float32_t, ndim=3, mode="c"] mask = \
+            np.zeros([dims[0],dims[1],dims[2]], dtype='float32')
+
+    cdef np.ndarray[np.float32_t, ndim=1, mode="c"] crop_val_ar = \
+            np.zeros([4], dtype='float32')
+
+    Autocrop_main(&Input[0,0,0], &mask[0,0,0], &crop_val_ar[0], threshold, margin_skip, statbox_size, increase_crop, dims[2], dims[1], dims[0])
+    return crop_val_ar
