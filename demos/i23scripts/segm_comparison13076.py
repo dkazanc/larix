@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Thsi script calculates an error between two segmentations
+Thsi script calculates an error between two segmentations for 13076 sample 
 @author: Daniil Kazantsev
 """
 import numpy as np
@@ -10,7 +10,7 @@ from PIL import Image
 
 tot_num_im = 900
 # read reconstructed images
-path_folder = "/dls/i23/data/2019/nr23017-1/processing/tomography/recon/13076/PAPER_PROC/tiffs/cropped/"
+path_folder = "/media/algol/F2FE9B0BFE9AC76F/__I23_data__/13076/recon/tiffs/cropped/"
 imagename = "recon_"
 start_index = '00000'
 image = Image.open(path_folder + imagename + start_index + ".tif")
@@ -31,26 +31,27 @@ for i in range(0,tot_num_im):
     volume_recon[i,:,:] = np.array(Image.open(path_folder + imagename + index_str + ".tif"))
 
 fig = plt.figure(1)
-fig.suptitle('TomoBAR reconstructed image')
-plt.subplot(131)
+#fig.suptitle('TomoBAR reconstructed image')
+ax = fig.add_subplot(131)
 plt.imshow(volume_recon[450,:,:],vmin=0, vmax=255,  cmap="gray")
 plt.title('axial view')
 
-plt.subplot(132)
+ax = fig.add_subplot(132)
 plt.imshow(np.flipud(volume_recon[:,250,:]),vmin=0, vmax=255, cmap="gray")
+ax.set_aspect(0.565)
 plt.title('coronal view')
 
-plt.subplot(133)
+ax = fig.add_subplot(133)
 plt.imshow(np.flipud(volume_recon[:,:,200]),vmin=0, vmax=255,  cmap="gray")
+ax.set_aspect(0.71)
 plt.title('sagittal view')
 fig.set_size_inches((13, 8), forward=False)
 fig.tight_layout()
 fig.subplots_adjust(top=0.88)
 plt.show()
 fig.savefig('13076_tomobar_recon.png', dpi=250)
-
 #%%
-path_folder = "/dls/i23/data/2019/nr23017-1/processing/tomography/recon/13076/PAPER_PROC/avizo/tiffs_cropped_xy_slicing/"
+path_folder = "/media/algol/F2FE9B0BFE9AC76F/__I23_data__/13076/manual/tiffs_cropped_xy_slicing/"
 imagename = "13076_copped_thresholding_magic_wand.labels"
 
 tot_num_im = 900
@@ -73,19 +74,21 @@ for i in range(0,tot_num_im):
 
 fig = plt.figure(2)
 #fig.suptitle('Manual 4 phases segmentation in Avizo')
-plt.subplot(131)
+ax = fig.add_subplot(131)
 plt.imshow(volume_manual[450,:,:],vmin=0, vmax=3)
 plt.axis('off')
 #plt.title('axial view')
 
-plt.subplot(132)
+ax = fig.add_subplot(132)
 plt.imshow(np.flipud(volume_manual[:,250,:]),vmin=0, vmax=3)
 plt.axis('off')
+ax.set_aspect(0.565)
 #plt.title('coronal view')
 
-plt.subplot(133)
+ax = fig.add_subplot(133)
 plt.imshow(np.flipud(volume_manual[:,:,200]),vmin=0, vmax=3)
 plt.axis('off')
+ax.set_aspect(0.71)
 #plt.title('sagittal view')
 fig.set_size_inches((13, 8), forward=False)
 fig.tight_layout()
@@ -94,7 +97,7 @@ plt.show()
 fig.savefig('13076_manual.png', dpi=250)
 #%%
 # Getting automatically segmented data
-path_folder = "/dls/i23/data/2019/nr23017-1/processing/tomography/recon/13076/PAPER_PROC/MaskEvolve3D/FINAL_SEGMENTATION/ImageSaver-SEGMENTED_4phases/"
+path_folder = "/media/algol/F2FE9B0BFE9AC76F/__I23_data__/13076/regionevolve/ImageSaver-SEGMENTED_4phases/"
 imagename = "SEGMENTED_4phases_13076_processed_processed_processed_processed_processed_"
 
 volume_automatic_regiongrow = np.zeros((tot_num_im, dimX, dimY)).astype(np.uint8)
@@ -117,20 +120,21 @@ volume_automatic_regiongrow[volume_automatic_regiongrow == 198] = 1 # crystal
 
 fig = plt.figure(3)
 #fig.suptitle('Automatic 4 phases segmentation GMM + Regiongrow (crystal)')
-
-plt.subplot(131)
+ax = fig.add_subplot(131)
 plt.imshow(volume_automatic_regiongrow[450,:,:],vmin=0, vmax=3)
 plt.axis('off')
 #plt.title('axial view')
 
-plt.subplot(132)
+ax = fig.add_subplot(132)
 plt.imshow(np.flipud(volume_automatic_regiongrow[:,250,:]),vmin=0, vmax=3)
 plt.axis('off')
+ax.set_aspect(0.565)
 #plt.title('coronal view')
 
-plt.subplot(133)
+ax = fig.add_subplot(133)
 plt.imshow(np.flipud(volume_automatic_regiongrow[:,:,200]),vmin=0, vmax=3)
 plt.axis('off')
+ax.set_aspect(0.71)
 #plt.title('sagittal view')
 fig.set_size_inches((13, 8), forward=False)
 fig.tight_layout()
@@ -150,25 +154,27 @@ segm_diff = abs(segm_class_man - segm_class_auto)
 fig = plt.figure(4)
 #fig.suptitle('Error between manual and Region segmentation (crystal)')
 
-plt.subplot(311)
+ax = fig.add_subplot(131)
 plt.imshow(segm_diff[450,:,:], vmin=0, vmax=1)
 plt.axis('off')
 #plt.title('segmentation error, axial view')
 
-plt.subplot(312)
+ax = fig.add_subplot(132)
 plt.imshow(np.flipud(segm_diff[:,250,:]), vmin=0, vmax=1)
 plt.axis('off')
+ax.set_aspect(0.565)
 #plt.title('segmentation error, coronal view')
 
-plt.subplot(313)
+ax = fig.add_subplot(133)
 plt.imshow(np.flipud(segm_diff[:,:,200]), vmin=0, vmax=1)
 plt.axis('off')
+ax.set_aspect(0.71)
 #plt.title('segmentation error, sagittal view')
 fig.set_size_inches((13, 8), forward=False)
 fig.tight_layout()
 fig.subplots_adjust(top=0.88)
 plt.show()
-fig.savefig('13076_regiongrow_error.png', dpi=250)
+fig.savefig('13076_regiongrow_crystal_error.png', dpi=250)
 
 # plotting the error for each slice
 vector_manual = np.zeros((tot_num_im)).astype(np.int64)
@@ -179,29 +185,29 @@ for i in range(0,tot_num_im):
     vector_manual[i] = np.count_nonzero(segm_class_man[i,:,:])
     vector_automatic_regiongrow[i] = np.count_nonzero(segm_class_auto[i,:,:])
 #%%
-# visualise the result    
-ind = np.arange(tot_num_im) 
+# visualise the result
+ind = np.arange(tot_num_im)
 barWidth = 1.5
-names = ['Manual','Automatic']
+names = ['Manual','GMM']
 
 fig = plt.figure(10)
 plt.rcParams.update({'font.size': 15})
 p1 = plt.bar(ind, vector_manual,  alpha = 0.7, color='r', width=barWidth)
 p2 = plt.bar(ind, vector_automatic_regiongrow, alpha = 0.25, color='b', width=barWidth)
-plt.xlim([0,900])
+plt.xlim([90,830])
 #plt.yticks(fontsize=12)
 plt.ylabel('The total number of pixels', fontsize=14)
 plt.xlabel('2D (x-y) slices', fontsize=14)
 plt.legend((p1[0], p2[0]), (names[0], names[1]), fontsize=16, ncol=2, framealpha=0, fancybox=True)
-plt.title('Regiongrow and manual segementation discrepancies for a crystal')
+plt.title('GMM vs Manual for liquor segementation')
 plt.show()
 #fig = plt.gcf()
 fig.set_size_inches((9, 11), forward=False)
-fig.savefig('13076_CRYSTAL_regiongrow.png', dpi=250)
+fig.savefig('13076_liquor_gmm.png', dpi=250)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Getting automatically segmented data
-path_folder = "/dls/i23/data/2019/nr23017-1/processing/tomography/recon/13076/PAPER_PROC/GeoDist3D/FINAL_SEGMENTATION/ImageSaver-SEGMENTED_4phases/"
+path_folder = "/media/algol/F2FE9B0BFE9AC76F/__I23_data__/13076/geodist/ImageSaver-SEGMENTED_4phases/"
 imagename = "SEGMENTED_4phases_13076_processed_processed_processed_processed_processed_"
 
 volume_automatic_geodistance = np.zeros((tot_num_im, dimX, dimY)).astype(np.uint8)
@@ -222,22 +228,24 @@ volume_automatic_geodistance[volume_automatic_geodistance == 255] = 3 # liquor
 volume_automatic_geodistance[volume_automatic_geodistance == 7] = 2 # loop
 volume_automatic_geodistance[volume_automatic_geodistance == 198] = 1 # crystal
 
-fig = plt.figure(3)
+fig = plt.figure(5)
 #fig.suptitle('Automatic 4 phases segmentation GMM + Regiongrow (crystal)')
 
-plt.subplot(131)
+ax = fig.add_subplot(131)
 plt.imshow(volume_automatic_geodistance[450,:,:],vmin=0, vmax=3)
 plt.axis('off')
 #plt.title('axial view')
 
-plt.subplot(132)
+ax = fig.add_subplot(132)
 plt.imshow(np.flipud(volume_automatic_geodistance[:,250,:]),vmin=0, vmax=3)
 plt.axis('off')
+ax.set_aspect(0.565)
 #plt.title('coronal view')
 
-plt.subplot(133)
+ax = fig.add_subplot(133)
 plt.imshow(np.flipud(volume_automatic_geodistance[:,:,200]),vmin=0, vmax=3)
 plt.axis('off')
+ax.set_aspect(0.71)
 #plt.title('sagittal view')
 fig.set_size_inches((13, 8), forward=False)
 fig.tight_layout()
@@ -254,22 +262,24 @@ segm_class_auto[volume_automatic_geodistance == class_to_calculate_error] = 1
 
 segm_diff = abs(segm_class_man - segm_class_auto)
 
-fig = plt.figure(4)
+fig = plt.figure(6)
 #fig.suptitle('Error between manual and Geodistance segmentation (crystal)')
 
-plt.subplot(311)
+ax = fig.add_subplot(131)
 plt.imshow(segm_diff[450,:,:], vmin=0, vmax=1)
 plt.axis('off')
 #plt.title('segmentation error, axial view')
 
-plt.subplot(312)
+ax = fig.add_subplot(132)
 plt.imshow(np.flipud(segm_diff[:,250,:]), vmin=0, vmax=1)
 plt.axis('off')
+ax.set_aspect(0.565)
 #plt.title('segmentation error, coronal view')
 
-plt.subplot(313)
+ax = fig.add_subplot(133)
 plt.imshow(np.flipud(segm_diff[:,:,200]), vmin=0, vmax=1)
 plt.axis('off')
+ax.set_aspect(0.71)
 #plt.title('segmentation error, sagittal view')
 fig.set_size_inches((13, 8), forward=False)
 fig.tight_layout()
@@ -289,30 +299,30 @@ for i in range(0,tot_num_im):
 # visualise the result    
 ind = np.arange(tot_num_im) 
 barWidth = 1.5
-names = ['Manual','Automatic']
+names = ['Manual','GeoDistance']
 
 fig = plt.figure(10)
 plt.rcParams.update({'font.size': 15})
 p1 = plt.bar(ind, vector_manual,  alpha = 0.7, color='r', width=barWidth)
 p2 = plt.bar(ind, vector_automatic_geodistance, alpha = 0.25, color='b', width=barWidth)
-plt.xlim([0,900])
+plt.xlim([90,830])
 #plt.yticks(fontsize=12)
 plt.ylabel('The total number of pixels', fontsize=14)
 plt.xlabel('2D (x-y) slices', fontsize=14)
 plt.legend((p1[0], p2[0]), (names[0], names[1]), fontsize=16, ncol=2, framealpha=0, fancybox=True)
-plt.title('Regiongrow and manual segementation discrepancies for a crystal')
+plt.title('GeoDistance vs manual for crystal segementation')
 plt.show()
 #fig = plt.gcf()
 fig.set_size_inches((9, 11), forward=False)
 fig.savefig('13076_CRYSTAL_geodistance.png', dpi=250)
-
 #%%
 names = ['Geodistance','Regiongrow']
 fig = plt.figure(11)
 plt.rcParams.update({'font.size': 15})
-p1 = plt.plot(vector_manual-vector_automatic_geodistance)
-p2 = plt.plot(vector_manual-vector_automatic_regiongrow)
-#plt.xlim([0,900])
+p1 = plt.plot(vector_manual-vector_automatic_geodistance, linewidth=2.0, linestyle='-.')
+p2 = plt.plot(vector_manual-vector_automatic_regiongrow, linewidth=2.0)
+plt.axhline(linewidth=1, linestyle='--', color='black')
+plt.xlim([50,850])
 #plt.yticks(fontsize=12)
 plt.ylabel('Pixel differences', fontsize=14)
 plt.xlabel('2D (x-y) slices', fontsize=14)
