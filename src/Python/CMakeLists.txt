@@ -18,18 +18,43 @@ message("CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}")
 set(CMAKE_BUILD_TYPE "Release")
 
 if(WIN32)
-  set (FLAGS "/DWIN32 /EHsc /openmp ")
-  set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:MSVCRT.lib")
-
-  set (EXTRA_LIBRARIES)
-
+  set (FLAGS "/DWIN32 /EHsc /openmp /DDLSiCore_EXPORTS")
+  set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:MSVCRT.lib")  
+  set (EXTRA_LIBRARIES)		
   message("library lib: ${LIBRARY_LIB}")
-
 elseif(UNIX)
    set (FLAGS "-fopenmp -O2 -funsigned-char -Wall  -Wl,--no-undefined -std=c++0x")
    set (EXTRA_LIBRARIES
-		"gomp"
-		)
+		"gomp")
+endif()
+
+#GPU modules
+if (BUILD_CUDA)
+    find_package(CUDA)
+    if (CUDA_FOUND)
+      message("CUDA FOUND")
+      set (SETUP_GPU_WRAPPERS "extra_libraries += ['larixcuda']\n\
+setup( \n\
+        name='larix', \n\
+        description='Larix is an image processing library',\n\
+        version=larix_version,\n\
+        cmdclass = {'build_ext': build_ext},\n\
+        ext_modules = [Extension('larix.methods.misc_gpu',\n\
+                                  sources=[ \n\
+                                          os.path.join('.' , 'src', 'gpu_misc.pyx' ),\n\
+                                            ],\n\
+                                 include_dirs=extra_include_dirs, \n\
+                                 library_dirs=extra_library_dirs, \n\
+                                 extra_compile_args=extra_compile_args, \n\
+                                 libraries=extra_libraries ), \n\
+        ],\n\
+        zip_safe = False,	\n\
+        packages = {'larix', 'larix.methods'},\n\
+    )")
+    else()
+      message("CUDA NOT FOUND")
+      set(SETUP_GPU_WRAPPERS "#CUDA NOT FOUND")
+    endif()
 endif()
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/setup-larix.py.in" "${CMAKE_CURRENT_BINARY_DIR}/setup-larix.py")

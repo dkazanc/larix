@@ -20,15 +20,16 @@
 #include <stdio.h>
 #include "omp.h"
 #include "utils.h"
+#include "DLSDefines.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-float Autocrop_main(float *Input, float *mask_box, float *crop_indeces, float threshold, int margin_skip, int statbox_size, int increase_crop, int dimX, int dimY, int dimZ);
+DLS_EXPORT float Autocrop_main(float *Input, float *mask_box, float *crop_indeces, float threshold, int margin_skip, int statbox_size, int increase_crop, int dimX, int dimY, int dimZ);
 /************2D functions ***********/
-float stat_collector2D(float *Input, float *maskMean_value, int statbox_size, int dimX, int dimY, int k);
-float diff_mask2D(float *Input, float *mask_box, float *maskMean_value, int margin_skip, int dimX, int dimY, int k);
-float get_indices2D(float *mask_box, float *crop_indeces, float threshold, int increase_crop, int dimX, int dimY, int k);
+DLS_EXPORT float stat_collector2D(float *Input, float *maskMean_value, int statbox_size, int dimX, int dimY, int k);
+DLS_EXPORT float diff_mask2D(float *Input, float *mask_box, float *maskMean_value, int margin_skip, int dimX, int dimY, int k);
+DLS_EXPORT float get_indices2D(float *mask_box, float *crop_indeces, float threshold, int increase_crop, int dimX, int dimY, int k);
 /************3D functions ***********/
 #ifdef __cplusplus
 }

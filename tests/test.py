@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from larix.methods.segmentation import MASK_EVOLVE
+from larix.methods.segmentation import REGION_GROW, MORPH_PROC_LINE
 
 ###############################################################################
 

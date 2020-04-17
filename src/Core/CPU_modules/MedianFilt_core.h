@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include "omp.h"
 #include "utils.h"
+#include "DLSDefines.h"
 
 /* C-OMP implementation of the median filtration and dezingering (2D/3D case)
  *
@@ -36,9 +37,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-float medianfilter_main(float *Input, float *Output, int filter_half_window_size, float mu_threshold, int dimX, int dimY, int dimZ);
+DLS_EXPORT float medianfilter_main(float *Input, float *Output, int filter_half_window_size, float mu_threshold, int dimX, int dimY, int dimZ);
 /************2D functions ***********/
-float medfilt2D(float *Input, float *Output, int filter_half_window_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
+DLS_EXPORT float medfilt2D(float *Input, float *Output, int filter_half_window_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
 /************3D functions ***********/
 
 #ifdef __cplusplus

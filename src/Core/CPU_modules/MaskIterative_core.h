@@ -20,30 +20,31 @@
 #include <stdio.h>
 #include "omp.h"
 #include "utils.h"
+#include "DLSDefines.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-float MASK_evolve_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_out, float threhsold, int iterations, int connectivity, float value1, float value2, int dimX, int dimY, int dimZ);
-float MASK_evolve_conditional_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_conditional, unsigned char *MASK_out, float threhsold, int iterations, int connectivity, float value1, float value2, int dimX, int dimY, int dimZ);
+DLS_EXPORT float MASK_evolve_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_out, float threhsold, int iterations, int connectivity, float value1, float value2, int dimX, int dimY, int dimZ);
+DLS_EXPORT float MASK_evolve_conditional_main(float *Input, unsigned char *MASK_in, unsigned char *MASK_conditional, unsigned char *MASK_out, float threhsold, int iterations, int connectivity, float value1, float value2, int dimX, int dimY, int dimZ);
 /************2D functions ***********/
-float mask_region_MADmean(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY);
-float mask_region_MADmedian(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY);
-float mask_update4(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY);
-float mask_update8(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold,long dimX, long dimY);
-float mask_update_con4(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY);
-float mask_update_con8(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY);
+DLS_EXPORT float mask_region_MADmean(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY);
+DLS_EXPORT float mask_region_MADmedian(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY);
+DLS_EXPORT float mask_update4(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY);
+DLS_EXPORT float mask_update8(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold,long dimX, long dimY);
+DLS_EXPORT float mask_update_con4(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY);
+DLS_EXPORT float mask_update_con8(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY);
 /************3D functions ***********/
-float mask_region_MADmean3D(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY, long dimZ);
-float mask_region_MADmedian3D(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY, long dimZ);
-float mask_update3D_4(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ);
-float mask_update3D_8(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ);
-float mask_update3D_6(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ);
-float mask_update3D_26(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold,  long dimX, long dimY, long dimZ);
-float mask_update_con3D_4(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ);
-float mask_update_con3D_8(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ);
-float mask_update_con3D_6(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ);
-float mask_update_con3D_26(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ);
+DLS_EXPORT float mask_region_MADmean3D(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY, long dimZ);
+DLS_EXPORT float mask_region_MADmedian3D(float *Input, unsigned char *MASK, float *maskreg_value, long dimX, long dimY, long dimZ);
+DLS_EXPORT float mask_update3D_4(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ);
+DLS_EXPORT float mask_update3D_8(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ);
+DLS_EXPORT float mask_update3D_6(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ);
+DLS_EXPORT float mask_update3D_26(float *Input, unsigned char *MASK, float *maskreg_value, float threhsold,  long dimX, long dimY, long dimZ);
+DLS_EXPORT float mask_update_con3D_4(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ);
+DLS_EXPORT float mask_update_con3D_8(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ);
+DLS_EXPORT float mask_update_con3D_6(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ);
+DLS_EXPORT float mask_update_con3D_26(float *Input, unsigned char *MASK_conditional, unsigned char *MASK, float *maskreg_value, float threhsold, long dimX, long dimY, long dimZ);
 #ifdef __cplusplus
 }
 #endif
