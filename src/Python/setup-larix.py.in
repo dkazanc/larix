@@ -35,7 +35,7 @@ extra_libraries = ['larix']
 print ("extra_library_dirs " , extra_library_dirs)
 
 extra_include_dirs += [os.path.join(".." , "Core"),
-                       os.path.join(".." , "Core",  "functions_CPU"),
+                       os.path.join(".." , "Core",  "CPU_modules"),
 						   "."]
 
 if platform.system() == 'Windows':

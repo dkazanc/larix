@@ -21,6 +21,7 @@
  * mixture. Some pixels/voxels have been misclassified and we check the spatial dependences
  * and correct the mask. We check the connectivity using the bresenham line algorithm within the non-local window
  * surrounding the pixel of interest.
+ * https://link.springer.com/content/pdf/10.1007/3-540-44438-6_8.pdf
  *
  * Input Parameters (from Python):
  * 1. MASK [0:255], the result of some classification algorithm (information-based preferably, Gaussian Mixtures works quite well)

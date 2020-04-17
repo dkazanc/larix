@@ -21,6 +21,8 @@ extern "C" {
 float copyIm(float *A, float *U, long dimX, long dimY, long dimZ);
 unsigned char copyIm_unchar(unsigned char *A, unsigned char *U, int dimX, int dimY, int dimZ);
 float copyIm_roll(float *A, float *U, int dimX, int dimY, int roll_value, int switcher);
+float sort_bubble(float *x, int n_size);
+float sort_quick(float *x, int left_idx, int right_idx);
 #ifdef __cplusplus
 }
 #endif

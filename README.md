@@ -4,15 +4,16 @@
 
 # Larix: is a set of data and image processing tools
 
-** Larix is an open-source software written in C language with wrappers for Python. The software consists of novel and already existing methods for various image processing tasks, e.g. segmentation, morphological processing, etc.  Most of the modules are implemented with OpenMP multithreading capability ensuring faster data processing. Larix is being developed at [Diamond Light Source](https://www.diamond.ac.uk/Home.html) to help with the processing of the collected data.**
+** Larix is an open-source software written in C language with wrappers for Python. The software consists of novel and already existing methods for various image processing tasks, e.g. segmentation, morphological processing, etc.  Most of the modules are implemented with OpenMP multithreading capability ensuring faster data processing. Larix is being developed at [Diamond Light Source](https://www.diamond.ac.uk/Home.html)  synchrotron aiming to help with the processing of collected data.**
 
 <div align="center">
   <img src="docs/images/demo_larix.png" width="650">
 </div>
 
 ## Software includes:
- * Mask evolving segmentation method with mask initialisation (**2D/3D CPU**)
- * Morphological processing of segmented image/volume by removing various gaps and misclassified regions (**2D/3D CPU**)
+ * Mask evolving segmentation method (RegionGrow) with mask initialisation (**2D/3D CPU**)
+ * Morphological processing of the segmented image/volume (e.g. the result of RegionGrow) by removing various gaps and misclassified regions (**2D/3D CPU**)
+ * Images 2D/3D auto cropping (when the object is within the FOV), implemented for tomographic projections
 
 ## Installation
 Here an example of build on Linux (see also `run.sh` for additional info):
