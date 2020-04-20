@@ -18,40 +18,47 @@
 /* C-OMP implementation of the median filtration and dezingering (2D/3D case)
  *
  * Input Parameters:
- * 1. Noisy image/volume [REQUIRED]
- * 2. filter_half_window_size: The half size of the median filter window
+ * 1. Noisy image/volume
+ * 2. kernel_size: The size of the median filter window
  * 3. mu_threshold: if not a zero value then deinzger
- 
+
  * Output:
  * [1] Filtered or dezingered image/volume
- *
  */
 
-float medianfilter_main(float *Input, float *Output, int filter_half_window_size, float mu_threshold, int dimX, int dimY, int dimZ)
+float medianfilter_main(float *Input, float *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ)
 {
-    int sizefilter_total;
+    int sizefilter_total, kernel_half_size;
     long i, j, index;
-
+    kernel_half_size = (int)((kernel_size-1)/2);
+    printf("%i\n", kernel_half_size);
     /* copy input into output */
     copyIm(Input, Output, (long)(dimX), (long)(dimY), (long)(dimZ));
-    
+
     if (dimZ <= 1) {
     /*2D case */
-    sizefilter_total = (2*filter_half_window_size + 1)*(2*filter_half_window_size + 1);
-    #pragma omp parallel for shared (Input, Output) private(i,  j, index)
-    for(j=filter_half_window_size; j<dimY-filter_half_window_size; j++) {
-      for(i=filter_half_window_size; i<dimX-filter_half_window_size; i++) {
+    sizefilter_total = (int)(pow(kernel_size,2));
+    #pragma omp parallel for shared (Input, Output) private(i, j, index)
+    for(j=0; j<dimY; j++) {
+      for(i=0; i<dimX; i++) {
           index = (long)(j*dimX+i);
-          medfilt2D(Input, Output, filter_half_window_size, sizefilter_total, mu_threshold, i, j, index, (long)(dimX), (long)(dimY));
+          medfilt2D(Input, Output, kernel_half_size, sizefilter_total, mu_threshold, i, j, index, (long)(dimX), (long)(dimY));
         }}
-      }
+     } /* 2D case done */
      else {
-              /*3D case*/
-          }
+     /* 3D case */
+     if (dimZ == kernel_size) {
+      /* provide an output of the central frame using all 3D information */
+     }
+     else {
+     /* Full (traditional) 3D case */
+
+     }
+    } /* 3D case done */
     return *Output;
 }
 
-float medfilt2D(float *Input, float *Output, int filter_half_window_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY)
+float medfilt2D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY)
 {
     float *ValVec;
     long i_m, j_m, i1, j1, counter;
@@ -60,25 +67,22 @@ float medfilt2D(float *Input, float *Output, int filter_half_window_size, int si
     ValVec = (float*) calloc(sizefilter_total, sizeof(float));
 
     counter = 0;
-    for(i_m=-filter_half_window_size; i_m<=filter_half_window_size; i_m++) {
+    for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
         i1 = i + i_m;
-        for(j_m=-filter_half_window_size; j_m<=filter_half_window_size; j_m++) {
+        if ((i1 < 0) || (i1 >= dimX)) i1 = i;
+        for(j_m=-kernel_half_size; j_m<=kernel_half_size; j_m++) {
           j1 = j + j_m;
+          if ((j1 < 0) || (j1 >= dimY)) j1 = j;
           ValVec[counter] = Input[j1*dimX+i1];
           counter++;
     }}
     //sort_bubble(ValVec, sizefilter_total); /* perform sorting */
     sort_quick(ValVec, 0, sizefilter_total); /* perform sorting */
-    
-    if (mu_threshold == 0.0f) {
-    /* perform median filtration */
-    Output[index] = ValVec[midval];
-    }
+
+    if (mu_threshold == 0.0f) Output[index] = ValVec[midval]; /* perform median filtration */
     else {
     /* perform dezingering */
-    if (fabs(Input[index] - ValVec[midval]) >= mu_threshold) Output[index] = ValVec[midval];
-    else Output[index] = Input[index];
-    }
+    if (fabs(Input[index] - ValVec[midval]) >= mu_threshold) Output[index] = ValVec[midval]; }
     free(ValVec);
     return *Output;
 }

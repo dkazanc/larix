@@ -17,7 +17,7 @@ from tomophantom import TomoP2D
 import os
 import tomophantom
 from tomophantom.supp.artifacts import _Artifacts_
-#%%
+
 model = 13 # select a model
 N_size = 512 # set dimension of the phantom
 # one can specify an exact path to the parameters file
@@ -53,10 +53,10 @@ plt.title('{}''{}'.format('Analytical sinogram of model no.',model))
 print("Applying Median Filter in 2D...")
 
 pars = {'input_data' : sino_an_noisy, # input grayscale image
-        'filter_half_window_size' : 1}
+        'kernel_size' : 3}
 
 start_time = timeit.default_timer()
-filtered = MEDIAN_FILT(pars['input_data'], pars['filter_half_window_size'])
+filtered = MEDIAN_FILT(pars['input_data'], pars['kernel_size'])
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 
@@ -82,22 +82,36 @@ plt.imshow(dezingered, cmap="BuPu")
 plt.title('{}''{}'.format('Dezingered sinogram of model no.',model))
 #%%
 # GPU side of things
-from larix.methods.misc_gpu import MEDIAN_FILT_GPU
+from larix.methods.misc_gpu import MEDIAN_FILT_GPU, MEDIAN_DEZING_GPU
 
 print("Applying Median Filter in 2D using GPU...")
 
 pars = {'input_data' : sino_an_noisy, # input grayscale image
-        'filter_half_window_size' : 1}
+        'filter_half_window_size' : 2}
 
 start_time = timeit.default_timer()
-filtered = MEDIAN_FILT_GPU(pars['input_data'], pars['filter_half_window_size'])
+filtered_gpu = MEDIAN_FILT_GPU(pars['input_data'], pars['filter_half_window_size'])
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 
-plt.figure(2)
+plt.figure(4)
 plt.rcParams.update({'font.size': 21})
-plt.imshow(filtered, cmap="BuPu")
-plt.title('{}''{}'.format('Filtered sinogram of model no.',model))
+plt.imshow(filtered_gpu, cmap="BuPu")
+plt.title('{}''{}'.format('GPU Filtered sinogram of model no.',model))
 #%%
+print("Applying GPU-accelerated Dezinger Filter in 2D...")
 
+pars = {'input_data' : sino_an_noisy, # input grayscale image
+        'filter_half_window_size' : 2,
+        'mu_threshold': 100.0}
 
+start_time = timeit.default_timer()
+gpu_dezingered = MEDIAN_DEZING_GPU(pars['input_data'], pars['filter_half_window_size'], pars['mu_threshold'])
+txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
+print (txtstr)
+
+plt.figure(5)
+plt.rcParams.update({'font.size': 21})
+plt.imshow(gpu_dezingered, cmap="BuPu")
+plt.title('{}''{}'.format('GPU Dezingered sinogram of model no.',model))
+#%%

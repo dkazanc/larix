@@ -22,24 +22,22 @@
 #include "DLSDefines.h"
 
 /* C-OMP implementation of the median filtration and dezingering (2D/3D case)
- *
- * Input Parameters:
- * 1. Noisy image/volume [REQUIRED]
- * 2. filter_half_window_size: The half size of the median filter window
- * 3. mu_threshold: if not a zero value then deinzger
- 
- * Output:
- * [1] Filtered or dezingered image/volume
- *
+* Input Parameters:
+* 1. Noisy image/volume
+* 2. kernel_size: The size of the median filter window
+* 3. mu_threshold: if not a zero value then deinzger
+
+* Output:
+* [1] Filtered or dezingered image/volume
  */
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-DLS_EXPORT float medianfilter_main(float *Input, float *Output, int filter_half_window_size, float mu_threshold, int dimX, int dimY, int dimZ);
+DLS_EXPORT float medianfilter_main(float *Input, float *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ);
 /************2D functions ***********/
-DLS_EXPORT float medfilt2D(float *Input, float *Output, int filter_half_window_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
+DLS_EXPORT float medfilt2D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
 /************3D functions ***********/
 
 #ifdef __cplusplus

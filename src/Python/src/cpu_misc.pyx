@@ -16,7 +16,7 @@ import numpy as np
 cimport numpy as np
 
 cdef extern float Autocrop_main(float *Input, float *mask_box, float *crop_indeces, float threshold, int margin_skip, int statbox_size, int increase_crop, int dimX, int dimY, int dimZ);
-cdef extern float medianfilter_main(float *Input, float *Output, int filter_half_window_size, float mu_threshold, int dimX, int dimY, int dimZ);
+cdef extern float medianfilter_main(float *Input, float *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ);
 #################################################################
 ##########################Autocropper ###########################
 #################################################################
@@ -68,14 +68,14 @@ def AUTOCROP_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
 #################################################################################
 ##############################Median Filtering ##################################
 #################################################################################
-def MEDIAN_FILT(Input, filter_half_window_size):
+def MEDIAN_FILT(Input, kernel_size):
     if Input.ndim == 2:
-        return MEDIAN_FILT_2D(Input, filter_half_window_size)
+        return MEDIAN_FILT_2D(Input, kernel_size)
     elif Input.ndim == 3:
         return 0
 
 def MEDIAN_FILT_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
-                    int filter_half_window_size):
+                   int kernel_size):
 
     cdef long dims[2]
     dims[0] = Input.shape[0]
@@ -84,21 +84,21 @@ def MEDIAN_FILT_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
     cdef np.ndarray[np.float32_t, ndim=2, mode="c"] Output = \
             np.zeros([dims[0],dims[1]], dtype='float32')
 
-    medianfilter_main(&Input[0,0], &Output[0,0], filter_half_window_size, 0.0, dims[1], dims[0], 1)
+    medianfilter_main(&Input[0,0], &Output[0,0], kernel_size, 0.0, dims[1], dims[0], 1)
     return Output
 
 
 #################################################################################
 ##############################Median Dezingering ################################
 #################################################################################
-def MEDIAN_DEZING(Input, filter_half_window_size, mu_threshold):
+def MEDIAN_DEZING(Input, kernel_size, mu_threshold):
     if Input.ndim == 2:
-        return MEDIAN_DEZING_2D(Input, filter_half_window_size, mu_threshold)
+        return MEDIAN_DEZING_2D(Input, kernel_size, mu_threshold)
     elif Input.ndim == 3:
         return 0
 
 def MEDIAN_DEZING_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
-                    int filter_half_window_size,
+                    int kernel_size,
                     float mu_threshold):
 
     cdef long dims[2]
@@ -108,5 +108,5 @@ def MEDIAN_DEZING_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
     cdef np.ndarray[np.float32_t, ndim=2, mode="c"] Output = \
             np.zeros([dims[0],dims[1]], dtype='float32')
 
-    medianfilter_main(&Input[0,0], &Output[0,0], filter_half_window_size, mu_threshold, dims[1], dims[0], 1)
+    medianfilter_main(&Input[0,0], &Output[0,0], kernel_size, mu_threshold, dims[1], dims[0], 1)
     return Output
