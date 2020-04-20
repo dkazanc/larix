@@ -2,12 +2,12 @@
     <tr>
         <td>
         <div align="left">
-          <img src="docs/images/larix_logo.png" width="550"><br>
+          <img src="docs/images/larix_logo.png" width="650"><br>
         </div>
         </td>
         <td>
         <font size="5"><b> Larix: is a set of data and image processing tools </b></font>
-        <br><font size="3" face="verdana" color="green"><b> Larix</b> is an open-source software written in C/CUDA languages with wrappers for Python. The software consists of novel and already existing methods for various image processing tasks, e.g. segmentation, morphological processing, etc.  Most of the modules are implemented with OpenMP multithreading capability ensuring faster data processing. Larix is being developed at [Diamond Light Source](https://www.diamond.ac.uk/Home.html) synchrotron with the main purpose to process collected data effectively and efficently.
+        <br><font size="3" face="verdana" color="green"><b> Larix</b> is an open-source software written in C/CUDA languages with wrappers for Python. The software consists of novel and already existing methods for various image processing tasks, e.g. segmentation, morphological processing, etc.  Most of the modules are implemented with OpenMP multithreading capability ensuring faster data processing. Larix is being developed at Diamond Light Source synchrotron with the main purpose to process collected data effectively and efficently.
         </font></br>
         </td>
     </tr>
