@@ -39,6 +39,8 @@ DLS_EXPORT float medianfilter_main(float *Input, float *Output, int kernel_size,
 /************2D functions ***********/
 DLS_EXPORT float medfilt2D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
 /************3D functions ***********/
+DLS_EXPORT float medfilt3D_pad(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
+DLS_EXPORT float medfilt3D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long k, long index, long dimX, long dimY, long dimZ);
 
 #ifdef __cplusplus
 }

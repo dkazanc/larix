@@ -11,11 +11,15 @@ const int CONSTVECSIZE_49 = 49;
 const int CONSTVECSIZE_81 = 81;
 const int CONSTVECSIZE_121 = 121;
 
-#define idivup(a, b) ( ((a)%(b) != 0) ? (a)/(b)+1 : (a)/(b) )
+const int CONSTVECSIZE_27 = 27;
+const int CONSTVECSIZE_125 = 125;
+const int CONSTVECSIZE_343 = 343;
+const int CONSTVECSIZE_729 = 729;
+const int CONSTVECSIZE_1331 = 1331;
 
+#define idivup(a, b) ( ((a)%(b) != 0) ? (a)/(b)+1 : (a)/(b) )
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
-
 
 __device__ void sort_quick(float *x, int left_idx, int right_idx)
 {

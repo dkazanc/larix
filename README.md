@@ -2,7 +2,7 @@
     <tr>
         <td>
         <div align="left">
-          <img src="docs/images/larix_logo.png" width="950"><br>
+          <img src="docs/images/larix_logo.png" width="1000"><br>
         </div>
         </td>
         <td>

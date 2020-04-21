@@ -19,7 +19,7 @@ import tomophantom
 from tomophantom.supp.artifacts import _Artifacts_
 
 model = 13 # select a model
-N_size = 512 # set dimension of the phantom
+N_size = 2000 # set dimension of the phantom
 # one can specify an exact path to the parameters file
 # path_library2D = '../../../PhantomLibrary/models/Phantom2DLibrary.dat'
 path = os.path.dirname(tomophantom.__file__)
@@ -53,7 +53,7 @@ plt.title('{}''{}'.format('Analytical sinogram of model no.',model))
 print("Applying Median Filter in 2D...")
 
 pars = {'input_data' : sino_an_noisy, # input grayscale image
-        'kernel_size' : 3}
+        'kernel_size' : 5}
 
 start_time = timeit.default_timer()
 filtered = MEDIAN_FILT(pars['input_data'], pars['kernel_size'])
@@ -68,11 +68,11 @@ plt.title('{}''{}'.format('Filtered sinogram of model no.',model))
 print("Applying Dezinger Filter in 2D...")
 
 pars = {'input_data' : sino_an_noisy, # input grayscale image
-        'filter_half_window_size' : 2,
+        'kernel_size' : 5,
         'mu_threshold': 100.0}
 
 start_time = timeit.default_timer()
-dezingered = MEDIAN_DEZING(pars['input_data'], pars['filter_half_window_size'], pars['mu_threshold'])
+dezingered = MEDIAN_DEZING(pars['input_data'], pars['kernel_size'], pars['mu_threshold'])
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 
@@ -87,10 +87,10 @@ from larix.methods.misc_gpu import MEDIAN_FILT_GPU, MEDIAN_DEZING_GPU
 print("Applying Median Filter in 2D using GPU...")
 
 pars = {'input_data' : sino_an_noisy, # input grayscale image
-        'filter_half_window_size' : 2}
+        'kernel_size' : 5}
 
 start_time = timeit.default_timer()
-filtered_gpu = MEDIAN_FILT_GPU(pars['input_data'], pars['filter_half_window_size'])
+filtered_gpu = MEDIAN_FILT_GPU(pars['input_data'], pars['kernel_size'])
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 
@@ -102,11 +102,11 @@ plt.title('{}''{}'.format('GPU Filtered sinogram of model no.',model))
 print("Applying GPU-accelerated Dezinger Filter in 2D...")
 
 pars = {'input_data' : sino_an_noisy, # input grayscale image
-        'filter_half_window_size' : 2,
+        'kernel_size' : 5,
         'mu_threshold': 100.0}
 
 start_time = timeit.default_timer()
-gpu_dezingered = MEDIAN_DEZING_GPU(pars['input_data'], pars['filter_half_window_size'], pars['mu_threshold'])
+gpu_dezingered = MEDIAN_DEZING_GPU(pars['input_data'], pars['kernel_size'], pars['mu_threshold'])
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 

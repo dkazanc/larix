@@ -72,7 +72,7 @@ def MEDIAN_FILT(Input, kernel_size):
     if Input.ndim == 2:
         return MEDIAN_FILT_2D(Input, kernel_size)
     elif Input.ndim == 3:
-        return 0
+        return MEDIAN_FILT_3D(Input, kernel_size)
 
 def MEDIAN_FILT_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
                    int kernel_size):
@@ -84,10 +84,28 @@ def MEDIAN_FILT_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
     cdef np.ndarray[np.float32_t, ndim=2, mode="c"] Output = \
             np.zeros([dims[0],dims[1]], dtype='float32')
 
-    medianfilter_main(&Input[0,0], &Output[0,0], kernel_size, 0.0, dims[1], dims[0], 1)
+    if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
+        medianfilter_main(&Input[0,0], &Output[0,0], kernel_size, 0.0, dims[1], dims[0], 1)
+    else:
+        print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
     return Output
 
+def MEDIAN_FILT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
+                   int kernel_size):
 
+    cdef long dims[3]
+    dims[0] = Input.shape[0]
+    dims[1] = Input.shape[1]
+    dims[2] = Input.shape[2]
+
+    cdef np.ndarray[np.float32_t, ndim=3, mode="c"] Output = \
+            np.zeros([dims[0],dims[1],dims[2]], dtype='float32')
+
+    if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
+        medianfilter_main(&Input[0,0,0], &Output[0,0,0], kernel_size, 0.0, dims[2], dims[1], dims[0])
+    else:
+        print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
+    return Output
 #################################################################################
 ##############################Median Dezingering ################################
 #################################################################################
@@ -95,7 +113,7 @@ def MEDIAN_DEZING(Input, kernel_size, mu_threshold):
     if Input.ndim == 2:
         return MEDIAN_DEZING_2D(Input, kernel_size, mu_threshold)
     elif Input.ndim == 3:
-        return 0
+        return  MEDIAN_DEZING_3D(Input, kernel_size, mu_threshold)
 
 def MEDIAN_DEZING_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
                     int kernel_size,
@@ -108,5 +126,26 @@ def MEDIAN_DEZING_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
     cdef np.ndarray[np.float32_t, ndim=2, mode="c"] Output = \
             np.zeros([dims[0],dims[1]], dtype='float32')
 
-    medianfilter_main(&Input[0,0], &Output[0,0], kernel_size, mu_threshold, dims[1], dims[0], 1)
+    if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
+        medianfilter_main(&Input[0,0], &Output[0,0], kernel_size, mu_threshold, dims[1], dims[0], 1)
+    else:
+        print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
+    return Output
+
+def MEDIAN_DEZING_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
+                    int kernel_size,
+                    float mu_threshold):
+
+    cdef long dims[3]
+    dims[0] = Input.shape[0]
+    dims[1] = Input.shape[1]
+    dims[2] = Input.shape[2]
+
+    cdef np.ndarray[np.float32_t, ndim=3, mode="c"] Output = \
+            np.zeros([dims[0],dims[1],dims[2]], dtype='float32')
+
+    if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
+        medianfilter_main(&Input[0,0,0], &Output[0,0,0], kernel_size, mu_threshold, dims[2], dims[1], dims[0])
+    else:
+        print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
     return Output
