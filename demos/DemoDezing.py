@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Feb 19 21:39:47 2020
+Created April 2020
 
-Demo to show the capability of segmenting the phase of the 2D data with the
-subsequent morphological processing
-
+Demo to show the capability of the dezinger and median filter 
+You will need to install TomoPhantom for this demo:
+conda install -c dkazanc tomophantom
 @author: Daniil Kazantsev
 """
 import numpy as np
 import matplotlib.pyplot as plt
+
 from larix.methods.misc import MEDIAN_FILT, MEDIAN_DEZING
+from larix.methods.misc_gpu import MEDIAN_FILT_GPU, MEDIAN_DEZING_GPU
+
 
 import timeit
 from tomophantom import TomoP2D
@@ -49,7 +52,7 @@ plt.figure(1)
 plt.rcParams.update({'font.size': 21})
 plt.imshow(sino_an_noisy, cmap="BuPu")
 plt.title('{}''{}'.format('Analytical sinogram of model no.',model))
-#%%
+
 print("Applying Median Filter in 2D...")
 
 pars = {'input_data' : sino_an_noisy, # input grayscale image
@@ -64,7 +67,7 @@ plt.figure(2)
 plt.rcParams.update({'font.size': 21})
 plt.imshow(filtered, cmap="BuPu")
 plt.title('{}''{}'.format('Filtered sinogram of model no.',model))
-#%%
+
 print("Applying Dezinger Filter in 2D...")
 
 pars = {'input_data' : sino_an_noisy, # input grayscale image
@@ -80,9 +83,6 @@ plt.figure(3)
 plt.rcParams.update({'font.size': 21})
 plt.imshow(dezingered, cmap="BuPu")
 plt.title('{}''{}'.format('Dezingered sinogram of model no.',model))
-#%%
-# GPU side of things
-from larix.methods.misc_gpu import MEDIAN_FILT_GPU, MEDIAN_DEZING_GPU
 
 print("Applying Median Filter in 2D using GPU...")
 
@@ -98,7 +98,7 @@ plt.figure(4)
 plt.rcParams.update({'font.size': 21})
 plt.imshow(filtered_gpu, cmap="BuPu")
 plt.title('{}''{}'.format('GPU Filtered sinogram of model no.',model))
-#%%
+
 print("Applying GPU-accelerated Dezinger Filter in 2D...")
 
 pars = {'input_data' : sino_an_noisy, # input grayscale image
@@ -114,4 +114,3 @@ plt.figure(5)
 plt.rcParams.update({'font.size': 21})
 plt.imshow(gpu_dezingered, cmap="BuPu")
 plt.title('{}''{}'.format('GPU Dezingered sinogram of model no.',model))
-#%%

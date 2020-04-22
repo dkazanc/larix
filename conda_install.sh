@@ -1,4 +1,4 @@
 # conda install for larix package
 export VERSION=`date +%Y.%m`
-conda build recipe/ --numpy 1.14 --python 2.7
-conda install -y -q  i23-seg --use-local --force-reinstall
+conda build recipe/ --numpy 1.15 --python 3.5
+conda install -c file://${CONDA_PREFIX}/conda-bld/ larix

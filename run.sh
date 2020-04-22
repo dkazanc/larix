@@ -17,3 +17,7 @@ cp install/lib/liblarix.so install/python/larix/methods
 cd install/python
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:../lib
 spyder --new-instance
+
+# All built shared objects will be placed into larix/build/install/python/larix/methods
+# in order to be able import modules you need to go to the folder larix/build/install/python to be able to import
+# modules 

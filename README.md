@@ -7,7 +7,7 @@
         </td>
         <td>
         <font size="5"><b> Larix: is a set of data and image processing tools </b></font>
-        <br><font size="3" face="verdana" color="green"><b> Larix</b> is an open-source software written in C/CUDA languages with wrappers for Python. The software consists of novel and already existing methods for various image processing tasks, e.g. segmentation, morphological processing, etc.  Most of the modules are implemented with OpenMP multithreading capability ensuring faster data processing. Larix is being developed at Diamond Light Source synchrotron with the main purpose to process collected data effectively and efficently.
+        <br><font size="3" face="verdana" color="green"><b> Larix</b> is an open-source software written in C/CUDA languages with Python wrappers. The software consists of novel and already existing methods for various image processing tasks, e.g. filtering, inpainting, segmentation, morphological processing, etc.  Most of the modules are implemented with OpenMP multithreading capability in C or on GPU to ensure faster data processing. Larix is being developed at Diamond Light Source synchrotron (UK) with the main purpose to process collected data effectively and efficiently.
         </font></br>
         </td>
     </tr>
@@ -19,28 +19,16 @@
 
 ## Larix software includes:
  * Mask evolving segmentation method (RegionGrow) with mask initialisation (**2D/3D CPU**)
- * Morphological processing of the segmented image/volume (e.g. the result of RegionGrow) by removing various gaps and misclassified regions (**2D/3D CPU**)
- * Images 2D/3D auto cropping (when the object is within the FOV), implemented for tomographic projections
+ * Morphological processing of the segmented image/volume (e.g. the result of RegionGrow)  using the line segments to remove gaps and misclassified regions (**2D/3D CPU**)
+ * Auto cropping for tomographic projections or reconstructed images when the object is within the FOV (**2D/3D CPU**)
+ * Median filtration and median-based dezinger to remove broken pixels aka outliers  (**2D/3D CPU/GPU**)
 
  <div align="center">
    <img src="docs/images/demo_larix.png" width="650">
  </div>
 
-## Installation
-Here an example of build on Linux (see also `run.sh` for additional info):
-
-```bash
-git clone https://github.com/dkazanc/larix.git
-mkdir build
-cd build
-cmake .. -DCONDA_BUILD=OFF -DBUILD_MATLAB_WRAPPER=ON -DBUILD_PYTHON_WRAPPER=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./install
-make install
-cd install/python
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:../lib
-```
-
-### Installation in Python (conda):
-Install from the channel with `conda install -c dkazanc larix` or build with:
+## Installation in Python (conda):
+Install from the anaconda cloud: `conda install -c dkazanc larix` or build with:
 ```
 export VERSION=`date +%Y.%m`
 conda build recipe/ --numpy 1.15 --python 3.5
@@ -48,8 +36,12 @@ conda install -c file://${CONDA_PREFIX}/conda-bld/ larix
 ```
 Additionally you can also run/modify `conda_install.sh` for automatic conda build/install
 
+### Installation using Cmake
+See `run.sh` for information how to build and install software.
+
 #### Other useful software:
- * [ASTRA-toolbox](https://www.astra-toolbox.com/) versatile CPU/GPU toolbox for tomography
- * [ToMoBAR](https://github.com/dkazanc/ToMoBAR) TOmographic iterative MOdel-BAsed Reconstruction
- * [CCPi-RegularisationToolkit](https://github.com/vais-ral/CCPi-Regularisation-Toolkit) for regularisation of IR
- * [TomoPhantom](https://github.com/dkazanc/TomoPhantom) for tomographic simulation
+ * [ASTRA-toolbox](https://www.astra-toolbox.com/) Versatile CPU/GPU toolbox for tomography
+ * [ToMoBAR](https://github.com/dkazanc/ToMoBAR) TOmographic iterative MOdel-BAsed Reconstruction software
+ * [CCPi-RegularisationToolkit](https://github.com/vais-ral/CCPi-Regularisation-Toolkit) Adds regularisation to ToMoBAR
+ * [TomoPhantom](https://github.com/dkazanc/TomoPhantom) Tomographic simulation and phantoms
+ * [Savu](https://github.com/DiamondLightSource/Savu) Tomographic reconstruction pipeline at DLS in which Larix has been incorporated
