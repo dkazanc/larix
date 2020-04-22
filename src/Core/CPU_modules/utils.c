@@ -55,3 +55,47 @@ float copyIm_roll(float *A, float *U, int dimX, int dimY, int roll_value, int sw
         }}
     return *U;
 }
+
+/* sorting using bubble method */
+float sort_bubble(float *x, int n_size)
+{
+	for (int i = 0; i < n_size - 1; i++)
+	{
+		for(int j = 0; j < n_size - i - 1; j++)
+		{
+			if (x[j] > x[j+1])
+			{
+				float temp = x[j];
+				x[j] = x[j+1];
+				x[j+1] = temp;
+			}
+		}
+	}
+    return *x;
+}
+
+float sort_quick(float *x, int left_idx, int right_idx) 
+{
+      int i = left_idx, j = right_idx;
+      float pivot = x[(left_idx + right_idx) / 2];
+      while (i <= j) 
+      {
+            while (x[i] < pivot)
+                  i++;
+            while (x[j] > pivot)
+                  j--;
+            if (i <= j) {
+		  float temp;
+                  temp = x[i];
+                  x[i] = x[j];
+                  x[j] = temp;
+                  i++;
+                  j--;
+            }
+      };
+      if (left_idx < j)
+            sort_quick(x, left_idx, j);
+      if (i < right_idx)
+            sort_quick(x, i, right_idx);
+    return *x;
+}

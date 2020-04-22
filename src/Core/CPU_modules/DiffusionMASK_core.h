@@ -23,8 +23,7 @@ limitations under the License.
 #include <stdio.h>
 #include "omp.h"
 #include "utils.h"
-#include "CCPiDefines.h"
-
+#include "DLSDefines.h"
 
 /* C-OMP implementation of linear and nonlinear diffusion [1,2] which is constrained by the provided MASK.
  * The minimisation is performed using the explicit scheme.
@@ -54,9 +53,9 @@ limitations under the License.
 #ifdef __cplusplus
 extern "C" {
 #endif
-CCPI_EXPORT float DiffusionMASK_CPU_main(float *Input, unsigned char *MASK, float *Output, float *infovector, int DiffusWindow, float *lambdaPar, int lambda_is_arr, float sigmaPar, int iterationsNumb, float tau, int penaltytype, float epsil, int dimX, int dimY, int dimZ);
-CCPI_EXPORT float LinearDiff_MASK2D(float *Input, unsigned char *MASK, float *Output,  float *Eucl_Vec, int DiffusWindow, float *lambdaPar, int lambda_is_arr, float tau, long dimX, long dimY);
-CCPI_EXPORT float NonLinearDiff_MASK2D(float *Input, unsigned char *MASK, float *Output, float *Eucl_Vec, int DiffusWindow, float *lambdaPar, int lambda_is_arr, float sigmaPar, float tau, int penaltytype, long dimX, long dimY);
+DLS_EXPORT float DiffusionMASK_CPU_main(float *Input, unsigned char *MASK, float *Output, float *infovector, int DiffusWindow, float *lambdaPar, int lambda_is_arr, float sigmaPar, int iterationsNumb, float tau, int penaltytype, float epsil, int dimX, int dimY, int dimZ);
+DLS_EXPORT float LinearDiff_MASK2D(float *Input, unsigned char *MASK, float *Output,  float *Eucl_Vec, int DiffusWindow, float *lambdaPar, int lambda_is_arr, float tau, long dimX, long dimY);
+DLS_EXPORT float NonLinearDiff_MASK2D(float *Input, unsigned char *MASK, float *Output, float *Eucl_Vec, int DiffusWindow, float *lambdaPar, int lambda_is_arr, float sigmaPar, float tau, int penaltytype, long dimX, long dimY);
 #ifdef __cplusplus
 }
 #endif

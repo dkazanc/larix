@@ -35,7 +35,8 @@ extra_libraries = ['larix']
 print ("extra_library_dirs " , extra_library_dirs)
 
 extra_include_dirs += [os.path.join(".." , "Core"),
-                       os.path.join(".." , "Core",  "functions_CPU"),
+                       os.path.join(".." , "Core",  "CPU_modules"),
+                       os.path.join(".." , "Core",  "GPU_modules" , "MEDIAN_FILT_GPU" ) ,
 						   "."]
 
 if platform.system() == 'Windows':
@@ -66,3 +67,5 @@ setup(
 	zip_safe = False,
 	packages = {'larix', 'larix.methods'},
 )
+           
+@SETUP_GPU_WRAPPERS@
