@@ -47,9 +47,11 @@ add_library(larix SHARED
     	    ${CMAKE_CURRENT_SOURCE_DIR}/CPU_modules/MaskIterative_core.c
     	    ${CMAKE_CURRENT_SOURCE_DIR}/CPU_modules/autocropper_core.c
           ${CMAKE_CURRENT_SOURCE_DIR}/CPU_modules/MedianFilt_core.c
+          ${CMAKE_CURRENT_SOURCE_DIR}/CPU_modules/NonlocalMarching_Inpaint_core.c
+          ${CMAKE_CURRENT_SOURCE_DIR}/CPU_modules/Diffusion_Inpaint_core.c
     	    ${CMAKE_CURRENT_SOURCE_DIR}/CPU_modules/utils.c
 	    )
-target_link_libraries(larix ${EXTRA_LIBRARIES} )
+target_link_libraries(larix ${EXTRA_LIBRARIES} -static-libgcc -static-libstdc++)
 include_directories(larix PUBLIC
                       ${LIBRARY_INC}/include
 					  ${CMAKE_CURRENT_SOURCE_DIR}
