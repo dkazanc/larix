@@ -22,6 +22,7 @@
  * Morphological processing of the segmented image/volume (e.g. the result of RegionGrow)  using the line segments to remove gaps and misclassified regions (**2D/3D CPU**)
  * Auto cropping for tomographic projections or reconstructed images when the object is within the FOV (**2D/3D CPU**)
  * Median filtration and median-based dezinger to remove broken pixels aka outliers  (**2D/3D CPU/GPU**)
+ * Inpainting using linear/nonlinear diffusion and nonlocal marching method  (**2D CPU**)
 
  <div align="center">
    <img src="docs/images/demo_larix.png" width="650">

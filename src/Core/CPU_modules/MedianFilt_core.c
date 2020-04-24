@@ -36,7 +36,7 @@ float medianfilter_main(float *Input, float *Output, int kernel_size, float mu_t
 
     if (dimZ <= 1) {
     /*2D case */
-    sizefilter_total = (int)(pow(kernel_size,2));
+    sizefilter_total = (int)(powf(kernel_size,2));
     #pragma omp parallel for shared (Input, Output) private(i, j, index)
     for(j=0; j<dimY; j++) {
       for(i=0; i<dimX; i++) {
@@ -46,7 +46,7 @@ float medianfilter_main(float *Input, float *Output, int kernel_size, float mu_t
      } /* 2D case done */
      else {
      /* 3D case */
-     sizefilter_total = (int)(pow(kernel_size,3));
+     sizefilter_total = (int)(powf(kernel_size,3));
      if (dimZ == kernel_size) {
      /* performs operation only on the central frame using all 3D information */
      #pragma omp parallel for shared (Input, Output) private(i, j, index)
