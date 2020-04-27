@@ -44,7 +44,7 @@ pipeline {
             }
             steps {
                 sh  ''' source activate ${BUILD_TAG}
-                        conda config --set anaconda_upload yes
+                        conda config --set anaconda_upload no
                         export VERSION=`date +%Y.%m`
                         conda build recipe/ --numpy 1.15 --python 3.6
                         conda install --yes -c file://${CONDA_PREFIX}/conda-bld/ larix
@@ -63,8 +63,7 @@ pipeline {
         stage("Upload to anaconda") {
              steps {
                  sh ''' source activate ${BUILD_TAG}
-                        source /var/lib/jenkins/upload.sh
-                        anaconda -t $CONDA_UPLOAD_TOKEN upload -u dkazanc /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*.tar.bz2 --force
+                        bash upload.sh
                     '''
              }
         }
