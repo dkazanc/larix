@@ -75,6 +75,7 @@ pipeline {
     post {
         always {
             sh 'conda remove --yes -n ${BUILD_TAG} --all'
+            mail to: "dkazanc@hotmail.com", subject:"SUCCESS: ${currentBuild.fullDisplayName}", body: "Yay, we passed."
         }
         failure {
             emailext (
@@ -84,14 +85,4 @@ pipeline {
                 recipientProviders: [[$class: 'DevelopersRecipientProvider']])
         }
     }
-
-    post {
-      success {
-        mail to: "dkazanc@hotmail.com", subject:"SUCCESS: ${currentBuild.fullDisplayName}", body: "Yay, we passed."
-      }
-      failure {
-        mail to: "dkazanc@hotmail.com", subject:"FAILURE: ${currentBuild.fullDisplayName}", body: "Boo, we failed."
-      }
-    }
-
 }
