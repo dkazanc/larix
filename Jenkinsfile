@@ -59,7 +59,8 @@ pipeline {
                     '''
             }
         }
-
+        /*
+        // somehow doesn't quite work.
         stage("Upload to anaconda") {
              steps {
                  sh ''' source activate ${BUILD_TAG}
@@ -68,6 +69,7 @@ pipeline {
                     '''
              }
         }
+        */
     }
 
     post {
@@ -82,4 +84,14 @@ pipeline {
                 recipientProviders: [[$class: 'DevelopersRecipientProvider']])
         }
     }
+
+    post {
+      success {
+        mail to: "dkazanc@hotmail.com", subject:"SUCCESS: ${currentBuild.fullDisplayName}", body: "Yay, we passed."
+      }
+      failure {
+        mail to: "dkazanc@hotmail.com", subject:"FAILURE: ${currentBuild.fullDisplayName}", body: "Boo, we failed."
+      }
+    }
+
 }
