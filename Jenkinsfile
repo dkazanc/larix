@@ -30,6 +30,8 @@ pipeline {
                 sh  ''' conda create --yes -n ${BUILD_TAG} python=3.7
                         source activate ${BUILD_TAG}
                         conda install cython
+                        conda install conda-build
+                        conda install anaconda-client
                     '''
             }
         }
