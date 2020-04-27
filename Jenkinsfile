@@ -62,7 +62,7 @@ pipeline {
         stage("Upload to anaconda") {
              steps {
                  sh ''' source activate ${BUILD_TAG}
-                        cp /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*.tar.bz2 /var/lib/jenkins/built_jenkins/
+                        cp /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*.tar.bz2 /home/algol/Documents/DEV/built_jenkins/
                     '''
              }
         }
