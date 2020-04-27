@@ -27,7 +27,7 @@ pipeline {
         stage('Build environment') {
             steps {
                 echo "Building virtualenv"
-                sh  ''' conda create --yes -n ${BUILD_TAG} python=3.8
+                sh  ''' conda create --yes -n ${BUILD_TAG} python=3.6
                         source activate ${BUILD_TAG}
                         conda install cython
                         conda install conda-build
@@ -46,7 +46,7 @@ pipeline {
                 sh  ''' source activate ${BUILD_TAG}
                         conda config --set anaconda_upload no
                         export VERSION=`date +%Y.%m`
-                        conda build recipe/ --numpy 1.15 --python 3.8
+                        conda build recipe/ --numpy 1.15 --python 3.6
                         conda install --yes -c file://${CONDA_PREFIX}/conda-bld/ larix
                     '''
             }
@@ -68,7 +68,7 @@ pipeline {
                         anaconda -t $CONDA_UPLOAD_TOKEN upload -u dkazanc /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*.tar.bz2 --force
                     '''
              }
-        }        
+        }
     }
 
     post {
