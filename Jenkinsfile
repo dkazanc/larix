@@ -70,10 +70,10 @@ pipeline {
              }
         }
     }
-/*
+
     post {
         always {
-            sh 'conda remove --yes -n ${BUILD_TAG} --all'
+            sh 'source activate ${BUILD_TAG}'
         }
         failure {
             emailext (
@@ -83,5 +83,4 @@ pipeline {
                 recipientProviders: [[$class: 'DevelopersRecipientProvider']])
         }
     }
-    */
 }
