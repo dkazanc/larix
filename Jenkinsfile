@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     triggers {
-        pollSCM('*/5 * * * 1-5')
+        pollSCM('H 21 * * *')
     }
 
     options {
@@ -47,7 +47,7 @@ pipeline {
                         cython --version
                         which python
                         export VERSION=`date +%Y.%m`
-                        conda build recipe/ --yes --numpy 1.15 --python 3.7
+                        conda build recipe/ --numpy 1.15 --python 3.7
                         conda install --yes -c file://${CONDA_PREFIX}/conda-bld/ larix
                     '''
             }
