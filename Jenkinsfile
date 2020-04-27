@@ -27,9 +27,11 @@ pipeline {
         stage('Build environment') {
             steps {
                 echo "Building virtualenv"
-                sh  ''' conda create --yes -n ${BUILD_TAG} python
+                sh  ''' conda create --yes -n ${BUILD_TAG} python=3.7
                         source activate ${BUILD_TAG}
-                        pip install -r requirements/dev.txt
+                        conda install cython
+                        cython --version
+                        which python
                     '''
             }
         }
