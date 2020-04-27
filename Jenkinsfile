@@ -63,7 +63,7 @@ pipeline {
 
         stage("Upload to anaconda") {
              steps {
-                 sh ''' anaconda upload /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/larix*
+                 sh ''' anaconda upload /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*tar.bz2 --force
                     '''
              }
         }
