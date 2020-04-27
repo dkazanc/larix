@@ -63,8 +63,7 @@ pipeline {
              steps {
                  sh ''' source activate ${BUILD_TAG}
                         source /var/lib/jenkins/upload.sh
-                        echo $CONDA_UPLOAD_TOKEN
-                        anaconda upload -u dkazanc /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*tar.bz2 --force
+                        anaconda upload -t $CONDA_UPLOAD_TOKEN -u dkazanc /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*tar.bz2 --force
                     '''
              }
         }
