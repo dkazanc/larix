@@ -29,10 +29,7 @@ pipeline {
                 echo "Building virtualenv"
                 sh  ''' conda create --yes -n ${BUILD_TAG} python=3.7
                         source activate ${BUILD_TAG}
-                        conda update -n base -c defaults conda
                         conda install cython
-                        cython --version
-                        which python
                     '''
             }
         }
@@ -45,9 +42,11 @@ pipeline {
             }
             steps {
                 sh  ''' source activate ${BUILD_TAG}
+                        cython --version
+                        which python
                         export VERSION=`date +%Y.%m`
-                        conda build recipe/ --numpy 1.15 --python 3.7
-                        conda install -c file://${CONDA_PREFIX}/conda-bld/ larix
+                        conda build recipe/ --yes --numpy 1.15 --python 3.7
+                        conda install --yes -c file://${CONDA_PREFIX}/conda-bld/ larix
                     '''
             }
             post {
