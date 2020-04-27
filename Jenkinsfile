@@ -74,7 +74,6 @@ pipeline {
 
     post {
         always {
-            sh 'cp -rf /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*.tar.bz2 /var/lib/jenkins/miniconda3/'
             sh 'conda remove --yes -n ${BUILD_TAG} --all'
         }
         failure {
