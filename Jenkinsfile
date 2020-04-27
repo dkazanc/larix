@@ -65,7 +65,7 @@ pipeline {
              steps {
                  sh ''' source activate ${BUILD_TAG}
                         source /var/lib/jenkins/upload.sh
-                        anaconda -t $CONDA_UPLOAD_TOKEN upload -u dkazanc /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*.tar.bz2 --force
+                        anaconda upload /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*.tar.bz2 --force
                     '''
              }
         }
@@ -73,7 +73,7 @@ pipeline {
 
     post {
         always {
-            sh 'source activate ${BUILD_TAG}'
+            sh 'conda remove --yes -n ${BUILD_TAG} --all'
         }
         failure {
             emailext (
