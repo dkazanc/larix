@@ -62,8 +62,7 @@ pipeline {
         stage("Upload to anaconda") {
              steps {
                  sh ''' source activate ${BUILD_TAG}
-                        source /var/lib/jenkins/upload.sh
-                        anaconda -t $CONDA_UPLOAD_TOKEN upload -u dkazanc /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*.tar.bz2                      
+                        cp /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*.tar.bz2 /var/lib/jenkins/built_jenkins/
                     '''
              }
         }
