@@ -61,6 +61,7 @@ pipeline {
             }
         }
         // somehow doesn't quite work.
+        /*
         stage("Deploy") {
              steps {
                  sh ''' source activate ${BUILD_TAG}
@@ -69,11 +70,15 @@ pipeline {
                     '''
              }
         }
+        */
     }
 
     post {
         always {
-            sh 'conda remove --yes -n ${BUILD_TAG} --all'
+            sh ''' source activate ${BUILD_TAG}
+                   anaconda upload -u dkazanc /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*.tar.bz2 --force
+                   conda remove --yes -n ${BUILD_TAG} --all'
+               '''
         }
         failure {
             emailext (
