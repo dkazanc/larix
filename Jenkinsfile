@@ -44,8 +44,6 @@ pipeline {
             }
             steps {
                 sh  ''' source activate ${BUILD_TAG}
-                        cython --version
-                        which python
                         export VERSION=`date +%Y.%m`
                         conda build recipe/ --numpy 1.15 --python 3.7
                         conda install --yes -c file://${CONDA_PREFIX}/conda-bld/ larix
@@ -63,7 +61,8 @@ pipeline {
 
         stage("Upload to anaconda") {
              steps {
-                 sh ''' anaconda upload /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*tar.bz2 --force
+                 sh ''' source activate ${BUILD_TAG}
+                        anaconda upload /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*tar.bz2 --force
                     '''
              }
         }
