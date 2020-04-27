@@ -29,79 +29,11 @@ pipeline {
                 echo "Building virtualenv"
                 sh  ''' conda create --yes -n ${BUILD_TAG} python=3.7
                         source activate ${BUILD_TAG}
+                        conda update -n base -c defaults conda
                         conda install cython
                         cython --version
                         which python
                     '''
-            }
-        }
-
-        stage('Static code metrics') {
-            steps {
-                echo "Raw metrics"
-                sh  ''' source activate ${BUILD_TAG}
-                        radon raw --json irisvmpy > raw_report.json
-                        radon cc --json irisvmpy > cc_report.json
-                        radon mi --json irisvmpy > mi_report.json
-                        sloccount --duplicates --wide irisvmpy > sloccount.sc
-                    '''
-                echo "Test coverage"
-                sh  ''' source activate ${BUILD_TAG}
-                        coverage run irisvmpy/iris.py 1 1 2 3
-                        python -m coverage xml -o reports/coverage.xml
-                    '''
-                echo "Style check"
-                sh  ''' source activate ${BUILD_TAG}
-                        pylint irisvmpy || true
-                    '''
-            }
-            post{
-                always{
-                    step([$class: 'CoberturaPublisher',
-                                   autoUpdateHealth: false,
-                                   autoUpdateStability: false,
-                                   coberturaReportFile: 'reports/coverage.xml',
-                                   failNoReports: false,
-                                   failUnhealthy: false,
-                                   failUnstable: false,
-                                   maxNumberOfBuilds: 10,
-                                   onlyStable: false,
-                                   sourceEncoding: 'ASCII',
-                                   zoomCoverageChart: false])
-                }
-            }
-        }
-
-
-
-        stage('Unit tests') {
-            steps {
-                sh  ''' source activate ${BUILD_TAG}
-                        python -m pytest --verbose --junit-xml reports/unit_tests.xml
-                    '''
-            }
-            post {
-                always {
-                    // Archive unit tests for the future
-                    junit allowEmptyResults: true, testResults: 'reports/unit_tests.xml'
-                }
-            }
-        }
-
-        stage('Acceptance tests') {
-            steps {
-                sh  ''' source activate ${BUILD_TAG}
-                        behave -f=formatters.cucumber_json:PrettyCucumberJSONFormatter -o ./reports/acceptance.json || true
-                    '''
-            }
-            post {
-                always {
-                    cucumber (buildStatus: 'SUCCESS',
-                    fileIncludePattern: '**/*.json',
-                    jsonReportDirectory: './reports/',
-                    parallelTesting: true,
-                    sortingMethod: 'ALPHABETICAL')
-                }
             }
         }
 
@@ -113,13 +45,29 @@ pipeline {
             }
             steps {
                 sh  ''' source activate ${BUILD_TAG}
-                        python setup.py bdist_wheel
+                        export VERSION=`date +%Y.%m`
+                        conda build recipe/ --numpy 1.15 --python 3.7
+                        conda install -c file://${CONDA_PREFIX}/conda-bld/ larix
                     '''
             }
             post {
                 always {
                     // Archive unit tests for the future
                     archiveArtifacts allowEmptyArchive: true, artifacts: 'dist/*whl', fingerprint: true
+                }
+            }
+        }
+
+        stage('Unit tests') {
+            steps {
+                sh  ''' source activate ${BUILD_TAG}
+                        python -m unittest tests/test.py --verbose --junit-xml reports/unit_tests.xml
+                    '''
+            }
+            post {
+                always {
+                    // Archive unit tests for the future
+                    junit allowEmptyResults: true, testResults: 'reports/unit_tests.xml'
                 }
             }
         }
