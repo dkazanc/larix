@@ -63,6 +63,7 @@ pipeline {
         stage("Upload to anaconda") {
              steps {
                  sh ''' source activate ${BUILD_TAG}
+                        cd recipe
                         bash upload.sh
                     '''
              }
