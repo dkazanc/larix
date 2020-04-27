@@ -51,34 +51,22 @@ pipeline {
                         conda install --yes -c file://${CONDA_PREFIX}/conda-bld/ larix
                     '''
             }
-            post {
-                always {
-                    // Archive unit tests for the future
-                    archiveArtifacts allowEmptyArchive: true, artifacts: 'dist/*whl', fingerprint: true
-                }
-            }
         }
 
         stage('Unit tests') {
             steps {
                 sh  ''' source activate ${BUILD_TAG}
-                        python -m unittest tests/test.py --verbose --junit-xml reports/unit_tests.xml
+                        python -m unittest tests/test.py --verbose
                     '''
-            }
-            post {
-                always {
-                    // Archive unit tests for the future
-                    junit allowEmptyResults: true, testResults: 'reports/unit_tests.xml'
-                }
             }
         }
 
-        // stage("Deploy to PyPI") {
-        //     steps {
-        //         sh """twine upload dist/*
-        //         """
-        //     }
-        // }
+        stage("Upload to anaconda") {
+             steps {
+                 sh ''' anaconda upload /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/larix*
+                    '''
+             }
+        }
     }
 
     post {
