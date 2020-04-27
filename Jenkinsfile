@@ -63,13 +63,13 @@ pipeline {
         stage("Upload to anaconda") {
              steps {
                  sh ''' source activate ${BUILD_TAG}
-                        cd recipe
-                        bash upload.sh
+                        source /var/lib/jenkins/upload.sh
+                        anaconda -v -t $CONDA_UPLOAD_TOKEN upload /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*.tar.bz2 --force
                     '''
              }
         }
     }
-
+"""
     post {
         always {
             sh 'conda remove --yes -n ${BUILD_TAG} --all'
