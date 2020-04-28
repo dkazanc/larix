@@ -134,7 +134,7 @@ pipeline {
                     '''
             }
         }
-
+        /*
         stage("Deploy py35") {
              steps {
                  sh ''' source activate "${BUILD_TAG}py35"
@@ -162,6 +162,7 @@ pipeline {
                     '''
              }
         }
+        */
     }
 
     post {

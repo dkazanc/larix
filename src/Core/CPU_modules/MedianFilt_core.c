@@ -26,7 +26,7 @@
  * [1] Filtered or dezingered image/volume
  */
 
-float medianfilter_main(float *Input, float *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ)
+int medianfilter_main(float *Input, float *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ)
 {
     int sizefilter_total, kernel_half_size;
     long i, j, k, index;
@@ -67,7 +67,8 @@ float medianfilter_main(float *Input, float *Output, int kernel_size, float mu_t
          }}}
      }
     } /* 3D case done */
-    return *Output;
+
+    return 0;
 }
 
 float medfilt2D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY)
