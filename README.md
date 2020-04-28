@@ -15,7 +15,7 @@
 
 | Master | Anaconda binaries |
 |--------|-------------------|
-| [Build Status](http://192.168.0.9:8080/buildStatus/icon?job=larix%2Fmaster) | ![conda version](https://anaconda.org/dkazanc/larix/badges/version.svg) ![conda last release](https://anaconda.org/dkazanc/larix/badges/latest_release_date.svg) [![conda platforms](https://anaconda.org/dkazanc/larix/badges/platforms.svg) ![conda dowloads](https://anaconda.org/dkazanc/larix/badges/downloads.svg)](https://anaconda.org/dkazanc/larix/) |
+| [Jenkins build status](http://192.168.0.9:8080/buildStatus/icon?job=larix%2Fmaster) | ![conda version](https://anaconda.org/dkazanc/larix/badges/version.svg) ![conda last release](https://anaconda.org/dkazanc/larix/badges/latest_release_date.svg) [![conda platforms](https://anaconda.org/dkazanc/larix/badges/platforms.svg) ![conda dowloads](https://anaconda.org/dkazanc/larix/badges/downloads.svg)](https://anaconda.org/dkazanc/larix/) |
 
 ## Larix software includes:
  * Mask evolving segmentation method (RegionGrow) with mask initialisation (**2D/3D CPU**)
@@ -32,7 +32,7 @@
 Install from the anaconda cloud: `conda install -c dkazanc larix` or build with:
 ```
 export VERSION=`date +%Y.%m`
-conda build recipe/ --numpy 1.15 --python 3.5
+conda build recipe/ --numpy 1.15 --python 3.7
 conda install -c file://${CONDA_PREFIX}/conda-bld/ larix
 ```
 Additionally you can also run/modify `conda_install.sh` for automatic conda build/install
