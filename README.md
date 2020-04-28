@@ -6,7 +6,7 @@
         </div>
         </td>
         <td>
-        <font size="5"><b> Larix: is a set of data and image processing tools </b></font>
+        <font size="5"><b> Larix: is a set of data and image processing tools </b></font> <a href='http://192.168.0.9:8080/job/larix/job/master/'><img src='http://192.168.0.9:8080/buildStatus/icon?job=larix%2Fmaster'></a>
         <br><font size="3" face="verdana" color="green"><b> Larix</b> is an open-source software written in C/CUDA languages with Python wrappers. The software consists of novel and already existing methods for various image processing tasks, e.g. filtering, inpainting, segmentation, morphological processing, etc.  Most of the modules are implemented with OpenMP multithreading capability in C or on GPU to ensure faster data processing. Larix is being developed at Diamond Light Source synchrotron (UK) with the main purpose to process collected data effectively and efficiently.
         </font></br>
         </td>
@@ -15,7 +15,7 @@
 
 | Master | Anaconda binaries |
 |--------|-------------------|
-| [![Build Status](http://192.168.0.9:8080/buildStatus/icon?job=larix%2Fmaster)](http://192.168.0.9:8080/job/larix/job/master/badge/icon?style=plastic) | ![conda version](https://anaconda.org/dkazanc/larix/badges/version.svg) ![conda last release](https://anaconda.org/dkazanc/larix/badges/latest_release_date.svg) [![conda platforms](https://anaconda.org/dkazanc/larix/badges/platforms.svg) ![conda dowloads](https://anaconda.org/dkazanc/larix/badges/downloads.svg)](https://anaconda.org/dkazanc/larix/) |
+| http://192.168.0.9:8080/buildStatus/text?job=larix%2Fmaster | ![conda version](https://anaconda.org/dkazanc/larix/badges/version.svg) ![conda last release](https://anaconda.org/dkazanc/larix/badges/latest_release_date.svg) [![conda platforms](https://anaconda.org/dkazanc/larix/badges/platforms.svg) ![conda dowloads](https://anaconda.org/dkazanc/larix/badges/downloads.svg)](https://anaconda.org/dkazanc/larix/) |
 
 ## Larix software includes:
  * Mask evolving segmentation method (RegionGrow) with mask initialisation (**2D/3D CPU**)
