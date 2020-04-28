@@ -15,7 +15,7 @@
 
 | Master | Anaconda binaries |
 |--------|-------------------|
-| [![Build Status](http://192.168.0.9:8080/buildStatus/icon?job=larix%2Fmaster)](http://192.168.0.9:8080/job/larix/job/master/) | ![conda version](https://anaconda.org/dkazanc/larix/badges/version.svg) ![conda last release](https://anaconda.org/dkazanc/larix/badges/latest_release_date.svg) [![conda platforms](https://anaconda.org/dkazanc/larix/badges/platforms.svg) ![conda dowloads](https://anaconda.org/dkazanc/larix/badges/downloads.svg)](https://anaconda.org/dkazanc/larix/) |
+| [![Build Status](http://192.168.0.9:8080/buildStatus/icon?job=larix%2Fmaster)](http://192.168.0.9:8080/job/larix/job/master/badge/icon?style=plastic) | ![conda version](https://anaconda.org/dkazanc/larix/badges/version.svg) ![conda last release](https://anaconda.org/dkazanc/larix/badges/latest_release_date.svg) [![conda platforms](https://anaconda.org/dkazanc/larix/badges/platforms.svg) ![conda dowloads](https://anaconda.org/dkazanc/larix/badges/downloads.svg)](https://anaconda.org/dkazanc/larix/) |
 
 ## Larix software includes:
  * Mask evolving segmentation method (RegionGrow) with mask initialisation (**2D/3D CPU**)
