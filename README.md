@@ -15,14 +15,14 @@
 
 | Master | Anaconda binaries |
 |--------|-------------------|
-| [![Build Status](https://travis-ci.org/dkazanc/larix.svg?branch=master)](https://travis-ci.org/dkazanc/larix.svg?branch=master) | ![conda version](https://anaconda.org/dkazanc/larix/badges/version.svg) ![conda last release](https://anaconda.org/dkazanc/larix/badges/latest_release_date.svg) [![conda platforms](https://anaconda.org/dkazanc/larix/badges/platforms.svg) ![conda dowloads](https://anaconda.org/dkazanc/larix/badges/downloads.svg)](https://anaconda.org/dkazanc/larix/) |
+| [![Build Status](http://192.168.0.9:8080/buildStatus/icon?job=larix%2Fmaster)](http://192.168.0.9:8080/job/larix/job/master/) | ![conda version](https://anaconda.org/dkazanc/larix/badges/version.svg) ![conda last release](https://anaconda.org/dkazanc/larix/badges/latest_release_date.svg) [![conda platforms](https://anaconda.org/dkazanc/larix/badges/platforms.svg) ![conda dowloads](https://anaconda.org/dkazanc/larix/badges/downloads.svg)](https://anaconda.org/dkazanc/larix/) |
 
 ## Larix software includes:
  * Mask evolving segmentation method (RegionGrow) with mask initialisation (**2D/3D CPU**)
  * Morphological processing of the segmented image/volume (e.g. the result of RegionGrow)  using the line segments to remove gaps and misclassified regions (**2D/3D CPU**)
  * Auto cropping for tomographic projections or reconstructed images when the object is within the FOV (**2D/3D CPU**)
  * Median filtration and median-based dezinger to remove broken pixels aka outliers  (**2D/3D CPU/GPU**)
- * Inpainting using linear/nonlinear diffusion and nonlocal marching method  (**2D CPU**)
+ * Inpainting using linear/non-linear diffusion and non-local marching method  (**2D CPU**)
 
  <div align="center">
    <img src="docs/images/demo_larix.png" width="650">
@@ -41,8 +41,8 @@ Additionally you can also run/modify `conda_install.sh` for automatic conda buil
 See `run.sh` for information how to build and install software.
 
 #### Other useful software:
+ * [Savu](https://github.com/DiamondLightSource/Savu) Tomographic reconstruction pipeline at DLS to which Larix has been incorporated
  * [ASTRA-toolbox](https://www.astra-toolbox.com/) Versatile CPU/GPU toolbox for tomography
  * [ToMoBAR](https://github.com/dkazanc/ToMoBAR) TOmographic iterative MOdel-BAsed Reconstruction software
  * [CCPi-RegularisationToolkit](https://github.com/vais-ral/CCPi-Regularisation-Toolkit) Adds regularisation to ToMoBAR
  * [TomoPhantom](https://github.com/dkazanc/TomoPhantom) Tomographic simulation and phantoms
- * [Savu](https://github.com/DiamondLightSource/Savu) Tomographic reconstruction pipeline at DLS in which Larix has been incorporated

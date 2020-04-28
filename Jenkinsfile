@@ -108,7 +108,7 @@ pipeline {
             }
         }
 
-        stage('Run tests py35') {
+        stage('Tests py35') {
             steps {
                 sh  ''' source activate "${BUILD_TAG}py35"
                         conda install pytest pytest-cov
@@ -117,7 +117,7 @@ pipeline {
             }
         }
 
-        stage('Run tests py36') {
+        stage('Tests py36') {
             steps {
                 sh  ''' source activate "${BUILD_TAG}py36"
                         conda install pytest pytest-cov
@@ -126,7 +126,7 @@ pipeline {
             }
         }
 
-        stage('Run tests py37') {
+        stage('Tests py37') {
             steps {
                 sh  ''' source activate "${BUILD_TAG}py37"
                         conda install pytest pytest-cov
