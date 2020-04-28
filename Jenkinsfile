@@ -61,14 +61,17 @@ pipeline {
             }
         }
         // somehow doesn't quite work.
+
         stage("Deploy") {
              steps {
                  sh ''' source activate ${BUILD_TAG}
-                        source /var/lib/jenkins/upload.sh
-                        anaconda -t $CONDA_UPLOAD_TOKEN upload -u dkazanc /var/lib/jenkins/.conda/envs/${BUILD_TAG}/conda-bld/linux-64/*.tar.bz2 --force
+                        conda config --set anaconda_upload yes
+                        source /var/lib/jenkins/.condarc_upload
+                        conda uninstall larix 
                     '''
              }
         }
+
 
     }
 
