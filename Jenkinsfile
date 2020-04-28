@@ -61,7 +61,6 @@ pipeline {
             }
         }
         // somehow doesn't quite work.
-        /*
         stage("Deploy") {
              steps {
                  sh ''' source activate ${BUILD_TAG}
@@ -70,7 +69,7 @@ pipeline {
                     '''
              }
         }
-        */
+
     }
 
     post {
