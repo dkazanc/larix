@@ -3,10 +3,11 @@
         <td>
         <div align="left">
           <img src="docs/images/larix_logo.png" width="1150"><br>
+          {<img src='http://192.168.0.9:8080/buildStatus/icon?job=larix%2Fmaster'/>}[http://192.168.0.9:8080/job/larix/job/master/]
         </div>
         </td>
         <td>
-        <font size="5"><b> Larix: is a set of data and image processing tools </b></font> <img src='http://192.168.0.9:8080/buildStatus/icon?job=larix%2Fmaster'/>
+        <font size="5"><b> Larix: is a set of data and image processing tools </b></font>
         <br><font size="3" face="verdana" color="green"><b> Larix</b> is an open-source software written in C/CUDA languages with Python wrappers. The software consists of novel and already existing methods for various image processing tasks, e.g. filtering, inpainting, segmentation, morphological processing, etc.  Most of the modules are implemented with OpenMP multithreading capability in C or on GPU to ensure faster data processing. Larix is being developed at Diamond Light Source synchrotron (UK) with the main purpose to process collected data effectively and efficiently.
         </font></br>
         </td>
