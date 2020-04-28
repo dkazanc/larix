@@ -83,25 +83,6 @@ pipeline {
                 recipientProviders: [[$class: 'DevelopersRecipientProvider']])
         }
     }
-}
-
-pipeline {
-    agent any
-
-    triggers {
-        pollSCM('H 21 * * *')
-    }
-
-    options {
-        skipDefaultCheckout(true)
-        // Keep the 10 most recent builds
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-        timestamps()
-    }
-
-    environment {
-      PATH="/var/lib/jenkins/miniconda3/bin:$PATH"
-    }
 
     stages {
 
@@ -170,4 +151,5 @@ pipeline {
                 recipientProviders: [[$class: 'DevelopersRecipientProvider']])
         }
     }
+
 }
