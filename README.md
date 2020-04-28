@@ -45,4 +45,4 @@ See `run.sh` for information how to build and install software.
  * [ASTRA-toolbox](https://www.astra-toolbox.com/) Versatile CPU/GPU toolbox for tomography
  * [ToMoBAR](https://github.com/dkazanc/ToMoBAR) TOmographic iterative MOdel-BAsed Reconstruction software
  * [CCPi-RegularisationToolkit](https://github.com/vais-ral/CCPi-Regularisation-Toolkit) Adds regularisation to ToMoBAR
- * [TomoPhantom](https://github.com/dkazanc/TomoPhantom) Tomographic simulation and phantoms
+ * [TomoPhantom](https://github.com/dkazanc/TomoPhantom) Tomographic projections and phantoms simulator
