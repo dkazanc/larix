@@ -515,7 +515,7 @@ extern "C" int MedianFilt_GPU_main(float *Input, float *Output, int kernel_size,
         dim3 dimGrid(idivup(N,BLKXSIZE2D), idivup(M,BLKYSIZE2D));
         sizefilter_total = (int)(pow(kernel_size,2));
         kernel_half_size = (int)((kernel_size-1)/2);
-        midval = (int)(sizefilter_total*0.5f) - 1;
+        midval = (int)(sizefilter_total/2);
 
         if (kernel_size == 3) medfilt1_kernel_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
         else if (kernel_size == 5) medfilt2_kernel_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
@@ -531,7 +531,7 @@ extern "C" int MedianFilt_GPU_main(float *Input, float *Output, int kernel_size,
         dim3 dimGrid(idivup(N,BLKXSIZE), idivup(M,BLKYSIZE),idivup(Z,BLKXSIZE));
         sizefilter_total = (int)(pow(kernel_size, 3));
         kernel_half_size = (int)((kernel_size-1)/2);
-        midval = (int)(sizefilter_total*0.5f) - 1;
+        midval = (int)(sizefilter_total/2);
 
         if (Z == kernel_size) {
         /* performs operation only on the central frame using all 3D information */

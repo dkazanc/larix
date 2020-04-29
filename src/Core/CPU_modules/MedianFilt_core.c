@@ -76,7 +76,7 @@ void medfilt2D(float *Input, float *Output, int kernel_half_size, int sizefilter
     float *ValVec;
     long i_m, j_m, i1, j1, counter = 0l;
     int midval;
-    midval = (int)(sizefilter_total*0.5f) - 1;
+    midval = (int)(sizefilter_total/2);
     ValVec = (float*) calloc(sizefilter_total, sizeof(float));
 
     for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
@@ -103,7 +103,7 @@ void medfilt3D_pad(float *Input, float *Output, int kernel_half_size, int sizefi
     float *ValVec;
     long i_m, j_m, k_m, i1, j1, counter = 0l;
     int midval;
-    midval = (int)(sizefilter_total*0.5f) - 1;
+    midval = (int)(sizefilter_total/2);
     ValVec = (float*) calloc(sizefilter_total, sizeof(float));
 
     for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
@@ -131,7 +131,7 @@ void medfilt3D(float *Input, float *Output, int kernel_half_size, int sizefilter
     float *ValVec;
     long i_m, j_m, k_m, i1, j1, k1, counter = 0l;
     int midval;
-    midval = (int)(sizefilter_total*0.5f) - 1;
+    midval = (int)(sizefilter_total/2);
     ValVec = (float*) calloc(sizefilter_total, sizeof(float));
 
     for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
