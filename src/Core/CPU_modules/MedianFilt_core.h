@@ -35,12 +35,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-DLS_EXPORT float medianfilter_main(float *Input, float *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ);
+DLS_EXPORT int medianfilter_main(float *Input, float *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ);
 /************2D functions ***********/
-DLS_EXPORT float medfilt2D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
+DLS_EXPORT void medfilt2D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
 /************3D functions ***********/
-DLS_EXPORT float medfilt3D_pad(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
-DLS_EXPORT float medfilt3D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long k, long index, long dimX, long dimY, long dimZ);
+DLS_EXPORT void medfilt3D_pad(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
+DLS_EXPORT void medfilt3D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long k, long index, long dimX, long dimY, long dimZ);
 
 #ifdef __cplusplus
 }

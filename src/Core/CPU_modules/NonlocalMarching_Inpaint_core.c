@@ -38,7 +38,7 @@
  * Reference: D. Kazantsev (paper in preparation)
  */
 
-float NonlocalMarching_Inpaint_main(float *Input, unsigned char *M, float *Output, unsigned char *M_upd, int SW_increment, int iterationsNumb, int trigger, int dimX, int dimY, int dimZ)
+int NonlocalMarching_Inpaint_main(float *Input, unsigned char *M, float *Output, unsigned char *M_upd, int SW_increment, int iterationsNumb, int trigger, int dimX, int dimY, int dimZ)
 {
     int i, j, i_m, j_m, counter, iter, iterations_number, W_fullsize, switchmask, switchcurr, counterElements;
     float *Gauss_weights;
@@ -145,10 +145,10 @@ float NonlocalMarching_Inpaint_main(float *Input, unsigned char *M, float *Outpu
         }
         printf("%s %i \n", "Iterations stopped at:", iter);
     }
-    return *Output;
+    return 0;
 }
 
-float inpaint_func(float *U, unsigned char *M_upd, float *Gauss_weights, int i, int j, int dimX, int dimY, int W_halfsize, int W_fullsize)
+void inpaint_func(float *U, unsigned char *M_upd, float *Gauss_weights, int i, int j, int dimX, int dimY, int W_halfsize, int W_fullsize)
 {
     int i1, j1, i_m, j_m, counter;
     float sum_val, sumweight;
@@ -183,5 +183,5 @@ float inpaint_func(float *U, unsigned char *M_upd, float *Gauss_weights, int i, 
         }
     }
     U[j*dimX + i] = sum_val;
-    return *U;
+    return;
 }

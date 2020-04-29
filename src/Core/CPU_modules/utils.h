@@ -11,20 +11,29 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 #include <stdlib.h>
 #include <memory.h>
 #include "omp.h"
 #include "DLSDefines.h"
 
+#ifndef max
+    #define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
+#endif
+
+#ifndef min
+    #define min( a, b ) ( ((a) < (b)) ? (a) : (b) )
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-DLS_EXPORT float copyIm(float *A, float *U, long dimX, long dimY, long dimZ);
-unsigned char copyIm_unchar(unsigned char *A, unsigned char *U, int dimX, int dimY, int dimZ);
-DLS_EXPORT float copyIm_roll(float *A, float *U, int dimX, int dimY, int roll_value, int switcher);
-DLS_EXPORT float sort_bubble(float *x, int n_size);
-DLS_EXPORT float sort_quick(float *x, int left_idx, int right_idx);
+DLS_EXPORT void swap(float *xp, float *yp);
+DLS_EXPORT int signum(int i);
+DLS_EXPORT void copyIm(float *A, float *U, long dimX, long dimY, long dimZ);
+DLS_EXPORT void copyIm_unchar(unsigned char *A, unsigned char *U, int dimX, int dimY, int dimZ);
+DLS_EXPORT void copyIm_roll(float *A, float *U, int dimX, int dimY, int roll_value, int switcher);
+DLS_EXPORT void sort_bubble(float *x, int n_size);
+DLS_EXPORT void sort_quick(float *x, int left_idx, int right_idx);
 #ifdef __cplusplus
 }
 #endif

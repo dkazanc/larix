@@ -46,7 +46,7 @@ int signNDF_inc(float x) {
  * [2] Black, M.J., Sapiro, G., Marimont, D.H. and Heeger, D., 1998. Robust anisotropic diffusion. IEEE Transactions on image processing, 7(3), pp.421-432.
  */
 
-float Diffusion_Inpaint_CPU_main(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float sigmaPar, int iterationsNumb, float tau, int penaltytype, int dimX, int dimY, int dimZ)
+int Diffusion_Inpaint_CPU_main(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float sigmaPar, int iterationsNumb, float tau, int penaltytype, int dimX, int dimY, int dimZ)
 {
     long i, pointsone;
     float sigmaPar2;
@@ -76,13 +76,13 @@ float Diffusion_Inpaint_CPU_main(float *Input, unsigned char *Mask, float *Outpu
             }
          }
 	}
-    return *Output;
+    return 0;
 }
 /********************************************************************/
 /***************************2D Functions*****************************/
 /********************************************************************/
 /* linear diffusion (heat equation) */
-float LinearDiff_Inp_2D(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float tau, long dimX, long dimY)
+void LinearDiff_Inp_2D(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float tau, long dimX, long dimY)
 {
 	long i,j,i1,i2,j1,j2,index;
 	float e,w,n,s,e1,w1,n1,s1;
@@ -113,11 +113,11 @@ float LinearDiff_Inp_2D(float *Input, unsigned char *Mask, float *Output, float 
                 Output[index] += tau*(lambdaPar*(e1 + w1 + n1 + s1) - (Output[index] - Input[index]));
 			}
 		}}
-	return *Output;
+	return;
 }
 
 /* nonlinear diffusion */
-float NonLinearDiff_Inp_2D(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float sigmaPar, float tau, int penaltytype, long dimX, long dimY)
+void NonLinearDiff_Inp_2D(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float sigmaPar, float tau, int penaltytype, long dimX, long dimY)
 {
 	long i,j,i1,i2,j1,j2,index;
 	float e,w,n,s,e1,w1,n1,s1;
@@ -184,13 +184,13 @@ float NonLinearDiff_Inp_2D(float *Input, unsigned char *Mask, float *Output, flo
            Output[index] += tau*(lambdaPar*(e1 + w1 + n1 + s1) - (Output[index] - Input[index]));
 		}
 		}}
-	return *Output;
+	return;
 }
 /********************************************************************/
 /***************************3D Functions*****************************/
 /********************************************************************/
 /* linear diffusion (heat equation) */
-float LinearDiff_Inp_3D(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float tau, long dimX, long dimY, long dimZ)
+void LinearDiff_Inp_3D(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float tau, long dimX, long dimY, long dimZ)
 {
 	long i,j,k,i1,i2,j1,j2,k1,k2,index;
 	float e,w,n,s,u,d,e1,w1,n1,s1,u1,d1;
@@ -229,10 +229,10 @@ for(k=0; k<dimZ; k++) {
                 Output[index] += tau*(lambdaPar*(e1 + w1 + n1 + s1 + u1 + d1) - (Output[index] - Input[index]));
 			}
 		}}}
-	return *Output;
+	return;
 }
 
-float NonLinearDiff_Inp_3D(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float sigmaPar, float tau, int penaltytype, long dimX, long dimY, long dimZ)
+void NonLinearDiff_Inp_3D(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float sigmaPar, float tau, int penaltytype, long dimX, long dimY, long dimZ)
 {
 	long i,j,k,i1,i2,j1,j2,k1,k2,index;
 	float e,w,n,s,u,d,e1,w1,n1,s1,u1,d1;
@@ -319,5 +319,5 @@ for(k=0; k<dimZ; k++) {
                 Output[index] += tau*(lambdaPar*(e1 + w1 + n1 + s1 + u1 + d1) - (Output[index] - Input[index]));
 		}
 		}}}
-	return *Output;
+	return;
 }

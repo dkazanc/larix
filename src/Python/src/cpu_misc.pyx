@@ -15,10 +15,10 @@ import cython
 import numpy as np
 cimport numpy as np
 
-cdef extern float Autocrop_main(float *Input, float *mask_box, float *crop_indeces, float threshold, int margin_skip, int statbox_size, int increase_crop, int dimX, int dimY, int dimZ);
-cdef extern float medianfilter_main(float *Input, float *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ);
-cdef extern float Diffusion_Inpaint_CPU_main(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float sigmaPar, int iterationsNumb, float tau, int penaltytype, int dimX, int dimY, int dimZ);
-cdef extern float NonlocalMarching_Inpaint_main(float *Input, unsigned char *M, float *Output, unsigned char *M_upd, int SW_increment, int iterationsNumb, int trigger, int dimX, int dimY, int dimZ);
+cdef extern int Autocrop_main(float *Input, float *mask_box, float *crop_indeces, float threshold, int margin_skip, int statbox_size, int increase_crop, int dimX, int dimY, int dimZ);
+cdef extern int medianfilter_main(float *Input, float *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ);
+cdef extern int Diffusion_Inpaint_CPU_main(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float sigmaPar, int iterationsNumb, float tau, int penaltytype, int dimX, int dimY, int dimZ);
+cdef extern int NonlocalMarching_Inpaint_main(float *Input, unsigned char *M, float *Output, unsigned char *M_upd, int SW_increment, int iterationsNumb, int trigger, int dimX, int dimY, int dimZ);
 #################################################################
 ##########################Autocropper ###########################
 #################################################################
@@ -44,8 +44,10 @@ def AUTOCROP_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
     cdef np.ndarray[np.float32_t, ndim=1, mode="c"] crop_val_ar = \
             np.zeros([4], dtype='float32')
 
-    Autocrop_main(&Input[0,0], &mask[0,0], &crop_val_ar[0], threshold, margin_skip, statbox_size, increase_crop, dims[1], dims[0], 1)
-    return crop_val_ar
+    if (Autocrop_main(&Input[0,0], &mask[0,0], &crop_val_ar[0], threshold, margin_skip, statbox_size, increase_crop, dims[1], dims[0], 1)==0):
+        return crop_val_ar
+    else:
+        ValueError("2D CPU autocrop function failed to return 0")
 
 def AUTOCROP_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
 	float threshold,
@@ -64,8 +66,10 @@ def AUTOCROP_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
     cdef np.ndarray[np.float32_t, ndim=1, mode="c"] crop_val_ar = \
             np.zeros([4], dtype='float32')
 
-    Autocrop_main(&Input[0,0,0], &mask[0,0,0], &crop_val_ar[0], threshold, margin_skip, statbox_size, increase_crop, dims[2], dims[1], dims[0])
-    return crop_val_ar
+    if (Autocrop_main(&Input[0,0,0], &mask[0,0,0], &crop_val_ar[0], threshold, margin_skip, statbox_size, increase_crop, dims[2], dims[1], dims[0])==0):
+        return crop_val_ar
+    else:
+        ValueError("3D CPU autocrop function failed to return 0")
 
 #################################################################################
 ##############################Median Filtering ##################################
@@ -87,10 +91,12 @@ def MEDIAN_FILT_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
             np.zeros([dims[0],dims[1]], dtype='float32')
 
     if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
-        medianfilter_main(&Input[0,0], &Output[0,0], kernel_size, 0.0, dims[1], dims[0], 1)
+        if (medianfilter_main(&Input[0,0], &Output[0,0], kernel_size, 0.0, dims[1], dims[0], 1)==0):
+            return Output
+        else:
+            raise ValueError("2D CPU median filter function failed to return 0")
     else:
         print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
-    return Output
 
 def MEDIAN_FILT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
                    int kernel_size):
@@ -104,10 +110,13 @@ def MEDIAN_FILT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
             np.zeros([dims[0],dims[1],dims[2]], dtype='float32')
 
     if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
-        medianfilter_main(&Input[0,0,0], &Output[0,0,0], kernel_size, 0.0, dims[2], dims[1], dims[0])
+        if (medianfilter_main(&Input[0,0,0], &Output[0,0,0], kernel_size, 0.0, dims[2], dims[1], dims[0])==0):
+            return Output
+        else:
+            raise ValueError("3D CPU median filter function failed to return 0")
     else:
         print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
-    return Output
+
 #################################################################################
 ##############################Median Dezingering ################################
 #################################################################################
@@ -129,10 +138,12 @@ def MEDIAN_DEZING_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
             np.zeros([dims[0],dims[1]], dtype='float32')
 
     if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
-        medianfilter_main(&Input[0,0], &Output[0,0], kernel_size, mu_threshold, dims[1], dims[0], 1)
+        if (medianfilter_main(&Input[0,0], &Output[0,0], kernel_size, mu_threshold, dims[1], dims[0], 1)==0):
+            return Output
+        else:
+            raise ValueError("2D CPU dezinger filter function failed to return 0")
     else:
         print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
-    return Output
 
 def MEDIAN_DEZING_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
                     int kernel_size,
@@ -147,10 +158,12 @@ def MEDIAN_DEZING_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
             np.zeros([dims[0],dims[1],dims[2]], dtype='float32')
 
     if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
-        medianfilter_main(&Input[0,0,0], &Output[0,0,0], kernel_size, mu_threshold, dims[2], dims[1], dims[0])
+        if (medianfilter_main(&Input[0,0,0], &Output[0,0,0], kernel_size, mu_threshold, dims[2], dims[1], dims[0])==0):
+            return Output
+        else:
+            raise ValueError("3D CPU dezinger filter function failed to return 0")
     else:
         print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
-    return Output
 
 #*********************Inpainting WITH****************************#
 #***************Nonlinear (Isotropic) Diffusion******************#
@@ -178,8 +191,10 @@ def INPAINT_NDF_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] inputData,
             np.zeros([dims[0],dims[1]], dtype='float32')
 
     # Run Inpaiting by Diffusion iterations for 2D data
-    Diffusion_Inpaint_CPU_main(&inputData[0,0], &maskData[0,0], &outputData[0,0], regularisation_parameter, edge_parameter, iterationsNumb, time_marching_parameter, penalty_type, dims[1], dims[0], 1)
-    return outputData
+    if (Diffusion_Inpaint_CPU_main(&inputData[0,0], &maskData[0,0], &outputData[0,0], regularisation_parameter, edge_parameter, iterationsNumb, time_marching_parameter, penalty_type, dims[1], dims[0], 1)==0):
+        return outputData
+    else:
+        raise ValueError("2D CPU nonlinear diffusion inpainting failed to return 0")
 
 def INPAINT_NDF_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData,
                      np.ndarray[np.uint8_t, ndim=3, mode="c"] maskData,
@@ -197,9 +212,10 @@ def INPAINT_NDF_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData,
             np.zeros([dims[0],dims[1],dims[2]], dtype='float32')
 
     # Run Inpaiting by Diffusion iterations for 3D data
-    Diffusion_Inpaint_CPU_main(&inputData[0,0,0], &maskData[0,0,0], &outputData[0,0,0], regularisation_parameter, edge_parameter, iterationsNumb, time_marching_parameter, penalty_type, dims[2], dims[1], dims[0])
-    return outputData
-
+    if (Diffusion_Inpaint_CPU_main(&inputData[0,0,0], &maskData[0,0,0], &outputData[0,0,0], regularisation_parameter, edge_parameter, iterationsNumb, time_marching_parameter, penalty_type, dims[2], dims[1], dims[0])==0):
+        return outputData
+    else:
+        raise ValueError("3D CPU nonlinear diffusion inpainting failed to return 0")
 #*********************Inpainting WITH****************************#
 #******************Nonlocal  Marching method*********************#
 #****************************************************************#
@@ -213,7 +229,7 @@ def INPAINT_NM_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] inputData,
                np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
                      int SW_increment,
                      int iterationsNumb):
-    
+
     cdef long dims[2]
     dims[0] = inputData.shape[0]
     dims[1] = inputData.shape[1]
@@ -225,7 +241,7 @@ def INPAINT_NM_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] inputData,
             np.zeros([dims[0],dims[1]], dtype='uint8')
 
     # Run Inpaiting by Nonlocal vertical marching method for 2D data
-    NonlocalMarching_Inpaint_main(&inputData[0,0], &maskData[0,0], &outputData[0,0],
-                                  &maskData_upd[0,0],
-                                  SW_increment, iterationsNumb, 1, dims[1], dims[0], 1)
-    return (outputData, maskData_upd)
+    if (NonlocalMarching_Inpaint_main(&inputData[0,0], &maskData[0,0], &outputData[0,0], &maskData_upd[0,0], SW_increment, iterationsNumb, 1, dims[1], dims[0], 1)==0):
+        return (outputData, maskData_upd)
+    else:
+        raise ValueError("2D CPU nonlocal marching inpainting failed to return 0")

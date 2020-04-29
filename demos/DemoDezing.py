@@ -84,6 +84,7 @@ plt.rcParams.update({'font.size': 21})
 plt.imshow(dezingered, cmap="BuPu")
 plt.title('{}''{}'.format('Dezingered sinogram of model no.',model))
 
+#%%
 print("Applying Median Filter in 2D using GPU...")
 
 pars = {'input_data' : sino_an_noisy, # input grayscale image
