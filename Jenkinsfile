@@ -71,7 +71,7 @@ pipeline {
                         conda config --set anaconda_upload no
                         export VERSION=`date +%Y.%m`
                         conda build recipe/ --numpy 1.15 --python 3.5
-                        conda install --yes -c file://${CONDA_PREFIX}/conda-bld/ larix
+                        conda install /var/lib/jenkins/miniconda3/conda-bld/linux-64/larix-2020.04-py35*
                     '''
             }
         }
@@ -87,7 +87,7 @@ pipeline {
                         conda config --set anaconda_upload no
                         export VERSION=`date +%Y.%m`
                         conda build recipe/ --numpy 1.15 --python 3.6
-                        conda install --yes -c file://${CONDA_PREFIX}/conda-bld/ larix
+                        conda install /var/lib/jenkins/miniconda3/conda-bld/linux-64/larix-2020.04-py36*
                     '''
             }
         }
@@ -103,7 +103,7 @@ pipeline {
                         conda config --set anaconda_upload no
                         export VERSION=`date +%Y.%m`
                         conda build recipe/ --numpy 1.15 --python 3.7
-                        conda install --yes -c file://${CONDA_PREFIX}/conda-bld/ larix
+                        conda install /var/lib/jenkins/miniconda3/conda-bld/linux-64/larix-2020.04-py37*
                     '''
             }
         }
