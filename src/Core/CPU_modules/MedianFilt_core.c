@@ -71,7 +71,7 @@ int medianfilter_main(float *Input, float *Output, int kernel_size, float mu_thr
     return 0;
 }
 
-float medfilt2D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY)
+void medfilt2D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY)
 {
     float *ValVec;
     long i_m, j_m, i1, j1, counter = 0l;
@@ -95,10 +95,10 @@ float medfilt2D(float *Input, float *Output, int kernel_half_size, int sizefilte
     /* perform dezingering */
     if (fabs(Input[index] - ValVec[midval]) >= mu_threshold) Output[index] = ValVec[midval]; }
     free(ValVec);
-    return *Output;
+    return;
 }
 
-float medfilt3D_pad(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY)
+void medfilt3D_pad(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY)
 {
     float *ValVec;
     long i_m, j_m, k_m, i1, j1, counter = 0l;
@@ -123,10 +123,10 @@ float medfilt3D_pad(float *Input, float *Output, int kernel_half_size, int sizef
     /* perform dezingering */
     if (fabs(Input[index] - ValVec[midval]) >= mu_threshold) Output[index] = ValVec[midval]; }
     free(ValVec);
-    return *Output;
+    return;
 }
 
-float medfilt3D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long k, long index, long dimX, long dimY, long dimZ)
+void medfilt3D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long k, long index, long dimX, long dimY, long dimZ)
 {
     float *ValVec;
     long i_m, j_m, k_m, i1, j1, k1, counter = 0l;
@@ -153,5 +153,5 @@ float medfilt3D(float *Input, float *Output, int kernel_half_size, int sizefilte
     /* perform dezingering */
     if (fabs(Input[index] - ValVec[midval]) >= mu_threshold) Output[index] = ValVec[midval]; }
     free(ValVec);
-    return *Output;
+    return;
 }

@@ -16,26 +16,37 @@
 #include "utils.h"
 #include <math.h>
 
+void swap(float *xp, float *yp)
+{
+    float temp = *xp;
+    *xp = *yp;
+    *yp = temp;
+}
+
+int signum(int i) {
+    return (i>0)?1:((i<0)?-1:0);
+}
+
 /* Copy Image (float) */
-float copyIm(float *A, float *U, long dimX, long dimY, long dimZ)
+void copyIm(float *A, float *U, long dimX, long dimY, long dimZ)
 {
 	long j;
 #pragma omp parallel for shared(A, U) private(j)
 	for (j = 0; j<dimX*dimY*dimZ; j++)  U[j] = A[j];
-	return *U;
+	return;
 }
 
 /* Copy Image */
-unsigned char copyIm_unchar(unsigned char *A, unsigned char *U, int dimX, int dimY, int dimZ)
+void copyIm_unchar(unsigned char *A, unsigned char *U, int dimX, int dimY, int dimZ)
 {
 	int j;
 #pragma omp parallel for shared(A, U) private(j)
 	for (j = 0; j<dimX*dimY*dimZ; j++)  U[j] = A[j];
-	return *U;
+	return;
 }
 
 /*Roll image symmetrically from top to bottom*/
-float copyIm_roll(float *A, float *U, int dimX, int dimY, int roll_value, int switcher)
+void copyIm_roll(float *A, float *U, int dimX, int dimY, int roll_value, int switcher)
 {
     int i, j;
 #pragma omp parallel for shared(U, A) private(i,j)
@@ -50,11 +61,11 @@ float copyIm_roll(float *A, float *U, int dimX, int dimY, int roll_value, int sw
                 else U[j*dimX + i] = A[(j - roll_value)*dimX + i];
             }
         }}
-    return *U;
+    return;
 }
 
 /* sorting using bubble method */
-float sort_bubble(float *x, int n_size)
+void sort_bubble(float *x, int n_size)
 {
 	for (int i = 0; i < n_size - 1; i++)
 	{
@@ -68,10 +79,10 @@ float sort_bubble(float *x, int n_size)
 			}
 		}
 	}
-    return *x;
+    return;
 }
 
-float sort_quick(float *x, int left_idx, int right_idx)
+void sort_quick(float *x, int left_idx, int right_idx)
 {
       int i = left_idx, j = right_idx;
       float pivot = x[(left_idx + right_idx) / 2];
@@ -94,5 +105,5 @@ float sort_quick(float *x, int left_idx, int right_idx)
             sort_quick(x, left_idx, j);
       if (i < right_idx)
             sort_quick(x, i, right_idx);
-    return *x;
+    return;
 }

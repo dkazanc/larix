@@ -36,20 +36,7 @@
  * changed are highlighted and the changes have been counted
  */
 
-int signum(int i) {
-    return (i>0)?1:((i<0)?-1:0);
-}
-
-#ifndef max
-    #define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
-#endif
-
-#ifndef min
-    #define min( a, b ) ( ((a) < (b)) ? (a) : (b) )
-#endif
-
-
-float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, unsigned char *ComboClasses, int tot_combinations, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ)
+int Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *SelClassesList, unsigned char *ComboClasses, int tot_combinations, int SelClassesList_length, int classesNumb, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ)
 {
     long i,j,k,l,n;
     int counterG, switcher;
@@ -192,11 +179,11 @@ float Mask_merge_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
     }
     free(MASK_temp);
     free(ClassesList);
-    return *MASK_upd;
+    return 0;
 }
 
 
-float mask_morph_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions,  int primeClass, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ)
+int mask_morph_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions,  int primeClass, int CorrectionWindow, int iterationsNumb, int dimX, int dimY, int dimZ)
 {
     long i, j, k, l, ll, class_select;
     long DimTotal;
@@ -273,13 +260,13 @@ float mask_morph_main(unsigned char *MASK, unsigned char *MASK_upd, unsigned cha
         } /* iterations terminated*/
     }
     free(MASK_temp);
-    return *MASK_upd;
+    return 0;
 }
 
 /********************************************************************/
 /***************************2D Functions*****************************/
 /********************************************************************/
-float OutiersRemoval2D(unsigned char *MASK, unsigned char *MASK_upd, long i, long j, long dimX, long dimY)
+void OutiersRemoval2D(unsigned char *MASK, unsigned char *MASK_upd, long i, long j, long dimX, long dimY)
 {
   /*if the ROI pixel does not belong to the surrondings, turn it into the surronding*/
   long i_m, j_m, i1, j1, counter;
@@ -293,10 +280,10 @@ float OutiersRemoval2D(unsigned char *MASK, unsigned char *MASK_upd, long i, lon
         }
       }}
       if (counter >= 8) MASK_upd[j*dimX+i] = MASK[j1*dimX+i1];
-      return *MASK_upd;
+      return;
 }
 
-float Mask_update_main2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, long i, long j, int CorrectionWindow, long dimX, long dimY)
+void Mask_update_main2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, long i, long j, int CorrectionWindow, long dimX, long dimY)
 {
   long i_m, j_m, i1, j1, CounterOtherClass;
 
@@ -332,10 +319,10 @@ float Mask_update_main2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsi
             }
           }}
       }
-  return *MASK_upd;
+  return;
 }
 
-int bresenham2D_main(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, long dimX, long dimY)
+void bresenham2D_main(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, long dimX, long dimY)
 {
                    int n;
                    int x[] = {i, i1};
@@ -404,10 +391,10 @@ int bresenham2D_main(int i, int j, int i1, int j1, unsigned char *MASK, unsigned
                          error = error - delx;
                        } // (2*error >= delx)
                   } // for(int n = 0; n<delx+1; n++)
-                  return 0;
+                  return;
 }
 
-float Mask_update_combo2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, unsigned char class_start, unsigned char class_mid, unsigned char class_end, unsigned char class_substitute, long i, long j, int CorrectionWindow, long dimX, long dimY)
+void Mask_update_combo2D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, unsigned char class_start, unsigned char class_mid, unsigned char class_end, unsigned char class_substitute, long i, long j, int CorrectionWindow, long dimX, long dimY)
 {
   long i_m, j_m, i1, j1, CounterOtherClass;
 
@@ -440,10 +427,10 @@ float Mask_update_combo2D(unsigned char *MASK_temp, unsigned char *MASK_upd, uns
             }
           }}
       }
-  return *MASK_upd;
+  return;
 }
 
-int bresenham2D_combo(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList,  unsigned char class_mid, unsigned char class_substitute, long dimX, long dimY)
+void bresenham2D_combo(int i, int j, int i1, int j1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList,  unsigned char class_mid, unsigned char class_substitute, long dimX, long dimY)
 {
                    int n;
                    int x[] = {i, i1};
@@ -516,13 +503,13 @@ int bresenham2D_combo(int i, int j, int i1, int j1, unsigned char *MASK, unsigne
                        } // (2*error >= delx)
                        //printf("[%i][%i][%i]\n", X_new[n], Y_new[n], n) ;
                   } // for(int n = 0; n<delx+1; n++)
-                  return 0;
+                  return;
 }
 
 /********************************************************************/
 /***************************3D Functions*****************************/
 /********************************************************************/
-float OutiersRemoval3D(unsigned char *MASK, unsigned char *MASK_upd, long i, long j, long k, long dimX, long dimY, long dimZ)
+void OutiersRemoval3D(unsigned char *MASK, unsigned char *MASK_upd, long i, long j, long k, long dimX, long dimY, long dimZ)
 {
   /*if the ROI pixel does not belong to the surrondings, turn it into the surronding*/
   long i_m, j_m, k_m, i1, j1, k1, counter;
@@ -538,10 +525,10 @@ float OutiersRemoval3D(unsigned char *MASK, unsigned char *MASK_upd, long i, lon
         }
       }}}
       if (counter >= 25) MASK_upd[(dimX*dimY)*k + j*dimX+i] = MASK[(dimX*dimY)*k1 + j1*dimX+i1];
-      return *MASK_upd;
+      return;
 }
 
-float Mask_update_main3D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, long i, long j, long k, int CorrectionWindow, long dimX, long dimY, long dimZ)
+void Mask_update_main3D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, long i, long j, long k, int CorrectionWindow, long dimX, long dimY, long dimZ)
 {
   long i_m, j_m, k_m, i1, j1, k1, CounterOtherClass;
 
@@ -581,10 +568,10 @@ float Mask_update_main3D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsi
             }
           }}}
       }
-  return *MASK_upd;
+  return;
 }
 
-int bresenham3D_main(int i, int j, int k, int i1, int j1, int k1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, long dimX, long dimY, long dimZ)
+void bresenham3D_main(int i, int j, int k, int i1, int j1, int k1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, long dimX, long dimY, long dimZ)
 {
     int P1[] = {i, j, k};
     int P2[] = {i1, j1, k1};
@@ -704,10 +691,10 @@ int bresenham3D_main(int i, int j, int k, int i1, int j1, int k1, unsigned char 
 
         } //while loop
     }
- return 0;
+ return;
 }
 
-float Mask_update_combo3D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, unsigned char class_start, unsigned char class_mid, unsigned char class_end, unsigned char class_substitute, long i, long j, long k, int CorrectionWindow, long dimX, long dimY, long dimZ)
+void Mask_update_combo3D(unsigned char *MASK_temp, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList, unsigned char class_start, unsigned char class_mid, unsigned char class_end, unsigned char class_substitute, long i, long j, long k, int CorrectionWindow, long dimX, long dimY, long dimZ)
 {
   long i_m, j_m, k_m, i1, j1, k1, CounterOtherClass;
 
@@ -745,10 +732,10 @@ float Mask_update_combo3D(unsigned char *MASK_temp, unsigned char *MASK_upd, uns
             }
           }}}
       }
-  return *MASK_upd;
+  return;
 }
 
-int bresenham3D_combo(int i, int j, int k, int i1, int j1, int k1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList,  unsigned char class_mid, unsigned char class_substitute, long dimX, long dimY, long dimZ)
+void bresenham3D_combo(int i, int j, int k, int i1, int j1, int k1, unsigned char *MASK, unsigned char *MASK_upd, unsigned char *CORRECTEDRegions, unsigned char *ClassesList,  unsigned char class_mid, unsigned char class_substitute, long dimX, long dimY, long dimZ)
 {
     int P1[] = {i, j, k};
     int P2[] = {i1, j1, k1};
@@ -870,5 +857,5 @@ int bresenham3D_combo(int i, int j, int k, int i1, int j1, int k1, unsigned char
 
         } //while loop
     }
- return 0;
+ return;
 }

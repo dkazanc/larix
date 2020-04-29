@@ -21,8 +21,7 @@
  *
  */
 
-
-float Autocrop_main(float *Input, float *mask_box, float *crop_indeces, float threshold, int margin_skip, int statbox_size, int increase_crop, int dimX, int dimY, int dimZ)
+int Autocrop_main(float *Input, float *mask_box, float *crop_indeces, float threshold, int margin_skip, int statbox_size, int increase_crop, int dimX, int dimY, int dimZ)
 {
     float *maskMean_value;
     maskMean_value = (float*) calloc (1,sizeof(float));
@@ -90,13 +89,13 @@ float Autocrop_main(float *Input, float *mask_box, float *crop_indeces, float th
       free(crop_indeces3D_4);
     }
     free(maskMean_value);
-    return *crop_indeces;
+    return 0;
 }
 
 /********************************************************************/
 /***************************2D Functions*****************************/
 /********************************************************************/
-float stat_collector2D(float *Input, float *maskMean_value, int statbox_size, int dimX, int dimY, int k)
+void stat_collector2D(float *Input, float *maskMean_value, int statbox_size, int dimX, int dimY, int k)
 {
     /* the module places a box in the background region of the data in order to collect statistics */
     int statbox_size_vert, mid_vert_index_Y, vertBox_index_up, vertBox_index_down;
@@ -122,10 +121,10 @@ float stat_collector2D(float *Input, float *maskMean_value, int statbox_size, in
 	   }
          }
     maskMean_value[0] = meanval/(float)(counter);
-    return *maskMean_value;
+    return;
 }
 
-float diff_mask2D(float *Input, float *mask_box, float *maskMean_value, int margin_skip, int dimX, int dimY, int k)
+void diff_mask2D(float *Input, float *mask_box, float *maskMean_value, int margin_skip, int dimX, int dimY, int k)
 {
     long i, j, i1, j1, j_m, i_m;
     float local_mean;
@@ -148,10 +147,10 @@ float diff_mask2D(float *Input, float *mask_box, float *maskMean_value, int marg
               }
            }
          }
-      return *mask_box;
+      return;
 }
 
-float get_indices2D(float *mask_box, float *crop_indeces, float threshold, int increase_crop, int dimX, int dimY, int k)
+void get_indices2D(float *mask_box, float *crop_indeces, float threshold, int increase_crop, int dimX, int dimY, int k)
 {
 	float *MeanX_vector, *MeanY_vector;
 	MeanX_vector = (float*) calloc (dimX,sizeof(float));
@@ -231,5 +230,5 @@ float get_indices2D(float *mask_box, float *crop_indeces, float threshold, int i
 	free(MeanX_vector);
  	free(MeanY_vector);
 
-  return *crop_indeces;
+  return;
 }
