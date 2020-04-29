@@ -134,13 +134,12 @@ pipeline {
                     '''
             }
         }
-        /*
         stage("Deploy py35") {
              steps {
                  sh ''' source activate "${BUILD_TAG}py35"
                         conda config --set anaconda_upload yes
                         source /var/lib/jenkins/upload.sh
-                        anaconda -t $CONDA_UPLOAD_TOKEN upload -u dkazanc /var/lib/jenkins/.conda/envs/"${BUILD_TAG}py35"/conda-bld/linux-64/*.tar.bz2 --force
+                        anaconda -t $CONDA_UPLOAD_TOKEN upload -u dkazanc /var/lib/jenkins/miniconda3/conda-bld/linux-64/larix-2020.04-py35* --force
                     '''
              }
         }
@@ -149,7 +148,7 @@ pipeline {
                  sh ''' source activate "${BUILD_TAG}py36"
                         conda config --set anaconda_upload yes
                         source /var/lib/jenkins/upload.sh
-                        anaconda -t $CONDA_UPLOAD_TOKEN upload -u dkazanc /var/lib/jenkins/.conda/envs/"${BUILD_TAG}py36"/conda-bld/linux-64/*.tar.bz2 --force
+                        anaconda -t $CONDA_UPLOAD_TOKEN upload -u dkazanc /var/lib/jenkins/miniconda3/conda-bld/linux-64/larix-2020.04-py36* --force
                     '''
              }
         }
@@ -158,11 +157,10 @@ pipeline {
                  sh ''' source activate "${BUILD_TAG}py37"
                         conda config --set anaconda_upload yes
                         source /var/lib/jenkins/upload.sh
-                        anaconda -t $CONDA_UPLOAD_TOKEN upload -u dkazanc /var/lib/jenkins/.conda/envs/"${BUILD_TAG}py37"/conda-bld/linux-64/*.tar.bz2 --force
+                        anaconda -t $CONDA_UPLOAD_TOKEN upload -u dkazanc /var/lib/jenkins/miniconda3/conda-bld/linux-64/larix-2020.04-py37* --force
                     '''
              }
         }
-        */
     }
 
     post {
@@ -170,6 +168,7 @@ pipeline {
             sh ''' conda remove --yes -n "${BUILD_TAG}py35" --all
                    conda remove --yes -n "${BUILD_TAG}py36" --all
                    conda remove --yes -n "${BUILD_TAG}py37" --all
+                   rm -rf /var/lib/jenkins/miniconda3/conda-bld/linux-64/*
                '''
         }
         failure {
