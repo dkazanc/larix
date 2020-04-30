@@ -74,21 +74,23 @@ int medianfilter_main(float *Input, float *Output, int kernel_size, float mu_thr
 void medfilt2D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY)
 {
     float *ValVec;
-    long i_m, j_m, i1, j1, counter = 0l;
+    long i_m, j_m, i1, j1, counter;
     int midval;
     midval = (int)(sizefilter_total/2);
     ValVec = (float*) calloc(sizefilter_total, sizeof(float));
 
+    counter = 0l;
     for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
         i1 = i + i_m;
         if ((i1 < 0) || (i1 >= dimX)) i1 = i;
         for(j_m=-kernel_half_size; j_m<=kernel_half_size; j_m++) {
           j1 = j + j_m;
           if ((j1 < 0) || (j1 >= dimY)) j1 = j;
-          ValVec[counter++] = Input[j1*dimX+i1];
+          ValVec[counter] = Input[j1*dimX+i1];
+          counter++;
     }}
-    //sort_bubble(ValVec, sizefilter_total); /* perform sorting */
-    sort_quick(ValVec, 0, sizefilter_total); /* perform sorting */
+    sort_bubble(ValVec, sizefilter_total); /* perform sorting */
+    //sort_quick(ValVec, 0, sizefilter_total); /* perform sorting */
 
     if (mu_threshold == 0.0f) Output[index] = ValVec[midval]; /* perform median filtration */
     else {
@@ -101,11 +103,12 @@ void medfilt2D(float *Input, float *Output, int kernel_half_size, int sizefilter
 void medfilt3D_pad(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY)
 {
     float *ValVec;
-    long i_m, j_m, k_m, i1, j1, counter = 0l;
+    long i_m, j_m, k_m, i1, j1, counter;
     int midval;
     midval = (int)(sizefilter_total/2);
     ValVec = (float*) calloc(sizefilter_total, sizeof(float));
 
+    counter = 0l;
     for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
         i1 = i + i_m;
         if ((i1 < 0) || (i1 >= dimX)) i1 = i;
@@ -113,10 +116,11 @@ void medfilt3D_pad(float *Input, float *Output, int kernel_half_size, int sizefi
           j1 = j + j_m;
           if ((j1 < 0) || (j1 >= dimY)) j1 = j;
           for(k_m=-kernel_half_size; k_m<=kernel_half_size; k_m++) {
-          ValVec[counter++] = Input[(dimX*dimY)*(kernel_half_size + k_m) + j1*dimX+i1];
+          ValVec[counter] = Input[(dimX*dimY)*(kernel_half_size + k_m) + j1*dimX+i1];
+          counter++;
     }}}
-    //sort_bubble(ValVec, sizefilter_total); /* perform bubble sort */
-    sort_quick(ValVec, 0, sizefilter_total); /* perform sorting */
+    sort_bubble(ValVec, sizefilter_total); /* perform bubble sort */
+    //sort_quick(ValVec, 0, sizefilter_total); /* perform sorting */
 
     if (mu_threshold == 0.0f) Output[index] = ValVec[midval]; /* perform median filtration */
     else {
@@ -129,11 +133,12 @@ void medfilt3D_pad(float *Input, float *Output, int kernel_half_size, int sizefi
 void medfilt3D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long k, long index, long dimX, long dimY, long dimZ)
 {
     float *ValVec;
-    long i_m, j_m, k_m, i1, j1, k1, counter = 0l;
+    long i_m, j_m, k_m, i1, j1, k1, counter;
     int midval;
     midval = (int)(sizefilter_total/2);
     ValVec = (float*) calloc(sizefilter_total, sizeof(float));
 
+    counter = 0l;
     for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
         i1 = i + i_m;
         if ((i1 < 0) || (i1 >= dimX)) i1 = i;
@@ -143,10 +148,11 @@ void medfilt3D(float *Input, float *Output, int kernel_half_size, int sizefilter
           for(k_m=-kernel_half_size; k_m<=kernel_half_size; k_m++) {
             k1 = k + k_m;
             if ((k1 < 0) || (k1 >= dimZ)) k1 = k;
-          ValVec[counter++] = Input[(dimX*dimY)*k1 + j1*dimX+i1];
+          ValVec[counter] = Input[(dimX*dimY)*k1 + j1*dimX+i1];
+          counter++;
     }}}
-    //sort_bubble(ValVec, sizefilter_total); /* perform bubble sort */
-    sort_quick(ValVec, 0, sizefilter_total); /* perform sorting */
+    sort_bubble(ValVec, sizefilter_total); /* perform bubble sort */
+    //sort_quick(ValVec, 0, sizefilter_total); /* perform sorting */
 
     if (mu_threshold == 0.0f) Output[index] = ValVec[midval]; /* perform median filtration */
     else {
