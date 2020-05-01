@@ -67,13 +67,16 @@ void copyIm_roll(float *A, float *U, int dimX, int dimY, int roll_value, int swi
 /* sorting using bubble method */
 void sort_bubble(float *x, int n_size)
 {
-	for (int i = 0; i < n_size - 1; i++)
+	int i,j;
+	float temp;
+
+	for (i = 0; i < n_size - 1; i++)
 	{
-		for(int j = 0; j < n_size - i - 1; j++)
+		for(j = 0; j < n_size - i - 1; j++)
 		{
 			if (x[j] > x[j+1])
 			{
-				float temp = x[j];
+				temp = x[j];
 				x[j] = x[j+1];
 				x[j+1] = temp;
 			}
@@ -84,6 +87,7 @@ void sort_bubble(float *x, int n_size)
 
 void sort_quick(float *x, int left_idx, int right_idx)
 {
+      float temp;
       int i = left_idx, j = right_idx;
       float pivot = x[(left_idx + right_idx) / 2];
       while (i <= j)
@@ -93,7 +97,6 @@ void sort_quick(float *x, int left_idx, int right_idx)
             while (x[j] > pivot)
                   j--;
             if (i <= j) {
-		  float temp;
                   temp = x[i];
                   x[i] = x[j];
                   x[j] = temp;
