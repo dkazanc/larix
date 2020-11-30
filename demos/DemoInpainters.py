@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import timeit
 from scipy import io
-from larix.methods.misc import INPAINT_NDF, INPAINT_NM
+from larix.methods.misc import INPAINT_NDF, INPAINT_NM, INPAINT_LINCOMB
 ###############################################################################
 def printParametersToString(pars):
         txt = r''
@@ -45,6 +45,9 @@ sino_cut_new = np.ascontiguousarray(sino_cut, dtype=np.float32);
 #mask =Mask.copy(order='c')
 #mask[:] = Mask[:]
 mask = np.ascontiguousarray(Mask, dtype=np.uint8);
+mask[:,0:240] = 0
+mask[:,1211:None] = 0
+
 
 plt.figure(1)
 plt.subplot(121)
@@ -60,7 +63,7 @@ print ("___Inpainting using linear diffusion (2D)__")
 print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 
 ## plot 
-fig = plt.figure(2)
+fig = plt.figure(3)
 plt.suptitle('Performance of linear inpainting using the CPU')
 a=fig.add_subplot(1,2,1)
 a.set_title('Missing data sinogram')
@@ -74,7 +77,7 @@ pars = {'algorithm' : INPAINT_NDF, \
         'edge_parameter':0,\
         'number_of_iterations' :5000 ,\
         'time_marching_parameter':0.000075,\
-        'penalty_type':0
+        'penalty_type':1
         }
         
 start_time = timeit.default_timer()
@@ -104,7 +107,7 @@ print ("_Inpainting using nonlinear diffusion (2D)_")
 print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 
 ## plot 
-fig = plt.figure(3)
+fig = plt.figure(4)
 plt.suptitle('Performance of nonlinear diffusion inpainting using the CPU')
 a=fig.add_subplot(1,2,1)
 a.set_title('Missing data sinogram')
@@ -149,7 +152,7 @@ print ("Inpainting using nonlocal marching")
 print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 
 ## plot 
-fig = plt.figure(4)
+fig = plt.figure(5)
 plt.suptitle('Performance of NM inpainting using the CPU')
 a=fig.add_subplot(1,2,1)
 a.set_title('Missing data sinogram')
@@ -182,4 +185,40 @@ a.text(0.15, 0.25, txtstr, transform=a.transAxes, fontsize=14,
          verticalalignment='top', bbox=props)
 imgplot = plt.imshow(nvm_inp, cmap="gray")
 plt.title('{}'.format('Nonlocal Marching inpainting results'))
+#%%
+print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+print ("___Inpainting using boundaries exatrapolation by averaging__")
+## plot 
+fig = plt.figure(6)
+plt.suptitle('Performance of ')
+a=fig.add_subplot(1,2,1)
+a.set_title('Missing data sinogram')
+imgplot = plt.imshow(sino_cut_new,cmap="gray")
+
+# set parameters
+pars = {'algorithm' : INPAINT_LINCOMB, \
+        'input' : sino_cut_new,\
+        'maskData' : mask,
+        'number_of_iterations' : 500,
+        'sigma' : 0.0}
+        
+start_time = timeit.default_timer()
+(inp_simple, mask_upd) = INPAINT_LINCOMB(pars['input'],
+              pars['maskData'], 
+              pars['number_of_iterations'],
+              pars['sigma'])
+
+txtstr = printParametersToString(pars)
+txtstr += "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
+print (txtstr)
+a=fig.add_subplot(1,2,2)
+
+# these are matplotlib.patch.Patch properties
+props = dict(boxstyle='round', facecolor='wheat', alpha=0.75)
+# place a text box in upper left in axes coords
+a.text(0.15, 0.25, txtstr, transform=a.transAxes, fontsize=14,
+         verticalalignment='top', bbox=props)
+imgplot = plt.imshow(inp_simple, cmap="gray")
+plt.title('{}'.format('Extrapolation inpainting results'))
+pars['number_of_iterations']
 #%%
