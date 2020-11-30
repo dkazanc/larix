@@ -48,6 +48,7 @@ add_library(larix SHARED
     	    ${CMAKE_CURRENT_SOURCE_DIR}/CPU_modules/autocropper_core.c
           ${CMAKE_CURRENT_SOURCE_DIR}/CPU_modules/MedianFilt_core.c
           ${CMAKE_CURRENT_SOURCE_DIR}/CPU_modules/NonlocalMarching_Inpaint_core.c
+          ${CMAKE_CURRENT_SOURCE_DIR}/CPU_modules/Inpaint_simple_core.c
           ${CMAKE_CURRENT_SOURCE_DIR}/CPU_modules/Diffusion_Inpaint_core.c
     	    ${CMAKE_CURRENT_SOURCE_DIR}/CPU_modules/utils.c
 	    )
