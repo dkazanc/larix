@@ -110,3 +110,33 @@ void sort_quick(float *x, int left_idx, int right_idx)
             sort_quick(x, i, right_idx);
     return;
 }
+
+void max_val_mask(float *Input, unsigned char *Mask, float *minmax_array, long dimX, long dimY, long dimZ)
+{
+    /* ____ getting a maximum and minimum values of the input array defined by MASK____
+    in order to use this function one needs to initialise 1x2 size minmax_array:
+    e.g.:
+    float *minmax_array;
+    minmax_array = (float*) calloc (2,sizeof(float));
+    */
+    long i, j, k, counter, index;
+    float min_val, max_val;
+
+    /* collecting statistics*/
+    counter = 0; min_val = 0.0f; max_val=0.0f;
+    for(k=0; k<dimZ; k++) {
+      for(j=0; j<dimY; j++) {
+        for(i=0; i<dimX; i++) {
+          index = (dimX*dimY)*k + j*dimX+i;
+          if ((Mask[index] == 1) && (counter == 1)) {
+          if (Input[index] < min_val) min_val = Input[index];
+          if (Input[index] > max_val) max_val = Input[index];  }
+          if ((Mask[index] == 1) && (counter == 0)) {
+            min_val = Input[index];
+            max_val = Input[index];
+            counter = 1; }
+        }}}
+    minmax_array[0] = min_val;
+    minmax_array[1] = max_val;
+    return;
+}

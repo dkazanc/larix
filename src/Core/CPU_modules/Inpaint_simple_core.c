@@ -33,100 +33,122 @@
  * [1] Inpainted image/volume
  */
 
-int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, float sigma, int dimX, int dimY, int dimZ)
+int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, int W_halfsize, float sigma, int dimX, int dimY, int dimZ)
 {
-    long i, j, counter, countmask;
+    long i, j, k, i1, j1, k1, l, countmask;
+    float *minmax_array;
 
     /* copy into output */
     copyIm(Input, Output, (long)(dimX), (long)(dimY), (long)(dimZ));
     /* copying M to Mask_upd */
     copyIm_unchar(Mask, M_upd, dimX, dimY, dimZ);
 
-    countmask = 0;
-    for (i=0; i<dimY*dimX*dimZ; i++) if (M_upd[i] == 1) countmask++;
+    minmax_array = (float*) calloc (2,sizeof(float));
+    max_val_mask(Input, M_upd, minmax_array, (long)(dimX), (long)(dimY), (long)(dimZ));
 
+    countmask = 0;
+    for (k=0; k<dimY*dimX*dimZ; k++) if (M_upd[k] == 1) countmask++;
     if (countmask == 0) printf("%s \n", "Nothing to inpaint, zero mask!");
     else {
-    for (i=0; i<iterations; i++) {
-    if (dimZ == 1) linearcomb_inp_2D(Input, M_upd, Output, sigma, (long)(dimX), (long)(dimY)); /* running 2D inpainting */
-    else linearcomb_inp_3D(Input, M_upd, Output, sigma, (long)(dimX), (long)(dimY), (long)(dimZ)); /* 3D version */
-    counter = 0;
-    for (j=0; j<dimY*dimX*dimZ; j++) if (M_upd[j] == 1) counter++;
-    if (counter == 0) break;
+    if (dimZ == 1) {
+    #pragma omp parallel for shared(Input,M_upd) private(i,j)
+    for(i=0; i<dimX; i++) {
+        for(j=0; j<dimY; j++) {
+    scaling_func(Input, M_upd, Output, sigma, minmax_array, i, j, 0l, (long)(dimX), (long)(dimY), 0l); /* scaling function */
+    }}
+    for (l=0; l<iterations; l++) {
+    #pragma omp parallel for shared(Input,M_upd) private(i1,j1)
+    for(i1=0; i1<dimX; i1++) {
+        for(j1=0; j1<dimY; j1++) {
+    mean_inp_2D(Input, M_upd, Output, sigma, W_halfsize, i1, j1, (long)(dimX), (long)(dimY)); /* smoothing of the mask */
+     }}
+    }
+    }
+    else {
+    /* 3D version */
+    #pragma omp parallel for shared(Input,M_upd) private(i,j,k)
+    for(k=0; k<dimZ; k++) {
+      for(i=0; i<dimX; i++) {
+        for(j=0; j<dimY; j++) {
+    scaling_func(Input, M_upd, Output, sigma, minmax_array, i, j, k, (long)(dimX), (long)(dimY), (long)(dimZ)); /* scaling function */
+    }}}
+    for (l=0; l<iterations; l++) {
+    #pragma omp parallel for shared(Input,M_upd) private(i1,j1,k1)
+    for(k1=0; k1<dimZ; k1++) {
+      for(i1=0; i1<dimX; i1++) {
+        for(j1=0; j1<dimY; j1++) {
+    mean_inp_3D(Input, M_upd, Output, sigma, W_halfsize, i1, j1, k1, (long)(dimX), (long)(dimY),  (long)(dimZ)); /* smoothing of the mask */
+    }}}
      }
-	 }
+	   }
+    }
+    free(minmax_array);
     return 0;
+}
+
+/********************************************************************/
+/**************************COMMON function***************************/
+/********************************************************************/
+void scaling_func(float *Input, unsigned char *M_upd, float *Output, float sigma, float *minmax_array, long i, long j, long k, long dimX, long dimY, long dimZ)
+{
+	long  index;
+  index = (dimX*dimY)*k + j*dimX+i;
+
+  /* scaling according to the max value in the mask */
+  if (M_upd[index] == 1) Output[index] = sigma*(Input[index]/minmax_array[1]);
+	return;
 }
 /********************************************************************/
 /***************************2D Functions*****************************/
 /********************************************************************/
-/* inpainting using averaged interface values */
-void linearcomb_inp_2D(float *Input, unsigned char *M_upd, float *Output, float sigma, long dimX, long dimY)
+/*mean smoothing of the inapainted values inside and in the viscinity of the mask */
+void mean_inp_2D(float *Input, unsigned char *M_upd, float *Output, float sigma, int W_halfsize, long i, long j, long dimX, long dimY)
 {
-	long i, j, i_m, j_m, i1, j1, index, counter, W_halfsize;
+  long i_m, j_m, i1, j1, index, index2, switcher, counter;
 	float sum_val;
 
- W_halfsize = 1;
-#pragma omp parallel for shared(Input,M_upd,Output) private(index,i,j,i1,j1,i_m,j_m,counter,sum_val)
-    for(i=0; i<dimX; i++) {
-        for(j=0; j<dimY; j++) {
-            index = j*dimX+i;
-            if (M_upd[index] == 1) {
-            counter = 0; sum_val = 0.0f;
-            for(i_m=-W_halfsize; i_m<=W_halfsize; i_m++) {
-                i1 = i+i_m;
-                for(j_m=-W_halfsize; j_m<=W_halfsize; j_m++) {
-                    j1 = j+j_m;
-                    if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
-                        if ((M_upd[j1*dimX + i1] == 0) && Output[j1*dimX + i1] > sigma) {
-                        sum_val += Output[j1*dimX + i1];
-                        counter++;
-                       }}
-                }}
-                if (counter >= 3) {
-                Output[index] = sum_val/counter;
-                M_upd[index] = 0;
-                }
-            }
-		}}
+  index = j*dimX+i;
+  sum_val = 0.0f; switcher = 0; counter = 0;
+  for(i_m=-W_halfsize; i_m<=W_halfsize; i_m++) {
+      i1 = i+i_m;
+      if ((i1 < 0) || (i1 >= dimX)) i1 = i;
+      for(j_m=-W_halfsize; j_m<=W_halfsize; j_m++) {
+          j1 = j+j_m;
+          if ((j1 < 0) || (j1 >= dimY)) j1 = j;
+              index2 = j1*dimX + i1;
+              if (M_upd[index2] == 1) switcher = 1;
+              sum_val += Output[index2];
+              counter++;
+      }}
+      if (switcher == 1) Output[index] = sum_val/counter;
 	return;
 }
-
 /********************************************************************/
 /***************************3D Functions*****************************/
 /********************************************************************/
-/* inpainting using averaged interface values */
-void linearcomb_inp_3D(float *Input, unsigned char *M_upd, float *Output, float sigma, long dimX, long dimY, long dimZ)
+/*mean smoothing of the inapainted values inside and in the viscinity of the mask */
+void mean_inp_3D(float *Input, unsigned char *M_upd, float *Output, float sigma, int W_halfsize, long i, long j, long k, long dimX, long dimY, long dimZ)
 {
-	long i, j, k, i_m, j_m, k_m, i1, j1, k1, index, index2, counter, W_halfsize;
+  long i_m, j_m, k_m, i1, j1, k1, index, index2, switcher, counter;
 	float sum_val;
 
- W_halfsize = 1;
-#pragma omp parallel for shared(Input,M_upd,Output) private(index, index2, i, j, k, i_m, j_m, k_m, i1, j1, k1,counter,sum_val)
-for(k=0; k<dimZ; k++) {
-    for(i=0; i<dimX; i++) {
-        for(j=0; j<dimY; j++) {
-            index = (dimX*dimY)*k + j*dimX+i;
-            if (M_upd[index] == 1) {
-            counter = 0; sum_val = 0.0f;
-           for(k_m=-W_halfsize; k_m<=W_halfsize; k_m++) {
-             k1 = k+k_m;
-             for(i_m=-W_halfsize; i_m<=W_halfsize; i_m++) {
-                i1 = i+i_m;
-                for(j_m=-W_halfsize; j_m<=W_halfsize; j_m++) {
-                    j1 = j+j_m;
-                    index2 = (dimX*dimY)*k1 + j1*dimX+i1;
-                    if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY)) && ((k1 >= 0) && (k1 < dimZ))) {
-                        if ((M_upd[index2] == 0) && Output[index2] > sigma) {
-                        sum_val += Output[index2];
-                        counter++;
-                       }}
-                }}}
-                if (counter >= 8) {
-                Output[index] = sum_val/counter;
-                M_upd[index] = 0;
-                }
-            }
-		}}}
+  index = (dimX*dimY)*k + j*dimX+i;
+  sum_val = 0.0f; switcher = 0; counter = 0;
+  for(k_m=-W_halfsize; k_m<=W_halfsize; k_m++) {
+    k1 = k+k_m;
+    if ((k1 < 0) || (k1 >= dimZ)) k1 = k;
+    for(i_m=-W_halfsize; i_m<=W_halfsize; i_m++) {
+      i1 = i+i_m;
+      if ((i1 < 0) || (i1 >= dimX)) i1 = i;
+      for(j_m=-W_halfsize; j_m<=W_halfsize; j_m++) {
+          j1 = j+j_m;
+          if ((j1 < 0) || (j1 >= dimY)) j1 = j;
+
+              index2 = (dimX*dimY)*k1 + j1*dimX+i1;
+              if (M_upd[index2] == 1) switcher = 1;
+              sum_val += Output[index2];
+              counter++;
+      }}}
+      if (switcher == 1) Output[index] = sum_val/counter;
 	return;
 }

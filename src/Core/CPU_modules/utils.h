@@ -13,6 +13,7 @@ limitations under the License.
 */
 #include <stdlib.h>
 #include <memory.h>
+#include "stdio.h"
 #include "omp.h"
 #include "DLSDefines.h"
 
@@ -34,6 +35,7 @@ DLS_EXPORT void copyIm_unchar(unsigned char *A, unsigned char *U, int dimX, int 
 DLS_EXPORT void copyIm_roll(float *A, float *U, int dimX, int dimY, int roll_value, int switcher);
 DLS_EXPORT void sort_bubble(float *x, int n_size);
 DLS_EXPORT void sort_quick(float *x, int left_idx, int right_idx);
+DLS_EXPORT void max_val_mask(float *Input, unsigned char *Mask, float *minmax_array, long dimX, long dimY, long dimZ);
 #ifdef __cplusplus
 }
 #endif
