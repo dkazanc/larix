@@ -43,9 +43,10 @@ limitations under the License.
 #ifdef __cplusplus
 extern "C" {
 #endif
-DLS_EXPORT int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, float sigma, int dimX, int dimY, int dimZ);
-DLS_EXPORT void linearcomb_inp_2D(float *Input, unsigned char *M_upd, float *Output, float sigma, long dimX, long dimY);
-DLS_EXPORT void linearcomb_inp_3D(float *Input, unsigned char *M_upd, float *Output, float sigma, long dimX, long dimY, long dimZ);
+DLS_EXPORT int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, int W_halfsize, float sigma, int dimX, int dimY, int dimZ);
+DLS_EXPORT void scaling_func(float *Input, unsigned char *M_upd, float *Output, float sigma, float *minmax_array, long i, long j, long k, long dimX, long dimY, long dimZ);
+DLS_EXPORT void mean_inp_2D(float *Input, unsigned char *M_upd, float *Output, float sigma, int W_halfsize, long i, long j, long dimX, long dimY);
+DLS_EXPORT void mean_inp_3D(float *Input, unsigned char *M_upd, float *Output, float sigma, int W_halfsize, long i, long j, long k, long dimX, long dimY, long dimZ);
 #ifdef __cplusplus
 }
 #endif
