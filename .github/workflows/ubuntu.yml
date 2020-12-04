@@ -1,4 +1,4 @@
-name: larix Python packaging
+name: larix_package
 
 on: [push]
 
