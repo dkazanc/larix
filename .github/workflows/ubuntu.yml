@@ -80,12 +80,12 @@ jobs:
     - name: Install additional conda packages
       run: |
         conda install --yes numpy conda-build anaconda-client setuptools cython cmake
-        conda config --show channels
+        conda info
         
     - name: Building and installing the larix package
       run: |
         conda config --set anaconda_upload no
         export VERSION=`date +%Y.%m`
         conda build recipe/ --numpy=1.15 --python=3.7 
-        conda install -c file://${CONDA_PREFIX}/conda-bld/ larix
+        conda install --channel /usr/share/miniconda/conda-bld/ larix --offline --override-channels
         conda list      
