@@ -27,6 +27,7 @@ jobs:
       env:
         cuda: ${{ matrix.cuda }}
       run: |
+        echo ${{ matrix.os }}
         source ./scripts/actions/install_cuda_ubuntu.sh
         if [[ $? -eq 0 ]]; then
           # Set paths for subsequent steps, using ${CUDA_PATH}
