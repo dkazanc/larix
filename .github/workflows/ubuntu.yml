@@ -27,6 +27,10 @@ jobs:
         $CONDA/bin/flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Install required conda packages
       run: |
-        conda install --yes numpy conda-build anaconda-client setuptools cython cmake
+        conda install --yes numpy conda-build anaconda-client setuptools cython cmake cudatoolkit=10.1
+    - name: cheking installed packages
+      run: |        
         conda info
         conda list
+        nvcc --version
+        
