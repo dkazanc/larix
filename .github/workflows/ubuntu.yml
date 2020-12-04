@@ -22,7 +22,7 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.7
-        
+
     - name: Install CUDA
       env:
         cuda: ${{ matrix.cuda }}
@@ -38,17 +38,17 @@ jobs:
       shell: bash
 
     # Specify the correct host compilers
-    - name: Install/Select gcc and g++ 
+    - name: Install/Select gcc and g++
       run: |
         sudo apt-get install -y gcc-${{ matrix.gcc }} g++-${{ matrix.gcc }}
         echo "CC=/usr/bin/gcc-${{ matrix.gcc }}" >> $GITHUB_ENV
         echo "CXX=/usr/bin/g++-${{ matrix.gcc }}" >> $GITHUB_ENV
         echo "CUDAHOSTCXX=/usr/bin/g++-${{ matrix.gcc }}" >> $GITHUB_ENV
-        
+
     - name: Configure cmake
       id: configure
       run: cmake . -B ${{ env.build_dir }} -DCMAKE_BUILD_TYPE=${{ env.config }}
-      
+
     - name: Configure Error Processing
       if: ${{ failure() && steps.configure.outcome == 'failure' }}
       working-directory: ${{ env.build_dir }}
@@ -63,12 +63,12 @@ jobs:
             cat CMakeFiles/CMakeError.log
             echo "----"
           fi
-          
+
     - name: Install dependencies in conda environment
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
         $CONDA/bin/conda env update --file environment.yml --name base
-        
+
     - name: Lint with flake8
       run: |
         $CONDA/bin/conda install flake8
@@ -76,16 +76,24 @@ jobs:
         $CONDA/bin/flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         $CONDA/bin/flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-        
+
     - name: Install additional conda packages
       run: |
         conda install --yes numpy conda-build anaconda-client setuptools cython cmake
-        conda info
-        
-    - name: Building and installing the larix package
+
+    - name: Building and installing larix package
       run: |
         conda config --set anaconda_upload no
         export VERSION=`date +%Y.%m`
-        conda build recipe/ --numpy=1.15 --python=3.7 
+        conda build recipe/ --numpy=1.15 --python=3.7
         conda install --channel /usr/share/miniconda/conda-bld/ larix --offline --override-channels
-        conda list      
+
+    - name: Test with pytest
+      run: |
+        conda install pytest
+        $CONDA/bin/pytest
+
+    - name: Upload the package to conda cloud
+      run: |
+        chmod +x ./scripts/conda_upload.sh
+        ./scripts/conda_upload.sh
