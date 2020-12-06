@@ -9,4 +9,10 @@ export CONDA_BLD_PATH=~/conda-bld
 export VERSION=`date +%Y.%m`
 conda install --yes anaconda-client
 conda build .
-$CONDA/bin/anaconda upload -u $USER $CONDA_BLD_PATH/$OS/$PKG_NAME-`date +%Y.%m`*.tar.bz2 --force
+#$CONDA/bin/anaconda upload -u $USER $CONDA_BLD_PATH/$OS/$PKG_NAME-`date +%Y.%m`*.tar.bz2 --force
+# upload packages to conda
+find $CONDA_BLD_PATH/$OS -name *.tar.bz2 | while read file
+do
+    echo $file
+    anaconda upload $file --force
+done
