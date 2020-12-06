@@ -14,5 +14,5 @@ conda build .
 find $CONDA_BLD_PATH/$OS -name *.tar.bz2 | while read file
 do
     echo $file
-    $CONDA/bin/anaconda upload $file --force
+    $CONDA/bin/anaconda upload -u $USER $file --force
 done
