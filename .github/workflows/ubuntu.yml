@@ -3,16 +3,6 @@ name: larix_package
 on: [push]
 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: publish-to-conda
-      uses: dkazanc/conda-publish-action@v1.3
-      with:
-        subdir: 'conda'
-        anacondatoken: ${{ secrets.ANACONDA_TOKEN }}
-        platforms: 'win osx linux'
   build-linux:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -102,3 +92,8 @@ jobs:
       run: |
         conda install pytest
         $CONDA/bin/pytest
+
+    - name: Upload the package to conda cloud
+      run: |
+        chmod +x ./scripts/conda_upload.sh
+        ./scripts/conda_upload.sh
