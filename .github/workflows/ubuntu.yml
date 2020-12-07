@@ -24,7 +24,7 @@ jobs:
         python-version: 3.7
 
     - name: Decrypt large secret
-      run: ./.larix/scripts/decrypt_secret.sh
+      run: ./scripts/decrypt_secret.sh
       env:
         LARGE_SECRET_PASSPHRASE: ${{ secrets.LARGE_SECRET_PASSPHRASE }}
     # This command is just an example to show your secret being printed
