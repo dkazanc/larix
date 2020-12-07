@@ -2,7 +2,7 @@
 PKG_NAME=larix
 USER=dkazanc
 OS=linux-64
-dk-8105746b-0366-49d7-a4e9-017e5c1c41c1
+CONDA_TOKEN=$(cat $HOME/secrets/my_secret.json)
 
 mkdir ~/conda-bld
 conda config --set anaconda_upload no
@@ -16,5 +16,5 @@ conda build .
 find $CONDA_BLD_PATH/$OS -name *.tar.bz2 | while read file
 do
     echo $file
-    $CONDA/bin/anaconda -v --show-traceback upload -u $USER $file --force
+    $CONDA/bin/anaconda -v --show-traceback --token $CONDA_TOKEN upload $file --force
 done
