@@ -2,6 +2,7 @@
 PKG_NAME=larix
 USER=dkazanc
 OS=linux-64
+dk-8105746b-0366-49d7-a4e9-017e5c1c41c1
 
 mkdir ~/conda-bld
 conda config --set anaconda_upload no
@@ -10,8 +11,7 @@ export VERSION=`date +%Y.%m`
 conda install --yes anaconda-client
 conda build .
 #$CONDA/bin/anaconda upload -u $USER $CONDA_BLD_PATH/$OS/$PKG_NAME-`date +%Y.%m`*.tar.bz2 --force
-conda update conda
-$CONDA/bin/anaconda --version
+
 # upload packages to conda
 find $CONDA_BLD_PATH/$OS -name *.tar.bz2 | while read file
 do
