@@ -37,6 +37,7 @@ jobs:
       env:
         cuda: ${{ matrix.cuda }}
       run: |
+        nvidia-smi
         source ./scripts/actions/install_cuda_ubuntu.sh
         if [[ $? -eq 0 ]]; then
           # Set paths for subsequent steps, using ${CUDA_PATH}

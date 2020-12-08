@@ -17,6 +17,8 @@ class TestLarix(unittest.TestCase):
         except NameError:
             print('____! GPU modules of Larix have not been installed !____')
             raise
+        """
+        # enable if there is a GPU available
         image_test = np.ones((128,128))
         image_test[64,64] = 5
         image_test[74,74] = 15
@@ -26,6 +28,7 @@ class TestLarix(unittest.TestCase):
             'mu_threshold': 1.0}
         gpu_dezingered = MEDIAN_DEZING_GPU(pars['input_data'], pars['kernel_size'], pars['mu_threshold'])
         self.assertLessEqual(np.max(gpu_dezingered) , 1.0)
+        """
 
 if __name__ == '__main__':
     unittest.main()
