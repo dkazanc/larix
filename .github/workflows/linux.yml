@@ -1,4 +1,4 @@
-name: larix_package
+name: linux
 
 on: [push]
 
@@ -109,6 +109,5 @@ jobs:
 
     - name: Upload the tested package to conda cloud
       run: |
-        ldd --version
         chmod +x ./scripts/conda_upload.sh
         ./scripts/conda_upload.sh
