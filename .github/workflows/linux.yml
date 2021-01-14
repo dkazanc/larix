@@ -91,7 +91,7 @@ jobs:
     - name: Building and installing larix package
       shell: bash -l {0}
       run: |
-        conda install --yes numpy anaconda-client setuptools cython cmake
+        conda install --yes numpy anaconda-client setuptools cython cmake pytest
         conda install --yes conda-build
         conda info
         export VERSION=`date +%Y.%m`
@@ -102,8 +102,7 @@ jobs:
       shell: bash -l {0}
       run: |
         conda activate /usr/share/miniconda3/envs/larix
-        conda install pytest
-        $CONDA/bin/pytest
+        pytest tests/
 
     - name: Decrypt a secret
       run: ./scripts/decrypt_secret.sh
