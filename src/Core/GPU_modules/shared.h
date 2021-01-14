@@ -62,6 +62,22 @@ __device__ void sort_bubble(float *x, int n_size)
 	}
 }
 
+__device__ void sort_bubble_uint16(unsigned short *x, int n_size)
+{
+	for (int i = 0; i < n_size - 1; i++)
+	{
+		for(int j = 0; j < n_size - i - 1; j++)
+		{
+			if (x[j] > x[j+1])
+			{
+				unsigned short temp = x[j];
+				x[j] = x[j+1];
+				x[j+1] = temp;
+			}
+		}
+	}
+}
+
 __device__ void sort_linear(float *x, int n_size)
 {
 	for (int i = 0; i < n_size-1; i++)

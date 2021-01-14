@@ -26,7 +26,7 @@
  * [1] Filtered or dezingered image/volume
  */
 
-int medianfilter_main(float *Input, float *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ)
+int medianfilter_main_float(float *Input, float *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ)
 {
     int sizefilter_total, kernel_half_size;
     long i, j, k, index;
@@ -41,7 +41,7 @@ int medianfilter_main(float *Input, float *Output, int kernel_size, float mu_thr
     for(j=0; j<dimY; j++) {
       for(i=0; i<dimX; i++) {
           index = (long)(j*dimX+i);
-          medfilt2D(Input, Output, kernel_half_size, sizefilter_total, mu_threshold, i, j, index, (long)(dimX), (long)(dimY));
+          medfilt2D_float(Input, Output, kernel_half_size, sizefilter_total, mu_threshold, i, j, index, (long)(dimX), (long)(dimY));
         }}
      } /* 2D case done */
      else {
@@ -53,7 +53,7 @@ int medianfilter_main(float *Input, float *Output, int kernel_size, float mu_thr
      for(j=0; j<dimY; j++) {
        for(i=0; i<dimX; i++) {
            index = (long)((dimX*dimY)*kernel_half_size + j*dimX+i);
-           medfilt3D_pad(Input, Output, kernel_half_size, sizefilter_total, mu_threshold, i, j, index, (long)(dimX), (long)(dimY));
+           medfilt3D_pad_float(Input, Output, kernel_half_size, sizefilter_total, mu_threshold, i, j, index, (long)(dimX), (long)(dimY));
          }}
      }
      else {
@@ -63,7 +63,7 @@ int medianfilter_main(float *Input, float *Output, int kernel_size, float mu_thr
        for(j=0; j<dimY; j++) {
          for(i=0; i<dimX; i++) {
            index = (long)((dimX*dimY)*k + j*dimX+i);
-           medfilt3D(Input, Output, kernel_half_size, sizefilter_total, mu_threshold, i, j, k, index, (long)(dimX), (long)(dimY), (long)(dimZ));
+           medfilt3D_float(Input, Output, kernel_half_size, sizefilter_total, mu_threshold, i, j, k, index, (long)(dimX), (long)(dimY), (long)(dimZ));
          }}}
      }
     } /* 3D case done */
@@ -71,7 +71,53 @@ int medianfilter_main(float *Input, float *Output, int kernel_size, float mu_thr
     return 0;
 }
 
-void medfilt2D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY)
+int medianfilter_main_uint16(unsigned short *Input, unsigned short *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ)
+{
+    int sizefilter_total, kernel_half_size;
+    long i, j, k, index;
+    kernel_half_size = (int)((kernel_size-1)/2);
+    /* copy input into output */
+    copyIm_unshort(Input, Output, (long)(dimX), (long)(dimY), (long)(dimZ));
+
+    if (dimZ <= 1) {
+    /*2D case */
+    sizefilter_total = (int)(powf(kernel_size,2));
+    #pragma omp parallel for shared (Input, Output) private(i, j, index)
+    for(j=0; j<dimY; j++) {
+      for(i=0; i<dimX; i++) {
+          index = (long)(j*dimX+i);
+          medfilt2D_uint16(Input, Output, kernel_half_size, sizefilter_total, mu_threshold, i, j, index, (long)(dimX), (long)(dimY));
+        }}
+     } /* 2D case done */
+     else {
+     /* 3D case */
+     sizefilter_total = (int)(powf(kernel_size,3));
+     if (dimZ == kernel_size) {
+     /* performs operation only on the central frame using all 3D information */
+     #pragma omp parallel for shared (Input, Output) private(i, j, index)
+     for(j=0; j<dimY; j++) {
+       for(i=0; i<dimX; i++) {
+           index = (long)((dimX*dimY)*kernel_half_size + j*dimX+i);
+           medfilt3D_pad_uint16(Input, Output, kernel_half_size, sizefilter_total, mu_threshold, i, j, index, (long)(dimX), (long)(dimY));
+         }}
+     }
+     else {
+     /* Full data (traditional) 3D case */
+     #pragma omp parallel for shared (Input, Output) private(i, j, k, index)
+     for(k=0; k<dimZ; k++) {
+       for(j=0; j<dimY; j++) {
+         for(i=0; i<dimX; i++) {
+           index = (long)((dimX*dimY)*k + j*dimX+i);
+           medfilt3D_uint16(Input, Output, kernel_half_size, sizefilter_total, mu_threshold, i, j, k, index, (long)(dimX), (long)(dimY), (long)(dimZ));
+         }}}
+     }
+    } /* 3D case done */
+
+    return 0;
+}
+
+
+void medfilt2D_float(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY)
 {
     float *ValVec;
     long i_m, j_m, i1, j1, counter;
@@ -89,7 +135,7 @@ void medfilt2D(float *Input, float *Output, int kernel_half_size, int sizefilter
           ValVec[counter] = Input[j1*dimX+i1];
           counter++;
     }}
-    sort_bubble(ValVec, sizefilter_total); /* perform sorting */
+    sort_bubble_float(ValVec, sizefilter_total); /* perform sorting */
     //sort_quick(ValVec, 0, sizefilter_total); /* perform sorting */
 
     if (mu_threshold == 0.0f) Output[index] = ValVec[midval]; /* perform median filtration */
@@ -100,7 +146,37 @@ void medfilt2D(float *Input, float *Output, int kernel_half_size, int sizefilter
     return;
 }
 
-void medfilt3D_pad(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY)
+void medfilt2D_uint16(unsigned short *Input, unsigned short *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY)
+{
+    unsigned short *ValVec;
+    long i_m, j_m, i1, j1, counter;
+    int midval;
+    midval = (int)(sizefilter_total/2);
+    ValVec = (unsigned short*) calloc(sizefilter_total, sizeof(unsigned short));
+
+    counter = 0l;
+    for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
+        i1 = i + i_m;
+        if ((i1 < 0) || (i1 >= dimX)) i1 = i;
+        for(j_m=-kernel_half_size; j_m<=kernel_half_size; j_m++) {
+          j1 = j + j_m;
+          if ((j1 < 0) || (j1 >= dimY)) j1 = j;
+          ValVec[counter] = Input[j1*dimX+i1];
+          counter++;
+    }}
+    sort_bubble_uint16(ValVec, sizefilter_total); /* perform sorting */
+    //sort_quick(ValVec, 0, sizefilter_total); /* perform sorting */
+
+    if (mu_threshold == 0.0f) Output[index] = ValVec[midval]; /* perform median filtration */
+    else {
+    /* perform dezingering */
+    if (abs((int)(Input[index]) - (int)(ValVec[midval])) >= (int)(mu_threshold)) Output[index] = ValVec[midval]; }
+    free(ValVec);
+    return;
+}
+
+
+void medfilt3D_pad_float(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY)
 {
     float *ValVec;
     long i_m, j_m, k_m, i1, j1, counter;
@@ -119,7 +195,7 @@ void medfilt3D_pad(float *Input, float *Output, int kernel_half_size, int sizefi
           ValVec[counter] = Input[(dimX*dimY)*(kernel_half_size + k_m) + j1*dimX+i1];
           counter++;
     }}}
-    sort_bubble(ValVec, sizefilter_total); /* perform bubble sort */
+    sort_bubble_float(ValVec, sizefilter_total); /* perform bubble sort */
     //sort_quick(ValVec, 0, sizefilter_total); /* perform sorting */
 
     if (mu_threshold == 0.0f) Output[index] = ValVec[midval]; /* perform median filtration */
@@ -130,7 +206,37 @@ void medfilt3D_pad(float *Input, float *Output, int kernel_half_size, int sizefi
     return;
 }
 
-void medfilt3D(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long k, long index, long dimX, long dimY, long dimZ)
+void medfilt3D_pad_uint16(unsigned short *Input, unsigned short *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY)
+{
+    unsigned short *ValVec;
+    long i_m, j_m, k_m, i1, j1, counter;
+    int midval;
+    midval = (int)(sizefilter_total/2);
+    ValVec = (unsigned short*) calloc(sizefilter_total, sizeof(unsigned short));
+
+    counter = 0l;
+    for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
+        i1 = i + i_m;
+        if ((i1 < 0) || (i1 >= dimX)) i1 = i;
+        for(j_m=-kernel_half_size; j_m<=kernel_half_size; j_m++) {
+          j1 = j + j_m;
+          if ((j1 < 0) || (j1 >= dimY)) j1 = j;
+          for(k_m=-kernel_half_size; k_m<=kernel_half_size; k_m++) {
+          ValVec[counter] = Input[(dimX*dimY)*(kernel_half_size + k_m) + j1*dimX+i1];
+          counter++;
+    }}}
+    sort_bubble_uint16(ValVec, sizefilter_total); /* perform bubble sort */
+    //sort_quick(ValVec, 0, sizefilter_total); /* perform sorting */
+
+    if (mu_threshold == 0.0f) Output[index] = ValVec[midval]; /* perform median filtration */
+    else {
+    /* perform dezingering */
+    if (abs((int)(Input[index]) - (int)(ValVec[midval])) >= (int)(mu_threshold)) Output[index] = ValVec[midval]; }
+    free(ValVec);
+    return;
+}
+
+void medfilt3D_float(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long k, long index, long dimX, long dimY, long dimZ)
 {
     float *ValVec;
     long i_m, j_m, k_m, i1, j1, k1, counter;
@@ -151,13 +257,45 @@ void medfilt3D(float *Input, float *Output, int kernel_half_size, int sizefilter
           ValVec[counter] = Input[(dimX*dimY)*k1 + j1*dimX+i1];
           counter++;
     }}}
-    sort_bubble(ValVec, sizefilter_total); /* perform bubble sort */
+    sort_bubble_float(ValVec, sizefilter_total); /* perform bubble sort */
     //sort_quick(ValVec, 0, sizefilter_total); /* perform sorting */
 
     if (mu_threshold == 0.0f) Output[index] = ValVec[midval]; /* perform median filtration */
     else {
     /* perform dezingering */
     if (fabs(Input[index] - ValVec[midval]) >= mu_threshold) Output[index] = ValVec[midval]; }
+    free(ValVec);
+    return;
+}
+
+void medfilt3D_uint16(unsigned short *Input, unsigned short *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long k, long index, long dimX, long dimY, long dimZ)
+{
+    unsigned short *ValVec;
+    long i_m, j_m, k_m, i1, j1, k1, counter;
+    int midval;
+    midval = (int)(sizefilter_total/2);
+    ValVec = (unsigned short*) calloc(sizefilter_total, sizeof(unsigned short));
+
+    counter = 0l;
+    for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
+        i1 = i + i_m;
+        if ((i1 < 0) || (i1 >= dimX)) i1 = i;
+        for(j_m=-kernel_half_size; j_m<=kernel_half_size; j_m++) {
+          j1 = j + j_m;
+          if ((j1 < 0) || (j1 >= dimY)) j1 = j;
+          for(k_m=-kernel_half_size; k_m<=kernel_half_size; k_m++) {
+            k1 = k + k_m;
+            if ((k1 < 0) || (k1 >= dimZ)) k1 = k;
+          ValVec[counter] = Input[(dimX*dimY)*k1 + j1*dimX+i1];
+          counter++;
+    }}}
+    sort_bubble_uint16(ValVec, sizefilter_total); /* perform bubble sort */
+    //sort_quick(ValVec, 0, sizefilter_total); /* perform sorting */
+
+    if (mu_threshold == 0.0f) Output[index] = ValVec[midval]; /* perform median filtration */
+    else {
+    /* perform dezingering */
+    if (abs((int)(Input[index]) - (int)(ValVec[midval])) >= (int)(mu_threshold)) Output[index] = ValVec[midval]; }
     free(ValVec);
     return;
 }

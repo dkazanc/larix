@@ -16,7 +16,8 @@ import numpy as np
 cimport numpy as np
 
 cdef extern int Autocrop_main(float *Input, float *mask_box, float *crop_indeces, float threshold, int margin_skip, int statbox_size, int increase_crop, int dimX, int dimY, int dimZ);
-cdef extern int medianfilter_main(float *Input, float *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ);
+cdef extern int medianfilter_main_float(float *Input, float *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ);
+cdef extern int medianfilter_main_uint16(unsigned short *Input, unsigned short *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ);
 cdef extern int Diffusion_Inpaint_CPU_main(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float sigmaPar, int iterationsNumb, float tau, int penaltytype, int dimX, int dimY, int dimZ);
 cdef extern int NonlocalMarching_Inpaint_main(float *Input, unsigned char *M, float *Output, unsigned char *M_upd, int SW_increment, int iterationsNumb, int trigger, int dimX, int dimY, int dimZ);
 cdef extern int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, int W_halfsize, float sigma, int dimX, int dimY, int dimZ);
@@ -76,13 +77,18 @@ def AUTOCROP_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
 ##############################Median Filtering ##################################
 #################################################################################
 def MEDIAN_FILT(Input, kernel_size):
-    if Input.ndim == 2:
-        return MEDIAN_FILT_2D(Input, kernel_size)
-    elif Input.ndim == 3:
-        return MEDIAN_FILT_3D(Input, kernel_size)
+    input_type = Input.dtype
+    if ((Input.ndim == 2) and (input_type == 'float32')):
+        return MEDIAN_FILT_float32_2D(Input, kernel_size)
+    elif ((Input.ndim == 2) and (input_type == 'uint16')):
+        return MEDIAN_FILT_uint16_2D(Input, kernel_size)
+    elif ((Input.ndim == 3) and (input_type == 'float32')):
+        return  MEDIAN_FILT_float32_3D(Input, kernel_size)
+    elif ((Input.ndim == 3) and (input_type == 'uint16')):
+        return  MEDIAN_FILT_uint16_3D(Input, kernel_size)
 
-def MEDIAN_FILT_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
-                   int kernel_size):
+def MEDIAN_FILT_float32_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
+                            int kernel_size):
 
     cdef long dims[2]
     dims[0] = Input.shape[0]
@@ -92,14 +98,32 @@ def MEDIAN_FILT_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
             np.zeros([dims[0],dims[1]], dtype='float32')
 
     if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
-        if (medianfilter_main(&Input[0,0], &Output[0,0], kernel_size, 0.0, dims[1], dims[0], 1)==0):
+        if (medianfilter_main_float(&Input[0,0], &Output[0,0], kernel_size, 0.0, dims[1], dims[0], 1)==0):
             return Output
         else:
             raise ValueError("2D CPU median filter function failed to return 0")
     else:
         print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
 
-def MEDIAN_FILT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
+def MEDIAN_FILT_uint16_2D(np.ndarray[np.uint16_t, ndim=2, mode="c"] Input,
+                            int kernel_size):
+
+    cdef long dims[2]
+    dims[0] = Input.shape[0]
+    dims[1] = Input.shape[1]
+
+    cdef np.ndarray[np.uint16_t, ndim=2, mode="c"] Output = \
+            np.zeros([dims[0],dims[1]], dtype='uint16')
+
+    if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
+        if (medianfilter_main_uint16(&Input[0,0], &Output[0,0], kernel_size, 0.0, dims[1], dims[0], 1)==0):
+            return Output
+        else:
+            raise ValueError("2D CPU median filter function failed to return 0")
+    else:
+        print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
+
+def MEDIAN_FILT_float32_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
                    int kernel_size):
 
     cdef long dims[3]
@@ -111,7 +135,26 @@ def MEDIAN_FILT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
             np.zeros([dims[0],dims[1],dims[2]], dtype='float32')
 
     if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
-        if (medianfilter_main(&Input[0,0,0], &Output[0,0,0], kernel_size, 0.0, dims[2], dims[1], dims[0])==0):
+        if (medianfilter_main_float(&Input[0,0,0], &Output[0,0,0], kernel_size, 0.0, dims[2], dims[1], dims[0])==0):
+            return Output
+        else:
+            raise ValueError("3D CPU median filter function failed to return 0")
+    else:
+        print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
+
+def MEDIAN_FILT_uint16_3D(np.ndarray[np.uint16_t, ndim=3, mode="c"] Input,
+                          int kernel_size):
+
+    cdef long dims[3]
+    dims[0] = Input.shape[0]
+    dims[1] = Input.shape[1]
+    dims[2] = Input.shape[2]
+
+    cdef np.ndarray[np.uint16_t, ndim=3, mode="c"] Output = \
+            np.zeros([dims[0],dims[1],dims[2]], dtype='uint16')
+
+    if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
+        if (medianfilter_main_uint16(&Input[0,0,0], &Output[0,0,0], kernel_size, 0.0, dims[2], dims[1], dims[0])==0):
             return Output
         else:
             raise ValueError("3D CPU median filter function failed to return 0")
@@ -122,14 +165,19 @@ def MEDIAN_FILT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
 ##############################Median Dezingering ################################
 #################################################################################
 def MEDIAN_DEZING(Input, kernel_size, mu_threshold):
-    if Input.ndim == 2:
-        return MEDIAN_DEZING_2D(Input, kernel_size, mu_threshold)
-    elif Input.ndim == 3:
-        return  MEDIAN_DEZING_3D(Input, kernel_size, mu_threshold)
+    input_type = Input.dtype
+    if ((Input.ndim == 2) and (input_type == 'float32')):
+        return MEDIAN_DEZING_float32_2D(Input, kernel_size, mu_threshold)
+    elif ((Input.ndim == 2) and (input_type == 'uint16')):
+        return MEDIAN_DEZING_uint16_2D(Input, kernel_size, mu_threshold)
+    elif ((Input.ndim == 3) and (input_type == 'float32')):
+        return  MEDIAN_DEZING_float32_3D(Input, kernel_size, mu_threshold)
+    elif ((Input.ndim == 3) and (input_type == 'uint16')):
+        return  MEDIAN_DEZING_uint16_3D(Input, kernel_size, mu_threshold)
 
-def MEDIAN_DEZING_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
-                    int kernel_size,
-                    float mu_threshold):
+def MEDIAN_DEZING_float32_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
+                            int kernel_size,
+                            float mu_threshold):
 
     cdef long dims[2]
     dims[0] = Input.shape[0]
@@ -139,17 +187,36 @@ def MEDIAN_DEZING_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
             np.zeros([dims[0],dims[1]], dtype='float32')
 
     if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
-        if (medianfilter_main(&Input[0,0], &Output[0,0], kernel_size, mu_threshold, dims[1], dims[0], 1)==0):
+        if (medianfilter_main_float(&Input[0,0], &Output[0,0], kernel_size, mu_threshold, dims[1], dims[0], 1)==0):
             return Output
         else:
             raise ValueError("2D CPU dezinger filter function failed to return 0")
     else:
         print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
 
-def MEDIAN_DEZING_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
-                    int kernel_size,
-                    float mu_threshold):
+def MEDIAN_DEZING_uint16_2D(np.ndarray[np.uint16_t, ndim=2, mode="c"] Input,
+                            int kernel_size,
+                            float mu_threshold):
 
+    cdef long dims[2]
+    dims[0] = Input.shape[0]
+    dims[1] = Input.shape[1]
+
+    cdef np.ndarray[np.uint16_t, ndim=2, mode="c"] Output = \
+            np.zeros([dims[0],dims[1]], dtype='uint16')
+
+
+    if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
+        if (medianfilter_main_uint16(&Input[0,0], &Output[0,0], kernel_size, mu_threshold, dims[1], dims[0], 1)==0):
+            return Output
+        else:
+            raise ValueError("2D CPU dezinger filter function failed to return 0")
+    else:
+        print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
+
+def MEDIAN_DEZING_float32_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
+                            int kernel_size,
+                            float mu_threshold):
     cdef long dims[3]
     dims[0] = Input.shape[0]
     dims[1] = Input.shape[1]
@@ -159,7 +226,27 @@ def MEDIAN_DEZING_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
             np.zeros([dims[0],dims[1],dims[2]], dtype='float32')
 
     if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
-        if (medianfilter_main(&Input[0,0,0], &Output[0,0,0], kernel_size, mu_threshold, dims[2], dims[1], dims[0])==0):
+        if (medianfilter_main_float(&Input[0,0,0], &Output[0,0,0], kernel_size, mu_threshold, dims[2], dims[1], dims[0])==0):
+            return Output
+        else:
+            raise ValueError("3D CPU dezinger filter function failed to return 0")
+    else:
+        print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
+
+def MEDIAN_DEZING_uint16_3D(np.ndarray[np.uint16_t, ndim=3, mode="c"] Input,
+                            int kernel_size,
+                            float mu_threshold):
+
+    cdef long dims[3]
+    dims[0] = Input.shape[0]
+    dims[1] = Input.shape[1]
+    dims[2] = Input.shape[2]
+
+    cdef np.ndarray[np.uint16_t, ndim=3, mode="c"] Output = \
+            np.zeros([dims[0],dims[1],dims[2]], dtype='uint16')
+
+    if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
+        if (medianfilter_main_uint16(&Input[0,0,0], &Output[0,0,0], kernel_size, mu_threshold, dims[2], dims[1], dims[0])==0):
             return Output
         else:
             raise ValueError("3D CPU dezinger filter function failed to return 0")
@@ -248,7 +335,7 @@ def INPAINT_NM_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] inputData,
         raise ValueError("2D CPU nonlocal marching inpainting failed to return 0")
 
 #*********************Inpainting WITH****************************#
-#************simle linear combination method*********************#
+#************simple linear combination method*********************#
 #****************************************************************#
 def INPAINT_LINCOMB(inputData, maskData, iterationsNumb, windowsize_half, sigma):
     if inputData.ndim == 2:

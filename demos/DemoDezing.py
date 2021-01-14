@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 from larix.methods.misc import MEDIAN_FILT, MEDIAN_DEZING
 from larix.methods.misc_gpu import MEDIAN_FILT_GPU, MEDIAN_DEZING_GPU
 
-
 import timeit
 from tomophantom import TomoP2D
 import os
