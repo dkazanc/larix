@@ -112,6 +112,6 @@ jobs:
     - name: Upload the tested package to conda cloud
       shell: bash -l {0}
       run: |
-         conda activate /usr/share/miniconda3/envs/larix
-         chmod +x ./scripts/conda_upload.sh
+        conda activate /usr/share/miniconda3/envs/larix
+        chmod +x ./scripts/conda_upload.sh
         ./scripts/conda_upload.sh
