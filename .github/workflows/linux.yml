@@ -98,7 +98,8 @@ jobs:
         conda-build recipe/ --numpy=1.15 --python=3.7
         conda install --channel /usr/share/miniconda3/envs/larix/conda-bld/linux-64/ larix --offline --override-channels
 
-   - name: Test with pytest
+    - name: Test with pytest
+      shell: bash -l {0}
       run: |
         conda activate /usr/share/miniconda3/envs/larix
         conda install pytest
