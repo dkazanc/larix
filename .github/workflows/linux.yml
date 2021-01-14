@@ -97,8 +97,11 @@ jobs:
         export VERSION=`date +%Y.%m`
         conda-build recipe/ --numpy=1.15 --python=3.7
         conda install --channel /usr/share/miniconda3/envs/larix/conda-bld/linux-64/ larix --offline --override-channels
+
+   - name: Test with pytest
+      run: |
         conda install pytest
-        pytest
+        $CONDA/bin/pytest
 
     - name: Decrypt a secret
       run: ./scripts/decrypt_secret.sh
