@@ -32,8 +32,10 @@ DLS_EXPORT void swap(float *xp, float *yp);
 DLS_EXPORT int signum(int i);
 DLS_EXPORT void copyIm(float *A, float *U, long dimX, long dimY, long dimZ);
 DLS_EXPORT void copyIm_unchar(unsigned char *A, unsigned char *U, int dimX, int dimY, int dimZ);
+DLS_EXPORT void copyIm_unshort(unsigned short *A, unsigned short *U, int dimX, int dimY, int dimZ);
 DLS_EXPORT void copyIm_roll(float *A, float *U, int dimX, int dimY, int roll_value, int switcher);
-DLS_EXPORT void sort_bubble(float *x, int n_size);
+DLS_EXPORT void sort_bubble_float(float *x, int n_size);
+DLS_EXPORT void sort_bubble_uint16(unsigned short *x, int n_size);
 DLS_EXPORT void sort_quick(float *x, int left_idx, int right_idx);
 DLS_EXPORT void max_val_mask(float *Input, unsigned char *Mask, float *minmax_array, long dimX, long dimY, long dimZ);
 #ifdef __cplusplus

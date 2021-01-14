@@ -36,7 +36,7 @@ void copyIm(float *A, float *U, long dimX, long dimY, long dimZ)
 	return;
 }
 
-/* Copy Image */
+/* Copy Image -unsigned char (8bit)*/
 void copyIm_unchar(unsigned char *A, unsigned char *U, int dimX, int dimY, int dimZ)
 {
 	int j;
@@ -44,6 +44,16 @@ void copyIm_unchar(unsigned char *A, unsigned char *U, int dimX, int dimY, int d
 	for (j = 0; j<dimX*dimY*dimZ; j++)  U[j] = A[j];
 	return;
 }
+
+/* Copy Image - unsigned short (16bit)*/
+void copyIm_unshort(unsigned short *A, unsigned short *U, int dimX, int dimY, int dimZ)
+{
+	int j;
+#pragma omp parallel for shared(A, U) private(j)
+	for (j = 0; j<dimX*dimY*dimZ; j++)  U[j] = A[j];
+	return;
+}
+
 
 /*Roll image symmetrically from top to bottom*/
 void copyIm_roll(float *A, float *U, int dimX, int dimY, int roll_value, int switcher)
@@ -64,11 +74,32 @@ void copyIm_roll(float *A, float *U, int dimX, int dimY, int roll_value, int swi
     return;
 }
 
-/* sorting using bubble method */
-void sort_bubble(float *x, int n_size)
+/* sorting using bubble method (float)*/
+void sort_bubble_float(float *x, int n_size)
 {
 	int i,j;
 	float temp;
+
+	for (i = 0; i < n_size - 1; i++)
+	{
+		for(j = 0; j < n_size - i - 1; j++)
+		{
+			if (x[j] > x[j+1])
+			{
+				temp = x[j];
+				x[j] = x[j+1];
+				x[j+1] = temp;
+			}
+		}
+	}
+    return;
+}
+
+/* sorting using bubble method (uint16)*/
+void sort_bubble_uint16(unsigned short *x, int n_size)
+{
+	int i,j;
+	unsigned short temp;
 
 	for (i = 0; i < n_size - 1; i++)
 	{
