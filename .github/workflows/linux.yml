@@ -93,9 +93,10 @@ jobs:
       run: |
         conda activate /usr/share/miniconda3/envs/larix
         conda config --set anaconda_upload no
-        conda install --yes numpy conda-build anaconda-client setuptools cython cmake
+        conda install --yes numpy anaconda-client setuptools cython cmake
+        conda install --yes conda-build
         export VERSION=`date +%Y.%m`
-        conda build recipe/ --numpy=1.15 --python=3.7
+        /usr/share/miniconda3/bin/conda-build recipe/ --numpy=1.15 --python=3.7
         conda install --channel /usr/share/miniconda/conda-bld/ larix --offline --override-channels
         conda install pytest
         pytest
