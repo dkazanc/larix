@@ -19,5 +19,5 @@ conda build . --numpy=1.18 --python=3.8
 find $CONDA_BLD_PATH/$OS -name *.tar.bz2 | while read file
 do
     echo $file
-    $CONDA/bin/anaconda -v --show-traceback --token $CONDA_TOKEN upload $file --force
+    anaconda -v --show-traceback --token $CONDA_TOKEN upload $file --force
 done
