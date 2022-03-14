@@ -22,19 +22,26 @@ cdef extern int MedianFilt_GPU_main_uint16(unsigned short *Input, unsigned short
 #################################################################################
 ###########################Median Filtering (GPU) ###############################
 #################################################################################
-def MEDIAN_FILT_GPU(Input, kernel_size):
+def MEDIAN_FILT_GPU(Input, kernel_size, *gpu_device_list):
     input_type = Input.dtype
+    if not gpu_device_list:
+        gpu_device = 0
+        print("gpu device is set to zero")
+    else:
+        gpu_device = gpu_device_list[0]
+        print("gpu device is selected")
+
     if ((Input.ndim == 2) and (input_type == 'float32')):
-        return MEDIAN_FILT_GPU_float32_2D(Input, kernel_size)
+        return MEDIAN_FILT_GPU_float32_2D(Input, kernel_size, gpu_device)
     elif ((Input.ndim == 2) and (input_type == 'uint16')):
-        return MEDIAN_FILT_GPU_uint16_2D(Input, kernel_size)
+        return MEDIAN_FILT_GPU_uint16_2D(Input, kernel_size, gpu_device)
     elif ((Input.ndim == 3) and (input_type == 'float32')):
-        return  MEDIAN_FILT_GPU_float32_3D(Input, kernel_size)
+        return  MEDIAN_FILT_GPU_float32_3D(Input, kernel_size, gpu_device)
     elif ((Input.ndim == 3) and (input_type == 'uint16')):
-        return  MEDIAN_FILT_GPU_uint16_3D(Input, kernel_size)
+        return  MEDIAN_FILT_GPU_uint16_3D(Input, kernel_size, gpu_device)
 
 def MEDIAN_FILT_GPU_float32_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
-                    int kernel_size):
+                    int kernel_size, int gpu_device):
 
     cdef long dims[2]
     dims[0] = Input.shape[0]
@@ -52,7 +59,7 @@ def MEDIAN_FILT_GPU_float32_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
         print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
 
 def MEDIAN_FILT_GPU_uint16_2D(np.ndarray[np.uint16_t, ndim=2, mode="c"] Input,
-                    int kernel_size):
+                    int kernel_size, int gpu_device):
 
     cdef long dims[2]
     dims[0] = Input.shape[0]
@@ -70,7 +77,7 @@ def MEDIAN_FILT_GPU_uint16_2D(np.ndarray[np.uint16_t, ndim=2, mode="c"] Input,
         print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
 
 def MEDIAN_FILT_GPU_float32_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
-                    int kernel_size):
+                    int kernel_size, int gpu_device):
 
     cdef long dims[3]
     dims[0] = Input.shape[0]
@@ -90,7 +97,7 @@ def MEDIAN_FILT_GPU_float32_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
 
 
 def MEDIAN_FILT_GPU_uint16_3D(np.ndarray[np.uint16_t, ndim=3, mode="c"] Input,
-                              int kernel_size):
+                              int kernel_size, int gpu_device):
 
     cdef long dims[3]
     dims[0] = Input.shape[0]

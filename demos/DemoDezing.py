@@ -37,15 +37,15 @@ P = int(np.sqrt(2)*N_size) #detectors
 sino_an = TomoP2D.ModelSino(model, N_size, P, angles, path_library2D)
 
 # forming dictionaries with artifact types
-_noise_ =  {'type' : 'Gaussian',
-            'sigma' : 3.5, 
-            'seed' : 1}
+_noise_ =  {'noise_type' : 'Gaussian',
+            'noise_sigma' : 3.5, # noise amplitude
+            'noise_seed' : 0}
 
 # adding zingers
-_zingers_ = {'percentage' : 0.3,
-             'modulus' : 15}
+_zingers_ = {'zingers_percentage' : 0.3,
+             'zingers_modulus' : 15}
 
-sino_an_noisy = _Artifacts_(sino_an, _noise_, _zingers_, _stripes_={}, _sinoshifts_= {})
+sino_an_noisy = _Artifacts_(sino_an, **_noise_, **_zingers_)
 
 plt.figure(1)
 plt.rcParams.update({'font.size': 21})
