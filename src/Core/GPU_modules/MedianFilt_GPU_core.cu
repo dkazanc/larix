@@ -15,6 +15,7 @@
 
 #include "MedianFilt_GPU_core.h"
 #include "shared.h"
+#define MAXSTR 100
 /* CUDA implementation of the median filtration and dezingering (2D/3D case)
  *
  * Input Parameters:
@@ -1007,7 +1008,7 @@ __global__ void medfilt5_kernel_uint16_3D(unsigned short *Input, unsigned short 
 /////////////////////////////////////////////////
 /////////////// HOST FUNCTION ///////////////////
 /////////////////////////////////////////////////
-extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kernel_size, float mu_threshold, int N, int M, int Z)
+extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kernel_size, float mu_threshold, int gpu_device, int N, int M, int Z)
 {
   int deviceCount = -1; // number of devices
   cudaGetDeviceCount(&deviceCount);
@@ -1015,15 +1016,26 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
       fprintf(stderr, "No CUDA devices found\n");
        return -1;
    }
+
         int ImSize, sizefilter_total, kernel_half_size, midval;
-        float *d_input, *d_output;
         ImSize = N*M*Z;
 
-        CHECK(cudaMalloc((void**)&d_input,ImSize*sizeof(float)));
-        CHECK(cudaMalloc((void**)&d_output,ImSize*sizeof(float)));
+        /* adapted to work with 8 GPU devices in total */
+        float *d_input0, *d_output0, *d_input1, *d_output1;
 
-        CHECK(cudaMemcpy(d_input,Input,ImSize*sizeof(float),cudaMemcpyHostToDevice));
-        CHECK(cudaMemcpy(d_output,Input,ImSize*sizeof(float),cudaMemcpyHostToDevice));
+        cudaSetDevice(gpu_device);
+        if (gpu_device == 0) {
+        CHECK(cudaMalloc((void**)&d_input0,ImSize*sizeof(float)));
+        CHECK(cudaMalloc((void**)&d_output0,ImSize*sizeof(float)));
+        CHECK(cudaMemcpy(d_input0,Input,ImSize*sizeof(float),cudaMemcpyHostToDevice));
+        CHECK(cudaMemcpy(d_output0,Input,ImSize*sizeof(float),cudaMemcpyHostToDevice));
+        }
+        if (gpu_device == 1) {
+        CHECK(cudaMalloc((void**)&d_input1,ImSize*sizeof(float)));
+        CHECK(cudaMalloc((void**)&d_output1,ImSize*sizeof(float)));
+        CHECK(cudaMemcpy(d_input1,Input,ImSize*sizeof(float),cudaMemcpyHostToDevice));
+        CHECK(cudaMemcpy(d_output1,Input,ImSize*sizeof(float),cudaMemcpyHostToDevice));
+        }
 
 	if (Z == 1) {
         /*2D case */
@@ -1033,11 +1045,26 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         kernel_half_size = (int)((kernel_size-1)/2);
         midval = (int)(sizefilter_total/2);
 
-        if (kernel_size == 3) medfilt1_kernel_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
-        else if (kernel_size == 5) medfilt2_kernel_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
-        else if (kernel_size == 7) medfilt3_kernel_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
-        else if (kernel_size == 9) medfilt4_kernel_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
-        else medfilt5_kernel_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+        if (kernel_size == 3) {
+            if (gpu_device == 0) medfilt1_kernel_2D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+            if (gpu_device == 1) medfilt1_kernel_2D<<<dimGrid,dimBlock>>>(d_input1, d_output1, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+        }
+        else if (kernel_size == 5) {
+            if (gpu_device == 0) medfilt2_kernel_2D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+            if (gpu_device == 1) medfilt2_kernel_2D<<<dimGrid,dimBlock>>>(d_input1, d_output1, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+        }
+        else if (kernel_size == 7) {
+            if (gpu_device == 0) medfilt3_kernel_2D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+            if (gpu_device == 1) medfilt3_kernel_2D<<<dimGrid,dimBlock>>>(d_input1, d_output1, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+        }
+        else if (kernel_size == 9) {
+            if (gpu_device == 0) medfilt4_kernel_2D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+            if (gpu_device == 1) medfilt4_kernel_2D<<<dimGrid,dimBlock>>>(d_input1, d_output1, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+        }
+        else {
+          if (gpu_device == 0) medfilt5_kernel_2D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+          if (gpu_device == 1) medfilt5_kernel_2D<<<dimGrid,dimBlock>>>(d_input1, d_output1, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+        }
         checkCudaErrors( cudaDeviceSynchronize() );
         checkCudaErrors(cudaPeekAtLastError() );
        }
@@ -1051,26 +1078,64 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
 
         if (Z == kernel_size) {
         /* performs operation only on the central frame using all 3D information */
-        if (kernel_size == 3) medfilt1_pad_kernel_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        else if (kernel_size == 5) medfilt2_pad_kernel_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        else if (kernel_size == 7) medfilt3_pad_kernel_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        else if (kernel_size == 9) medfilt4_pad_kernel_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        else medfilt5_pad_kernel_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+        if (kernel_size == 3) {
+          if (gpu_device == 0) medfilt1_pad_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+          if (gpu_device == 1) medfilt1_pad_kernel_3D<<<dimGrid,dimBlock>>>(d_input1, d_output1, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+        }
+        else if (kernel_size == 5) {
+          if (gpu_device == 0) medfilt2_pad_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+          if (gpu_device == 1) medfilt2_pad_kernel_3D<<<dimGrid,dimBlock>>>(d_input1, d_output1, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+        }
+        else if (kernel_size == 7) {
+          if (gpu_device == 0) medfilt3_pad_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+          if (gpu_device == 1) medfilt3_pad_kernel_3D<<<dimGrid,dimBlock>>>(d_input1, d_output1, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+        }
+        else if (kernel_size == 9) {
+           if (gpu_device == 0) medfilt4_pad_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+           if (gpu_device == 1) medfilt4_pad_kernel_3D<<<dimGrid,dimBlock>>>(d_input1, d_output1, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+         }
+        else {
+          if (gpu_device == 0) medfilt5_pad_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+          if (gpu_device == 1) medfilt5_pad_kernel_3D<<<dimGrid,dimBlock>>>(d_input1, d_output1, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+        }
           }
         else {
         /* Full data (traditional) 3D case */
-        if (kernel_size == 3) medfilt1_kernel_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        else if (kernel_size == 5) medfilt2_kernel_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        else if (kernel_size == 7) medfilt3_kernel_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        else if (kernel_size == 9) medfilt4_kernel_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        else medfilt5_kernel_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+        if (kernel_size == 3) {
+          if (gpu_device == 0) medfilt1_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+          if (gpu_device == 1) medfilt1_kernel_3D<<<dimGrid,dimBlock>>>(d_input1, d_output1, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+        }
+        else if (kernel_size == 5) {
+          if (gpu_device == 0) medfilt2_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+          if (gpu_device == 1) medfilt2_kernel_3D<<<dimGrid,dimBlock>>>(d_input1, d_output1, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+        }
+        else if (kernel_size == 7) {
+          if (gpu_device == 0) medfilt3_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+          if (gpu_device == 1) medfilt3_kernel_3D<<<dimGrid,dimBlock>>>(d_input1, d_output1, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+        }
+        else if (kernel_size == 9) {
+           if (gpu_device == 0) medfilt4_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+           if (gpu_device == 1) medfilt4_kernel_3D<<<dimGrid,dimBlock>>>(d_input1, d_output1, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+         }
+        else {
+          if (gpu_device == 0) medfilt5_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+          if (gpu_device == 1) medfilt5_kernel_3D<<<dimGrid,dimBlock>>>(d_input1, d_output1, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+        }
             }
         checkCudaErrors( cudaDeviceSynchronize() );
         checkCudaErrors(cudaPeekAtLastError() );
     		}
-        CHECK(cudaMemcpy(Output,d_output,ImSize*sizeof(float),cudaMemcpyDeviceToHost));
-        CHECK(cudaFree(d_input));
-        CHECK(cudaFree(d_output));
+
+        if (gpu_device == 0) {
+        CHECK(cudaMemcpy(Output,d_output0,ImSize*sizeof(float),cudaMemcpyDeviceToHost));
+        CHECK(cudaFree(d_input0));
+        CHECK(cudaFree(d_output0));
+        }
+        if (gpu_device == 1) {
+        CHECK(cudaMemcpy(Output,d_output1,ImSize*sizeof(float),cudaMemcpyDeviceToHost));
+        CHECK(cudaFree(d_input1));
+        CHECK(cudaFree(d_output1));
+        }
         return 0;
 }
 
