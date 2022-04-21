@@ -38,7 +38,7 @@ sino_an = TomoP2D.ModelSino(model, N_size, P, angles, path_library2D)
 
 # forming dictionaries with artifact types
 _noise_ =  {'noise_type' : 'Gaussian',
-            'noise_sigma' : 3.5, # noise amplitude
+            'noise_amplitude' : 0.5, # noise amplitude
             'noise_seed' : 0}
 
 # adding zingers
@@ -51,7 +51,7 @@ plt.figure(1)
 plt.rcParams.update({'font.size': 21})
 plt.imshow(sino_an_noisy, cmap="BuPu")
 plt.title('{}''{}'.format('Analytical sinogram of model no.',model))
-
+#%%
 print("Applying Median Filter in 2D...")
 
 pars = {'input_data' : sino_an_noisy, # input grayscale image
@@ -87,7 +87,7 @@ plt.title('{}''{}'.format('Dezingered sinogram of model no.',model))
 print("Applying Median Filter in 2D using GPU...")
 
 pars = {'input_data' : sino_an_noisy, # input grayscale image
-        'kernel_size' : 5}
+        'kernel_size' : 3}
 
 start_time = timeit.default_timer()
 filtered_gpu = MEDIAN_FILT_GPU(pars['input_data'], pars['kernel_size'])
