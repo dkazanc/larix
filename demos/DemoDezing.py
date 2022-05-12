@@ -3,7 +3,7 @@
 """
 Created April 2020
 
-Demo to show the capability of the dezinger and median filter 
+Demo to show the capability of the dezinger and median filter
 You will need to install TomoPhantom for this demo:
 conda install -c dkazanc tomophantom
 @author: Daniil Kazantsev
@@ -21,7 +21,7 @@ import tomophantom
 from tomophantom.supp.artifacts import _Artifacts_
 
 model = 13 # select a model
-N_size = 2000 # set dimension of the phantom
+N_size = 512 # set dimension of the phantom
 # one can specify an exact path to the parameters file
 # path_library2D = '../../../PhantomLibrary/models/Phantom2DLibrary.dat'
 path = os.path.dirname(tomophantom.__file__)
@@ -55,7 +55,7 @@ plt.title('{}''{}'.format('Analytical sinogram of model no.',model))
 print("Applying Median Filter in 2D...")
 
 pars = {'input_data' : sino_an_noisy, # input grayscale image
-        'kernel_size' : 5}
+        'kernel_size' : 3}
 
 start_time = timeit.default_timer()
 filtered = MEDIAN_FILT(pars['input_data'], pars['kernel_size'])
@@ -102,7 +102,7 @@ plt.title('{}''{}'.format('GPU Filtered sinogram of model no.',model))
 print("Applying GPU-accelerated Dezinger Filter in 2D...")
 
 pars = {'input_data' : sino_an_noisy, # input grayscale image
-        'kernel_size' : 5,
+        'kernel_size' : 3,
         'mu_threshold': 100.0}
 
 start_time = timeit.default_timer()

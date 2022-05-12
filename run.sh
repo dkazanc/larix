@@ -1,8 +1,7 @@
 #!/bin/bash
-echo "Building Larix software using CMake"
+echo "Building Larix software using CMake..."
+echo "<<< Make sure you've got cython and nvcc compiler installed >>>"
 rm -r build
-# Requires Cython, install it first:
-# pip install cython
 mkdir build
 cd build
 #make clean
@@ -14,10 +13,15 @@ cmake ../ -DBUILD_PYTHON_WRAPPER=ON -DBUILD_CUDA=ON -DCMAKE_BUILD_TYPE=Release -
 make install
 ############### Python(linux)###############
 cp install/lib/liblarix.so install/python/larix/methods
-cd install/python
+# copy testing script and data
+cp ../tests/build_testing.py install/python/
+cp ../data/sino_noisy.npy install/python/
+cp ../data/sino_denoiseCPU.npy install/python/
+cd install/python/
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:../lib
-spyder --new-instance
+ipython build_testing.py
+
+# another option is to run spyder and go the folder larix/build/install/python to be able to import modules
+#spyder --new-instance
 
 # All built shared objects will be placed into larix/build/install/python/larix/methods
-# in order to be able import modules you need to go to the folder larix/build/install/python to be able to import
-# modules
