@@ -1061,8 +1061,30 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         //dim3 dimGrid(idivup((N/nStreams),BLKXSIZE2D), idivup((M/nStreams),BLKYSIZE2D));
 
         const int blockSize = 16;
+        // the number of rows of pixels that will be processed by a single
+        // stream
+        const int rows_per_stream = streamSize/N;
+
+        // Each stream will process a subset of the data with shape
+        // (rows_per_stream, N). Calculate a (reasonably) optimal grid size of
+        // (16, 16) thread-blocks to map onto the 2D image
+        int grid_x_dim = 0;
+        int grid_y_dim = 0;
+        int vertical_count = 0;
+        int horizontal_count = 0;
+
+        while (vertical_count < rows_per_stream) {
+          grid_y_dim++;
+          vertical_count += blockSize;
+        }
+
+        while (horizontal_count < N) {
+          grid_x_dim++;
+          horizontal_count += blockSize;
+        }
+
         dim3 dimBlock(blockSize,blockSize);
-        dim3 dimGrid(idivup(streamSize,blockSize), idivup(streamSize,blockSize));
+        dim3 dimGrid(grid_x_dim, grid_y_dim);
 
         sizefilter_total = (int)(pow(kernel_size,2));
         kernel_half_size = (int)((kernel_size-1)/2);
