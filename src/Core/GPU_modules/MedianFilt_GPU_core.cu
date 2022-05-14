@@ -48,7 +48,7 @@ __global__ void medfilt1_kernel_2D(float *Input, float* Output, int offset, int 
       const int j = blockDim.y * blockIdx.y + threadIdx.y;
       const int index = offset + i + N*j;
 
-      if (index < num_total)	{
+      if (index < num_total && i < N && j < M)	{
       for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
             i1 =  i + i_m;
             if ((i1 < 0) || (i1 >= N)) i1 = i;
