@@ -1042,6 +1042,8 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         const int streamSize = n / nStreams;
         const int streamBytes = streamSize * sizeof(float);
         const int bytes = n * sizeof(float);
+        // number of bytes for one row of the 2D image
+        const int im_row_bytes = N * sizeof(float);
 
         // create events and streams
         cudaStream_t stream[nStreams];
@@ -1090,14 +1092,24 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         kernel_half_size = (int)((kernel_size-1)/2);
         midval = (int)(sizefilter_total/2);
 
+        // number of bytes to copy for a stream
+        int bytes_to_copy;
         for (int i = 0; i < nStreams; ++i) {
           int offset = i * streamSize; // calculate an offset for each stream
           /* copy streamed data from host to the device */
+          if (i < nStreams - 1) {
+            // for streams 0 to (nStreams - 1), copy an extra row of pixels in
+            // the image over to the GPU, so then neighbouring pixels (which are
+            // required to be accessible by the median filter's processing) are
+            // guaranteed to be in GPU memory when a stream begins processing
+            // its portion of the data
+            bytes_to_copy = streamBytes + im_row_bytes;
+          }
+          else {
+            bytes_to_copy = streamBytes;
+          }
           checkCudaErrors( cudaMemcpyAsync(&d_input0[offset], &Input[offset],
-                                     streamBytes, cudaMemcpyHostToDevice,
-                                     stream[i]) );
-          checkCudaErrors( cudaMemcpyAsync(&d_output0[offset], &Input[offset],
-                                     streamBytes, cudaMemcpyHostToDevice,
+                                     bytes_to_copy, cudaMemcpyHostToDevice,
                                      stream[i]) );
           // running the kernel
           //kernel<<<streamSize/blockSize, blockSize, 0, stream[i]>>>(d_a, offset);
