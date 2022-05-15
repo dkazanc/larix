@@ -1095,36 +1095,51 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         // number of bytes to copy for a stream
         int bytes_to_copy_h2d;
         int bytes_to_copy_d2h;
+        int copy_offset_h2d;
+        int copy_offset_d2h;
+        int process_offset;
         for (int i = 0; i < nStreams; ++i) {
-          int offset = i * streamSize; // calculate an offset for each stream
+          // every stream should still be processing the same number of
+          // elements, just that the memeory address where the data for a
+          // particular stream starts changes for every stream
+          process_offset = i * streamSize;
+          // since every stream processes the same number of elements, it should
+          // always copy the same number of elements back from GPU to CPU, just
+          // with a different memory address offset for each stream
+          copy_offset_d2h = i * streamSize;
+          bytes_to_copy_d2h = streamBytes;
           /* copy streamed data from host to the device */
-          if (i == 0) {
-            // for stream 0, copy an extra row of pixels that comes after the
-            // rows being processed in this stream, so then those neighbouring
-            // pixels are avaiable for processing in this stream
-            bytes_to_copy_h2d = streamBytes + im_row_bytes;
-            bytes_to_copy_d2h = streamBytes;
-          }
-          else if (1 <= i && i < nStreams - 1) {
-            // for streams 1 to (nStreams - 1), copy an extra row of pixels in
-            // the image that come before AND after the rows being processed in
-            // these streams over to the GPU:
-            // this so then neighbouring pixels of the first and last rows of
-            // the rows being processed in this stream are guaranteed to be in
-            // GPU memory
-            offset = i * streamSize - N;
-            bytes_to_copy_h2d = streamBytes + 2*im_row_bytes;
-            bytes_to_copy_d2h = streamBytes;
+          if (nStreams > 1) {
+            if (i == 0) {
+              // for stream 0, copy an extra row of pixels that comes after the
+              // rows being processed in this stream, so then those neighbouring
+              // pixels are avaiable for processing in this stream
+              bytes_to_copy_h2d = streamBytes + im_row_bytes;
+              copy_offset_h2d = 0;
+            }
+            else if (1 <= i && i < nStreams - 1) {
+              // for streams 1 to (nStreams - 1), copy an extra row of pixels in
+              // the image that come before AND after the rows being processed
+              // in these streams over to the GPU:
+              // this so then neighbouring pixels of the first and last rows of
+              // the rows being processed in this stream are guaranteed to be in
+              // GPU memory
+              copy_offset_h2d = i * streamSize - N;
+              bytes_to_copy_h2d = streamBytes + 2*im_row_bytes;
+            }
+            else {
+              // for the last stream, copy an extra row of pixels that comes
+              // before the rows being processed in this stream, so then those
+              // neighbouring pixels are available in this stream
+              copy_offset_h2d = i * streamSize - N;
+              bytes_to_copy_h2d = streamBytes + im_row_bytes;
+            }
           }
           else {
-            offset = i * streamSize - N;
-            // for the last stream, copy an extra row of pixels that comes
-            // before the rowsn being processed in this stream, so then those
-            // neighbouring pixels are available in this stream
-            bytes_to_copy_h2d = streamBytes + im_row_bytes;
-            bytes_to_copy_d2h = streamBytes + im_row_bytes;
+            copy_offset_h2d = 0;
+            bytes_to_copy_h2d = streamBytes;
           }
-          checkCudaErrors( cudaMemcpyAsync(&d_input0[offset], &Input[offset],
+          checkCudaErrors( cudaMemcpyAsync(&d_input0[copy_offset_h2d], &Input[copy_offset_h2d],
                                      bytes_to_copy_h2d, cudaMemcpyHostToDevice,
                                      stream[i]) );
           // running the kernel
@@ -1135,10 +1150,10 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
           //medfilt1_kernel_2D<<<numOfBlocks, numOfThreadsPerBlocks, 0, stream[i] >>>(d_input0+offset, d_output0+offset, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
           //simple_kernel<<<dimGrid, dimBlock, 0, stream[i] >>>(d_input0+offset, d_output0+offset, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
           //kernel<<<dimGrid, dimBlock, 0, stream[i]>>>(d_input0, d_output0, offset, N, M, ImSize);
-          medfilt1_kernel_2D<<<dimGrid, dimBlock, 0, stream[i] >>>(d_input0, d_output0, offset, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+          medfilt1_kernel_2D<<<dimGrid, dimBlock, 0, stream[i] >>>(d_input0, d_output0, process_offset, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
 
           /* copy processed data from device to the host */
-          checkCudaErrors( cudaMemcpyAsync(&Output[offset], &d_output0[offset],
+          checkCudaErrors( cudaMemcpyAsync(&Output[copy_offset_d2h], &d_output0[copy_offset_d2h],
                                      bytes_to_copy_d2h, cudaMemcpyDeviceToHost,
                                      stream[i]) );
           checkCudaErrors( cudaDeviceSynchronize() );
