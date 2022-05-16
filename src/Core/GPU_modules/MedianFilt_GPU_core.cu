@@ -1039,8 +1039,23 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         const int nStreams = 4;
         const int n = ImSize;
         //const int n = ImSize * nStreams;
-        const int streamSize = n / nStreams;
-        const int streamBytes = streamSize * sizeof(float);
+        // calculate the absolute minimum number of pixels that should be
+        // processed per stream
+        const int ideal_stream_size = n / nStreams;
+        // find the integer multiple of rows of the image that each stream needs
+        // to process in order to cover AT LEAST ideal_stream_size, but will in
+        // practice be a bit larger
+        const float ideal_rows_per_stream = (float)ideal_stream_size/(float)N;
+        const int rows_per_stream = ceil(ideal_rows_per_stream);
+        // calculate the number of bytes of data that each stream should be
+        // processing
+        const int stream_size = rows_per_stream * N;
+        const int stream_bytes = stream_size * sizeof(float);
+        // since the number of rows per stream was rounded UP, the amount of
+        // data copied to the GPU for the last stream isn't quite as big as for
+        // the other streams; calculate how many rows are leftover to process
+        // for the last stream
+        const int leftover_rows = M - ((nStreams - 1) * rows_per_stream);
         const int bytes = n * sizeof(float);
         // number of bytes for one row of the 2D image
         const int im_row_bytes = N * sizeof(float);
@@ -1063,9 +1078,6 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         //dim3 dimGrid(idivup((N/nStreams),BLKXSIZE2D), idivup((M/nStreams),BLKYSIZE2D));
 
         const int blockSize = 16;
-        // the number of rows of pixels that will be processed by a single
-        // stream
-        const int rows_per_stream = streamSize/N;
 
         // Each stream will process a subset of the data with shape
         // (rows_per_stream, N). Calculate a (reasonably) optimal grid size of
@@ -1102,19 +1114,19 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
           // every stream should still be processing the same number of
           // elements, just that the memeory address where the data for a
           // particular stream starts changes for every stream
-          process_offset = i * streamSize;
+          process_offset = i * stream_size;
           // since every stream processes the same number of elements, it should
           // always copy the same number of elements back from GPU to CPU, just
           // with a different memory address offset for each stream
-          copy_offset_d2h = i * streamSize;
-          bytes_to_copy_d2h = streamBytes;
+          copy_offset_d2h = i * stream_size;
+          bytes_to_copy_d2h = stream_bytes;
           /* copy streamed data from host to the device */
           if (nStreams > 1) {
             if (i == 0) {
               // for stream 0, copy an extra row of pixels that comes after the
               // rows being processed in this stream, so then those neighbouring
               // pixels are avaiable for processing in this stream
-              bytes_to_copy_h2d = streamBytes + im_row_bytes;
+              bytes_to_copy_h2d = stream_bytes + im_row_bytes;
               copy_offset_h2d = 0;
             }
             else if (1 <= i && i < nStreams - 1) {
@@ -1124,20 +1136,21 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
               // this so then neighbouring pixels of the first and last rows of
               // the rows being processed in this stream are guaranteed to be in
               // GPU memory
-              copy_offset_h2d = i * streamSize - N;
-              bytes_to_copy_h2d = streamBytes + 2*im_row_bytes;
+              copy_offset_h2d = i * stream_size - N;
+              bytes_to_copy_h2d = stream_bytes + 2*im_row_bytes;
             }
             else {
               // for the last stream, copy an extra row of pixels that comes
               // before the rows being processed in this stream, so then those
               // neighbouring pixels are available in this stream
-              copy_offset_h2d = i * streamSize - N;
-              bytes_to_copy_h2d = streamBytes + im_row_bytes;
+              copy_offset_h2d = i * stream_size - N;
+              bytes_to_copy_h2d = (leftover_rows + 1) * N * sizeof(float);
+              bytes_to_copy_d2h = leftover_rows * N * sizeof(float);
             }
           }
           else {
             copy_offset_h2d = 0;
-            bytes_to_copy_h2d = streamBytes;
+            bytes_to_copy_h2d = stream_bytes;
           }
           checkCudaErrors( cudaMemcpyAsync(&d_input0[copy_offset_h2d], &Input[copy_offset_h2d],
                                      bytes_to_copy_h2d, cudaMemcpyHostToDevice,
