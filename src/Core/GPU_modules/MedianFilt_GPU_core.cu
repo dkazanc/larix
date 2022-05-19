@@ -45,8 +45,11 @@ __global__ void medfilt1_kernel_2D(float *Input, float* Output, int offset, int 
       int i1, j1, i_m, j_m, counter = 0;
 
       const int i = blockDim.x * blockIdx.x + threadIdx.x;
-      const int j = blockDim.y * blockIdx.y + threadIdx.y;
-      const int index = offset + i + N*j;
+      // calculate the number of rows to offset the j index by to get to the
+      // first row of the image that the current stream should be processing
+      const int j_offset = offset / N;
+      const int j = blockDim.y * blockIdx.y + threadIdx.y + j_offset;
+      const int index = i + N*j;
 
       if (index < num_total && i < N && j < M)	{
       for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
@@ -55,7 +58,7 @@ __global__ void medfilt1_kernel_2D(float *Input, float* Output, int offset, int 
             for(j_m=-kernel_half_size; j_m<=kernel_half_size; j_m++) {
               j1 = j + j_m;
               if ((j1 < 0) || (j1 >= M)) j1 = j;
-              ValVec[counter++] = Input[offset + i1 + N*j1];
+              ValVec[counter++] = Input[i1 + N*j1];
       }}
       //sort_quick(ValVec, 0, CONSTVECSIZE_9); /* perform sorting */
       sort_bubble(ValVec, CONSTVECSIZE_9); /* perform sorting */
