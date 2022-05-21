@@ -1223,6 +1223,10 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         const int leftover_slabs = Z - ((nStreams - 1) * slabs_per_stream);
         const int leftover_slab_bytes = leftover_slabs * N * M * sizeof(float);
 
+        // calculate the number of bytes in a single vertical slice of the
+        // volume
+        const int vol_slice_bytes = N * M * sizeof(float);
+
         // Each stream will process a subset of the data with shape
         // (x, y, z) = (N, M, slabs_per_stream). Calculate a (reasonably)
         // optimal grid size of (8, 8, 8) thread-blocks to map onto the 3D
@@ -1268,36 +1272,53 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         }
         else {
 
-          int offset;
-          int bytes_to_copy;
+          // number of bytes to copy for a stream
+          int bytes_to_copy_h2d;
+          int bytes_to_copy_d2h;
+          int copy_offset_h2d;
+          int copy_offset_d2h;
+          int process_offset;
 
           for (int i = 0; i < nStreams; ++i) {
+            process_offset = i * stream_size;
+            copy_offset_d2h = i * stream_size;
+            bytes_to_copy_d2h = stream_bytes;
 
-            // calculate the offset for a stream
-            offset = i * stream_size;
-
-            if (i < nStreams - 1) {
-              bytes_to_copy = stream_bytes;
+            if(nStreams > 1) {
+              if (i == 0) {
+                copy_offset_h2d = 0;
+                bytes_to_copy_h2d = stream_bytes + vol_slice_bytes;
+              }
+              else if (1 <= i && i < nStreams - 1) {
+                copy_offset_h2d = i* stream_size - N*M;
+                bytes_to_copy_h2d = stream_bytes + 2*vol_slice_bytes;
+              }
+              else {
+                copy_offset_h2d = i* stream_size - N*M;
+                bytes_to_copy_h2d = leftover_slab_bytes + vol_slice_bytes;
+                bytes_to_copy_d2h = leftover_slabs * N*M * sizeof(float);
+              }
             }
             else {
-              bytes_to_copy = leftover_slab_bytes;
+              copy_offset_h2d = 0;
+              bytes_to_copy_h2d = stream_bytes;
             }
 
             // copy a slab of the data from CPU to GPU memory
-            checkCudaErrors( cudaMemcpyAsync(&d_input0[offset], &Input[offset],
-                                      bytes_to_copy, cudaMemcpyHostToDevice,
+            checkCudaErrors( cudaMemcpyAsync(&d_input0[copy_offset_h2d], &Input[copy_offset_h2d],
+                                      bytes_to_copy_h2d, cudaMemcpyHostToDevice,
                                       stream[i]) );
 
             /* Full data (traditional) 3D case */
-            if (kernel_size == 3) medfilt1_kernel_3D<<<dimGrid,dimBlock,0,stream[i]>>>(d_input0, d_output0, offset, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+            if (kernel_size == 3) medfilt1_kernel_3D<<<dimGrid,dimBlock,0,stream[i]>>>(d_input0, d_output0, process_offset, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
             else if (kernel_size == 5) medfilt2_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
             else if (kernel_size == 7) medfilt3_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
             else if (kernel_size == 9) medfilt4_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
             else medfilt5_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
 
             // copy a slab of the processed data from GPU to CPU memory
-            checkCudaErrors( cudaMemcpyAsync(&Output[offset], &d_output0[offset],
-                                      bytes_to_copy, cudaMemcpyDeviceToHost,
+            checkCudaErrors( cudaMemcpyAsync(&Output[copy_offset_d2h], &d_output0[copy_offset_d2h],
+                                      bytes_to_copy_d2h, cudaMemcpyDeviceToHost,
                                       stream[i]) );
           }
         }
