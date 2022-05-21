@@ -329,7 +329,7 @@ __global__ void medfilt5_kernel_uint16_2D(unsigned short *Input, unsigned short*
 /********************************************************************/
 /***************************3D Functions*****************************/
 /********************************************************************/
-__global__ void medfilt1_kernel_3D(float *Input, float* Output, int kernel_half_size, int sizefilter_total, float mu_threshold, int midval, int N, int M, int Z, int num_total)
+__global__ void medfilt1_kernel_3D(float *Input, float* Output, int offset, int kernel_half_size, int sizefilter_total, float mu_threshold, int midval, int N, int M, int Z, int num_total)
   {
       float ValVec[CONSTVECSIZE_27];
       long i1, j1, k1, i_m, j_m, k_m, counter;
@@ -337,7 +337,7 @@ __global__ void medfilt1_kernel_3D(float *Input, float* Output, int kernel_half_
       const long i = blockDim.x * blockIdx.x + threadIdx.x;
       const long j = blockDim.y * blockIdx.y + threadIdx.y;
       const long k = blockDim.z * blockIdx.z + threadIdx.z;
-      const long index = N*M*k + i + N*j;
+      const long index = offset + i + N*j + N*M*k;
 
       if (index < num_total)	{
       counter = 0l;
@@ -350,7 +350,7 @@ __global__ void medfilt1_kernel_3D(float *Input, float* Output, int kernel_half_
                 for(k_m=-kernel_half_size; k_m<=kernel_half_size; k_m++) {
                   k1 = k + k_m;
                   if ((k1 < 0) || (k1 >= Z)) k1 = k;
-                  ValVec[counter] = Input[N*M*k1 + i1 + N*j1];
+                  ValVec[counter] = Input[offset + i1 + N*j1 + N*M*k1];
                   counter++;
       }}}
       //sort_quick(ValVec, 0, CONSTVECSIZE_27); /* perform sorting */
@@ -1196,8 +1196,61 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
        }
 	else {
 		    /*3D case*/
+
+        // note that the slabs of the volume that are being processed in each
+        // stream are VERTICAL slabs rather than HORIZONTAL slabs, due to how
+        // the ordering of the test volume data is:
+        // - x index increases the quickest
+        // - y index increases next
+        // - z index increases the slowest
+
+        // calculate the absolute minimum number of pixels that should be
+        // processed per stream
+        const int ideal_stream_size = n / nStreams;
+        // find the integer multiple of slabs of the volume that each stream
+        // needs to process in order to cover AT LEAST ideal_stream_size, but
+        // will in practice be a bit larger
+        const float ideal_slabs_per_stream = (float)ideal_stream_size/(float)(N*M);
+        const int slabs_per_stream = ceil(ideal_slabs_per_stream);
+        // calculate the number of bytes of data that each stream should be
+        // processing
+        const int stream_size = slabs_per_stream * N * M;
+        const int stream_bytes = stream_size * sizeof(float);
+        // since the number of slabs per stream was rounded UP, the amount of
+        // data copied to the GPU for the last stream isn't quite as big as for
+        // the other streams; calculate how many slabs are leftover to process
+        // for the last stream
+        const int leftover_slabs = Z - ((nStreams - 1) * slabs_per_stream);
+        const int leftover_slab_bytes = leftover_slabs * N * M * sizeof(float);
+
+        // Each stream will process a subset of the data with shape
+        // (x, y, z) = (N, M, slabs_per_stream). Calculate a (reasonably)
+        // optimal grid size of (8, 8, 8) thread-blocks to map onto the 3D
+        // volume
+        int grid_x_dim = 0;
+        int grid_y_dim = 0;
+        int grid_z_dim = 0;
+        int vertical_count = 0;
+        int horizontal_count = 0;
+        int depth_count = 0;
+
+        while (vertical_count < M) {
+          grid_y_dim++;
+          vertical_count += BLKYSIZE;
+        }
+
+        while (horizontal_count < N) {
+          grid_x_dim++;
+          horizontal_count += BLKXSIZE;
+        }
+
+        while (depth_count < slabs_per_stream) {
+          grid_z_dim++;
+          depth_count += BLKZSIZE;
+        }
+
         dim3 dimBlock(BLKXSIZE,BLKYSIZE,BLKZSIZE);
-        dim3 dimGrid(idivup(N,BLKXSIZE), idivup(M,BLKYSIZE),idivup(Z,BLKXSIZE));
+        dim3 dimGrid(grid_x_dim, grid_y_dim, grid_z_dim);
         sizefilter_total = (int)(pow(kernel_size, 3));
         kernel_half_size = (int)((kernel_size-1)/2);
         midval = (int)(sizefilter_total/2);
@@ -1214,18 +1267,51 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         */
         }
         else {
-        /* Full data (traditional) 3D case */
-        /*
-        if (kernel_size == 3) medfilt1_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        else if (kernel_size == 5) medfilt2_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        else if (kernel_size == 7) medfilt3_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        else if (kernel_size == 9) medfilt4_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        else medfilt5_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        */
+
+          int offset;
+          int bytes_to_copy;
+
+          for (int i = 0; i < nStreams; ++i) {
+
+            // calculate the offset for a stream
+            offset = i * stream_size;
+
+            if (i < nStreams - 1) {
+              bytes_to_copy = stream_bytes;
+            }
+            else {
+              bytes_to_copy = leftover_slab_bytes;
+            }
+
+            // copy a slab of the data from CPU to GPU memory
+            checkCudaErrors( cudaMemcpyAsync(&d_input0[offset], &Input[offset],
+                                      bytes_to_copy, cudaMemcpyHostToDevice,
+                                      stream[i]) );
+
+            /* Full data (traditional) 3D case */
+            if (kernel_size == 3) medfilt1_kernel_3D<<<dimGrid,dimBlock,0,stream[i]>>>(d_input0, d_output0, offset, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+            else if (kernel_size == 5) medfilt2_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+            else if (kernel_size == 7) medfilt3_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+            else if (kernel_size == 9) medfilt4_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+            else medfilt5_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+
+            // copy a slab of the processed data from GPU to CPU memory
+            checkCudaErrors( cudaMemcpyAsync(&Output[offset], &d_output0[offset],
+                                      bytes_to_copy, cudaMemcpyDeviceToHost,
+                                      stream[i]) );
+          }
         }
         checkCudaErrors( cudaDeviceSynchronize() );
         checkCudaErrors(cudaPeekAtLastError() );
     		}
+
+        /*destroy streams*/
+        for (int i = 0; i < nStreams; ++i)
+          checkCudaErrors( cudaStreamDestroy(stream[i]) );
+
+        /*free GPU memory*/
+        checkCudaErrors(cudaFree(d_input0));
+        checkCudaErrors(cudaFree(d_output0));
 
         /*CHECK(cudaMemcpy(Output,d_output0,ImSize*sizeof(float),cudaMemcpyDeviceToHost));*/
         //cudaDeviceReset();
