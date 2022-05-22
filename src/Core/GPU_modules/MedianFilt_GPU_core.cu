@@ -343,7 +343,7 @@ __global__ void medfilt1_kernel_3D(float *Input, float* Output, int offset, int 
       const long k = blockDim.z * blockIdx.z + threadIdx.z + k_offset;
       const long index = i + N*j + N*M*k;
 
-      if (index < num_total)	{
+      if (index < num_total && i < N && j < M && k < Z)	{
       counter = 0l;
       for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
             i1 = i + i_m;
