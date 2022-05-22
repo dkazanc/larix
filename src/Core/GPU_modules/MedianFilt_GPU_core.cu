@@ -336,8 +336,12 @@ __global__ void medfilt1_kernel_3D(float *Input, float* Output, int offset, int 
 
       const long i = blockDim.x * blockIdx.x + threadIdx.x;
       const long j = blockDim.y * blockIdx.y + threadIdx.y;
-      const long k = blockDim.z * blockIdx.z + threadIdx.z;
-      const long index = offset + i + N*j + N*M*k;
+      // calculate the number of vertical slices to offset the k index by to get
+      // to the first vertical slice of the volume that the current stream
+      // should be processing
+      const int k_offset = offset / (N*M);
+      const long k = blockDim.z * blockIdx.z + threadIdx.z + k_offset;
+      const long index = i + N*j + N*M*k;
 
       if (index < num_total)	{
       counter = 0l;
@@ -350,7 +354,7 @@ __global__ void medfilt1_kernel_3D(float *Input, float* Output, int offset, int 
                 for(k_m=-kernel_half_size; k_m<=kernel_half_size; k_m++) {
                   k1 = k + k_m;
                   if ((k1 < 0) || (k1 >= Z)) k1 = k;
-                  ValVec[counter] = Input[offset + i1 + N*j1 + N*M*k1];
+                  ValVec[counter] = Input[i1 + N*j1 + N*M*k1];
                   counter++;
       }}}
       //sort_quick(ValVec, 0, CONSTVECSIZE_27); /* perform sorting */
