@@ -1211,28 +1211,27 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         // calculate the absolute minimum number of pixels that should be
         // processed per stream
         const int ideal_stream_size = n / nStreams;
-        // find the integer multiple of slabs of the volume that each stream
+        // find the integer multiple of slices of the volume that each stream
         // needs to process in order to cover AT LEAST ideal_stream_size, but
         // will in practice be a bit larger
-        const float ideal_slabs_per_stream = (float)ideal_stream_size/(float)(N*M);
-        const int slabs_per_stream = ceil(ideal_slabs_per_stream);
+        const float ideal_slices_per_stream = (float)ideal_stream_size/(float)(N*M);
+        const int slices_per_stream = ceil(ideal_slices_per_stream);
         // calculate the number of bytes of data that each stream should be
         // processing
-        const int stream_size = slabs_per_stream * N * M;
+        const int stream_size = slices_per_stream * N * M;
         const int stream_bytes = stream_size * sizeof(float);
-        // since the number of slabs per stream was rounded UP, the amount of
+        // since the number of slices per stream was rounded UP, the amount of
         // data copied to the GPU for the last stream isn't quite as big as for
-        // the other streams; calculate how many slabs are leftover to process
+        // the other streams; calculate how many slices are leftover to process
         // for the last stream
-        const int leftover_slabs = Z - ((nStreams - 1) * slabs_per_stream);
-        const int leftover_slab_bytes = leftover_slabs * N * M * sizeof(float);
+        const int leftover_slices = Z - ((nStreams - 1) * slices_per_stream);
+        const int leftover_slab_bytes = leftover_slices * N * M * sizeof(float);
 
-        // calculate the number of bytes in a single vertical slice of the
-        // volume
+        // calculate the number of bytes in a single slice of the volume
         const int vol_slice_bytes = N * M * sizeof(float);
 
         // Each stream will process a subset of the data with shape
-        // (x, y, z) = (N, M, slabs_per_stream). Calculate a (reasonably)
+        // (x, y, z) = (N, M, slices_per_stream). Calculate a (reasonably)
         // optimal grid size of (8, 8, 8) thread-blocks to map onto the 3D
         // volume
         int grid_x_dim = 0;
@@ -1252,7 +1251,7 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
           horizontal_count += BLKXSIZE;
         }
 
-        while (depth_count < slabs_per_stream) {
+        while (depth_count < slices_per_stream) {
           grid_z_dim++;
           depth_count += BLKZSIZE;
         }
@@ -1300,7 +1299,7 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
               else {
                 copy_offset_h2d = i* stream_size - N*M;
                 bytes_to_copy_h2d = leftover_slab_bytes + vol_slice_bytes;
-                bytes_to_copy_d2h = leftover_slabs * N*M * sizeof(float);
+                bytes_to_copy_d2h = leftover_slices * N*M * sizeof(float);
               }
             }
             else {
