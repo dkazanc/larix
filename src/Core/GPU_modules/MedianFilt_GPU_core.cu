@@ -1275,12 +1275,76 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         }
         else {
 
+          // Benchmark approach 1: WITHOUT streaming
+          int default_stream_grid_x_dim;
+          int default_stream_grid_y_dim;
+          int default_stream_grid_z_dim;
+          int default_stream_vertical_count = 0;
+          int default_stream_horizontal_count = 0;
+          int default_stream_depth_count = 0;
+          int default_stream_slices_per_stream = ceil((float)n/(float)(N*M));
+
+          while (default_stream_vertical_count < M) {
+            default_stream_grid_y_dim++;
+            default_stream_vertical_count += BLKXSIZE;
+          }
+
+          while (default_stream_horizontal_count < N) {
+            default_stream_grid_x_dim++;
+            default_stream_horizontal_count += BLKYSIZE;
+          }
+
+          while (default_stream_depth_count < default_stream_slices_per_stream) {
+            default_stream_grid_z_dim++;
+            default_stream_depth_count += BLKZSIZE;
+          }
+
+          dim3 defaultStreamDimBlock(BLKXSIZE, BLKYSIZE, BLKZSIZE);
+          dim3 defaultStreamDimGrid(default_stream_grid_x_dim,
+            default_stream_grid_y_dim, default_stream_grid_z_dim);
+          cudaEvent_t start_without_streaming, end_without_streaming;
+          float elapsed_time_without_streaming;
+          cudaEventCreate(&start_without_streaming);
+          cudaEventCreate(&end_without_streaming);
+          cudaEventRecord(start_without_streaming);
+
+          cudaMemcpy(d_input0, Input, bytes, cudaMemcpyHostToDevice);
+
+          /* Full data (traditional) 3D case */
+          if (kernel_size == 3) medfilt1_kernel_3D<<<defaultStreamDimGrid,defaultStreamDimBlock>>>(d_input0, d_output0, 0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+          //if (kernel_size == 3) medfilt1_kernel_3D<<<dimGrid,dimBlock, 0, stream[0]>>>(d_input0, d_output0, 0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+          else if (kernel_size == 5) medfilt2_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+          else if (kernel_size == 7) medfilt3_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+          else if (kernel_size == 9) medfilt4_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+          else medfilt5_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+
+          cudaMemcpy(Output, d_output0, bytes, cudaMemcpyDeviceToHost);
+
+          // finish clocking approach 1: WITHOUT streaming
+          cudaEventRecord(end_without_streaming);
+          cudaEventSynchronize(end_without_streaming);
+          cudaEventElapsedTime(&elapsed_time_without_streaming,
+            start_without_streaming, end_without_streaming);
+          printf("3D median filter WITHOUT streaming (ie, just using the single default stream) took %f ms\n",
+            elapsed_time_without_streaming);
+          cudaEventDestroy(start_without_streaming);
+          cudaEventDestroy(end_without_streaming);
+
+
           // number of bytes to copy for a stream
           int bytes_to_copy_h2d;
           int bytes_to_copy_d2h;
           int copy_offset_h2d;
           int copy_offset_d2h;
           int process_offset;
+
+          // Benchmark approach 2: WITH streaming, looping over different
+          // operations
+          cudaEvent_t start_with_streaming, end_with_streaming;
+          float elapsed_time_with_streaming;
+          cudaEventCreate(&start_with_streaming);
+          cudaEventCreate(&end_with_streaming);
+          cudaEventRecord(start_with_streaming);
 
           for (int i = 0; i < nStreams; ++i) {
             process_offset = i * stream_size;
@@ -1324,6 +1388,104 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
                                       bytes_to_copy_d2h, cudaMemcpyDeviceToHost,
                                       stream[i]) );
           }
+          // finish clocking approach 2: WITH streaming, looping over different
+          // operations
+          cudaEventRecord(end_with_streaming);
+          cudaEventSynchronize(end_with_streaming);
+          cudaEventElapsedTime(&elapsed_time_with_streaming,
+            start_with_streaming, end_with_streaming);
+          printf("3D median filter WITH %d streams and looping over different operations took %f ms\n", nStreams,
+            elapsed_time_with_streaming);
+          cudaEventDestroy(start_with_streaming);
+          cudaEventDestroy(end_with_streaming);
+
+
+          // Benchmark approach 3: WITH streaming, looping over like-operations
+          cudaEvent_t start_with_streaming_like_ops, end_with_streaming_like_ops;
+          float elapsed_time_with_streaming_like_ops;
+          cudaEventCreate(&start_with_streaming_like_ops);
+          cudaEventCreate(&end_with_streaming_like_ops);
+          cudaEventRecord(start_with_streaming_like_ops);
+
+          // loop over h2d copying
+          for (int i = 0; i < nStreams; i++) {
+            copy_offset_d2h = i * stream_size;
+            bytes_to_copy_d2h = stream_bytes;
+
+            if(nStreams > 1) {
+              if (i == 0) {
+                copy_offset_h2d = 0;
+                bytes_to_copy_h2d = stream_bytes + vol_slice_bytes;
+              }
+              else if (1 <= i && i < nStreams - 1) {
+                copy_offset_h2d = i* stream_size - N*M;
+                bytes_to_copy_h2d = stream_bytes + 2*vol_slice_bytes;
+              }
+              else {
+                copy_offset_h2d = i* stream_size - N*M;
+                bytes_to_copy_h2d = leftover_slab_bytes + vol_slice_bytes;
+                bytes_to_copy_d2h = leftover_slices * N*M * sizeof(float);
+              }
+            }
+            else {
+              copy_offset_h2d = 0;
+              bytes_to_copy_h2d = stream_bytes;
+            }
+
+            // copy a slab of the data from CPU to GPU memory
+            checkCudaErrors( cudaMemcpyAsync(&d_input0[copy_offset_h2d], &Input[copy_offset_h2d],
+                                      bytes_to_copy_h2d, cudaMemcpyHostToDevice,
+                                      stream[i]) );
+          }
+
+          // loop over kernel launches
+          for (int i = 0; i < nStreams; i++) {
+            process_offset = i * stream_size;
+            medfilt1_kernel_3D<<<dimGrid,dimBlock,0,stream[i]>>>(d_input0, d_output0, process_offset, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+          }
+
+          // loop over d2h copying
+          for (int i = 0; i < nStreams; i++) {
+            copy_offset_d2h = i * stream_size;
+            bytes_to_copy_d2h = stream_bytes;
+
+            if(nStreams > 1) {
+              if (i == 0) {
+                copy_offset_h2d = 0;
+                bytes_to_copy_h2d = stream_bytes + vol_slice_bytes;
+              }
+              else if (1 <= i && i < nStreams - 1) {
+                copy_offset_h2d = i* stream_size - N*M;
+                bytes_to_copy_h2d = stream_bytes + 2*vol_slice_bytes;
+              }
+              else {
+                copy_offset_h2d = i* stream_size - N*M;
+                bytes_to_copy_h2d = leftover_slab_bytes + vol_slice_bytes;
+                bytes_to_copy_d2h = leftover_slices * N*M * sizeof(float);
+              }
+            }
+            else {
+              copy_offset_h2d = 0;
+              bytes_to_copy_h2d = stream_bytes;
+            }
+
+            // copy a slab of the processed data from GPU to CPU memory
+            checkCudaErrors( cudaMemcpyAsync(&Output[copy_offset_d2h], &d_output0[copy_offset_d2h],
+                                      bytes_to_copy_d2h, cudaMemcpyDeviceToHost,
+                                      stream[i]) );
+          }
+
+          // finish clocking approach 3: WITH streaming, looping over
+          // like-operations
+          cudaEventRecord(end_with_streaming_like_ops);
+          cudaEventSynchronize(end_with_streaming_like_ops);
+          cudaEventElapsedTime(&elapsed_time_with_streaming_like_ops,
+            start_with_streaming_like_ops, end_with_streaming_like_ops);
+          printf("3D median filter WITH %d streams and looping over like-operatons took %f ms\n",
+            nStreams, elapsed_time_with_streaming_like_ops);
+          cudaEventDestroy(start_with_streaming_like_ops);
+          cudaEventDestroy(end_with_streaming_like_ops);
+
         }
         checkCudaErrors( cudaDeviceSynchronize() );
         checkCudaErrors(cudaPeekAtLastError() );
