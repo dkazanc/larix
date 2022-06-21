@@ -1075,6 +1075,16 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         // allocate memory on the device
         checkCudaErrors(cudaMalloc((void**)&d_input0, bytes));
         checkCudaErrors(cudaMalloc((void**)&d_output0, bytes));
+
+        // allocate pinned memory for data
+        float* pinned_mem_input;
+        float* pinned_mem_output;
+        cudaHostAlloc(&pinned_mem_input, bytes, cudaHostAllocDefault);
+        for (int i = 0; i < ImSize; i++) {
+          pinned_mem_input[i] = Input[i];
+        }
+        cudaHostAlloc(&pinned_mem_output, bytes, cudaHostAllocDefault);
+
         /*
         checkCudaErrors(cudaMemcpy(d_input0,Input,ImSize*sizeof(float),cudaMemcpyHostToDevice));
         checkCudaErrors(cudaMemcpy(d_output0,Input,ImSize*sizeof(float),cudaMemcpyHostToDevice));
@@ -1372,7 +1382,7 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
             }
 
             // copy a slab of the data from CPU to GPU memory
-            checkCudaErrors( cudaMemcpyAsync(&d_input0[copy_offset_h2d], &Input[copy_offset_h2d],
+            checkCudaErrors( cudaMemcpyAsync(&d_input0[copy_offset_h2d], &pinned_mem_input[copy_offset_h2d],
                                       bytes_to_copy_h2d, cudaMemcpyHostToDevice,
                                       stream[i]) );
 
@@ -1384,7 +1394,7 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
             else medfilt5_kernel_3D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
 
             // copy a slab of the processed data from GPU to CPU memory
-            checkCudaErrors( cudaMemcpyAsync(&Output[copy_offset_d2h], &d_output0[copy_offset_d2h],
+            checkCudaErrors( cudaMemcpyAsync(&pinned_mem_output[copy_offset_d2h], &d_output0[copy_offset_d2h],
                                       bytes_to_copy_d2h, cudaMemcpyDeviceToHost,
                                       stream[i]) );
           }
@@ -1433,7 +1443,7 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
             }
 
             // copy a slab of the data from CPU to GPU memory
-            checkCudaErrors( cudaMemcpyAsync(&d_input0[copy_offset_h2d], &Input[copy_offset_h2d],
+            checkCudaErrors( cudaMemcpyAsync(&d_input0[copy_offset_h2d], &pinned_mem_input[copy_offset_h2d],
                                       bytes_to_copy_h2d, cudaMemcpyHostToDevice,
                                       stream[i]) );
           }
@@ -1470,7 +1480,7 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
             }
 
             // copy a slab of the processed data from GPU to CPU memory
-            checkCudaErrors( cudaMemcpyAsync(&Output[copy_offset_d2h], &d_output0[copy_offset_d2h],
+            checkCudaErrors( cudaMemcpyAsync(&pinned_mem_output[copy_offset_d2h], &d_output0[copy_offset_d2h],
                                       bytes_to_copy_d2h, cudaMemcpyDeviceToHost,
                                       stream[i]) );
           }
@@ -1491,6 +1501,13 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         checkCudaErrors(cudaPeekAtLastError() );
     		}
 
+        // when using pinned memory to hold output, copy result from pinned
+        // memeory to paged memory (the Output pointer) so then the result is
+        // seen by the python wrapper
+        for (int i = 0; i < ImSize; i++) {
+          Output[i] = pinned_mem_output[i];
+        }
+
         /*destroy streams*/
         for (int i = 0; i < nStreams; ++i)
           checkCudaErrors( cudaStreamDestroy(stream[i]) );
@@ -1498,6 +1515,10 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         /*free GPU memory*/
         checkCudaErrors(cudaFree(d_input0));
         checkCudaErrors(cudaFree(d_output0));
+
+        // free pinned memory on host
+        cudaFreeHost(pinned_mem_input);
+        cudaFreeHost(pinned_mem_output);
 
         /*CHECK(cudaMemcpy(Output,d_output0,ImSize*sizeof(float),cudaMemcpyDeviceToHost));*/
         //cudaDeviceReset();
