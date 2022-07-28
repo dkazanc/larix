@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import timeit
 from scipy import io
-from larix.methods.misc import INPAINT_NDF, INPAINT_NM, INPAINT_LINCOMB
+#from larix.methods.misc import INPAINT_NDF, INPAINT_NM, INPAINT_LINCOMB
 ###############################################################################
 def printParametersToString(pars):
         txt = r''
@@ -70,10 +70,10 @@ imgplot = plt.imshow(sino_cut_new,cmap="gray")
 
 # set parameters
 pars = {'algorithm' : INPAINT_LINCOMB, \
-        'input' : sino_cut_new+mask,\
+        'input' : sino_cut_new,\
         'maskData' : mask,
-        'number_of_iterations' : 1000,
-        'windowsize_half' : 3,
+        'number_of_iterations' : 300,
+        'windowsize_half' : 1,
         'sigma' : 0.55}
         
 start_time = timeit.default_timer()
@@ -159,7 +159,7 @@ pars = {'algorithm' : INPAINT_NDF, \
         'maskData' : mask,\
         'regularisation_parameter':80,\
         'edge_parameter':0.00009,\
-        'number_of_iterations' :1500 ,\
+        'number_of_iterations' :500 ,\
         'time_marching_parameter':0.000008,\
         'penalty_type':1
         }
@@ -202,7 +202,7 @@ imgplot = plt.imshow(sino_cut,cmap="gray")
 pars = {'algorithm' : INPAINT_NM, \
         'input' : sino_cut_new,\
         'maskData' : mask,\
-        'SW_increment': 1,\
+        'SW_increment': 2,\
         'number_of_iterations' : 150
         }
         
