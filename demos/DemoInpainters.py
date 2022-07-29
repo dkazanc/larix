@@ -62,7 +62,7 @@ print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 print ("___Inpainting using boundaries exatrapolation___")
 print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 ## plot 
-fig = plt.figure(6)
+fig = plt.figure()
 plt.suptitle('Performance of ')
 a=fig.add_subplot(1,2,1)
 a.set_title('Missing data sinogram')
@@ -72,8 +72,8 @@ imgplot = plt.imshow(sino_cut_new,cmap="gray")
 pars = {'algorithm' : INPAINT_LINCOMB, \
         'input' : sino_cut_new,\
         'maskData' : mask,
-        'number_of_iterations' : 300,
-        'windowsize_half' : 1,
+        'number_of_iterations' : 50,
+        'windowsize_half' : 3,
         'sigma' : 0.55}
         
 start_time = timeit.default_timer()
@@ -84,15 +84,15 @@ start_time = timeit.default_timer()
               pars['sigma'])
 
 
+
 txtstr = printParametersToString(pars)
 txtstr += "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 a=fig.add_subplot(1,2,2)
-
 # these are matplotlib.patch.Patch properties
 props = dict(boxstyle='round', facecolor='wheat', alpha=0.75)
 # place a text box in upper left in axes coords
-a.text(0.15, 0.25, txtstr, transform=a.transAxes, fontsize=14,
+a.text(0.1, 0.1, txtstr, transform=a.transAxes, fontsize=14,
          verticalalignment='top', bbox=props)
 imgplot = plt.imshow(inp_simple, cmap="gray")
 plt.title('{}'.format('Extrapolation inpainting results'))

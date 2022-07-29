@@ -35,7 +35,7 @@
 
 int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, int W_halfsize, float sigma, int dimX, int dimY, int dimZ)
 {
-    long i, j, k, i1, j1, k1, l, countmask, DimTotal;
+    long i, j, k, i1, j1, k1, l, countmask, DimTotal, iterations_mask_complete;
     int i_m, j_m;
     float *minmax_array, *Gauss_weights, *Updated=NULL, sumweigths;
     int W_fullsize, counter;
@@ -52,11 +52,18 @@ int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, un
     minmax_array = (float*) calloc (2,sizeof(float));
     max_val_mask(Input, M_upd, minmax_array, (long)(dimX), (long)(dimY), (long)(dimZ));
 
-    /*calculate all nonzero values in the mask */
+    /*calculate all nonzero values in the given mask */
     countmask = 0;
-    for (k=0; k<dimY*dimX*dimZ; k++) {
-      if (M_upd[k] == 1) countmask++;
+    for (k=0; k<DimTotal; k++) {
+      if (Mask[k] == 1) countmask++;
     }
+    if (countmask == 0) {
+      free(minmax_array);
+      free(Updated);
+      free(Gauss_weights);
+      return 0;
+    }
+    iterations_mask_complete = countmask; /*the maximum number of required iterations to do the completion of the inpainted region */
 
     /* pre-calculation of Gaussian distance weights  */
     W_fullsize = (int)(2*W_halfsize + 1); /*full size of similarity window */
@@ -71,24 +78,34 @@ int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, un
         }
     }
 
-    if (countmask == 0) {
-      /*printf("%s \n", "Nothing to inpaint, zero mask!");*/
-      free(minmax_array);
-      free(Updated);
-      free(Gauss_weights);
-      return 0;
-      }
-    else {
     if (dimZ == 1) {
-    for (l=0; l<iterations; l++) {
+    for (l=0; l<iterations_mask_complete; l++) {
     #pragma omp parallel for shared(Input,M_upd,Gauss_weights) private(i1,j1)
     for(i1=0; i1<dimX; i1++) {
         for(j1=0; j1<dimY; j1++) {
     /*mean_inp_2D(Input, M_upd, Output, sigma, W_halfsize, i1, j1, (long)(dimX), (long)(dimY)); */
-    mean_inp2_2D(Input, M_upd, Output, Updated, Gauss_weights, W_halfsize, W_fullsize, sumweigths, i1, j1, (long)(dimX), (long)(dimY));
-     }}
+    mean_inpainting_2D(Input, M_upd, Output, Updated, Gauss_weights, W_halfsize, W_fullsize, i1, j1, (long)(dimX), (long)(dimY));  }}
     copyIm(Updated, Output, (long)(dimX), (long)(dimY), (long)(dimZ));
+
+    /*check here if the iterations to complete the masked region needs to be terminated */
+    countmask = 0;
+    for (k=0; k<DimTotal; k++) {
+      if (M_upd[k] == 1) countmask++;
     }
+    if (countmask == 0) {
+      printf("%ld \n", l);
+      break; /*exit iterations_mask_complete loop */
+    }
+              }
+    /*performing user defined iterations */
+    for (l=0; l<iterations; l++) {
+    #pragma omp parallel for shared(Input,M_upd,Gauss_weights) private(i1,j1)
+    for(i1=0; i1<dimX; i1++) {
+        for(j1=0; j1<dimY; j1++) {
+    mean_inpainting_2D(Input, M_upd, Output, Updated, Gauss_weights, W_halfsize, W_fullsize, i1, j1, (long)(dimX), (long)(dimY));}}
+    copyIm(Updated, Output, (long)(dimX), (long)(dimY), (long)(dimZ));
+    copyIm_unchar(Mask, M_upd, dimX, dimY, dimZ);
+      }
     }
     else {
     /* 3D version */
@@ -111,7 +128,6 @@ int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, un
     free(minmax_array);
     free(Updated);
     return 0;
-    }
 }
 
 /********************************************************************/
@@ -152,16 +168,16 @@ void mean_inp_2D(float *Input, unsigned char *M_upd, float *Output, float sigma,
 	return;
 }
 
-void mean_inp2_2D(float *Input, unsigned char *M_upd, float *Output, float *Updated, float *Gauss_weights, int W_halfsize, int W_fullsize, float sumweigths, long i, long j, long dimX, long dimY)
+void mean_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float *Updated, float *Gauss_weights, int W_halfsize, int W_fullsize, long i, long j, long dimX, long dimY)
 {
-  long i_m, j_m, i1, j1, z, index, index2, counter, counterglob;
-  float *ValVec, multiplier, sum_val;
-
-  ValVec = (float*) calloc(W_fullsize, sizeof(float));
+  long i_m, j_m, i1, j1, index, index2;
+  float multiplier, sum_val, sumweights, euclidian_weight;
+  float *ValVec;
+  int counter_local;
+  //ValVec = (float*) calloc(W_fullsize, sizeof(float));
 
   index = j*dimX+i;
-  counter = 0; counterglob = 0; sum_val = 0.0;
-  /* check that you're on the region defined by mask */
+  /* check that you're on the region defined by the updated mask */
   if (M_upd[index] == 1) {
   /* check that the pixel to be inpainted is NOT surrounded by zeros of the updated image (Output).
   The idea here is to wait inpainting pixels which are far from the boundaries - to ensure a gradual front progression
@@ -169,6 +185,7 @@ void mean_inp2_2D(float *Input, unsigned char *M_upd, float *Output, float *Upda
   if ((i-1 > 0) && (i+1 < dimX) && (j-1 > 0) && (j+1 < dimY)) {
     if ((Output[j*dimX+(i-1)] != 0.0) || (Output[j*dimX+(i+1)] != 0.0) || (Output[(j-1)*dimX+i] != 0.0) || (Output[(j+1)*dimX+i] != 0.0)) {
 
+      counter_local = 0; sum_val = 0.0f; sumweights = 0.0f; multiplier = 1.0f;
       for(i_m=-W_halfsize; i_m<=W_halfsize; i_m++) {
           i1 = i+i_m;
           if ((i1 < 0) || (i1 >= dimX)) i1 = i;
@@ -177,25 +194,36 @@ void mean_inp2_2D(float *Input, unsigned char *M_upd, float *Output, float *Upda
               if ((j1 < 0) || (j1 >= dimY)) j1 = j;
                   index2 = j1*dimX + i1;
                   /* */
-                  if (Updated[index2] != 0.0) {
+                  //euclidian_weight = expf(-(powf((i_m), 2) + powf((j_m), 2))/(2*W_halfsize*W_halfsize));
+                  euclidian_weight = 1.0f;
+                  if (Output[index2] != 0.0) {
                   /*ValVec[counter] = Output[index2]*(Gauss_weights[counterglob]/sumweigths);*/
-                  sum_val += Updated[index2];
-                  counter++;
+                  sum_val += Output[index2]*euclidian_weight;
+                  counter_local++;
                 }
-                counterglob++;
+                sumweights += euclidian_weight;
           }}
+      multiplier = (float)counter_local*0.1f;
       /* if there were non zero mask values */
-      if (counter > 0) {
-      multiplier = (float)(W_fullsize/counter);
+      if (counter_local > 0) {
+      //multiplier = (float)((float)W_fullsize/(float)counter);
       /*
       for(z=0; z<counter; z++) {
       sum_val += (ValVec[z]/counter)*multiplier;
       }
       */
-      Output[index] = sum_val/counter;
+      /*printf("%f \n", sumweigths);*/
+      /*printf("%f \n", multiplier);*/
+      //Updated[index] = (sum_val/(counter*sumweigths))*multiplier;
+      Updated[index] = sum_val/(float)counter_local;
+      //Updated[index] = (float)sum_val*100.0f;
+      //Updated[index] = (sum_val/counter)*multiplier;
+      M_upd[index] = 0;
+        }
       }
     }
-  free(ValVec);
+  }
+  //free(ValVec);
 	return;
 }
 
