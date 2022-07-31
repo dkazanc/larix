@@ -72,8 +72,8 @@ imgplot = plt.imshow(sino_cut_new,cmap="gray")
 pars = {'algorithm' : INPAINT_LINCOMB, \
         'input' : sino_cut_new,\
         'maskData' : mask,
-        'number_of_iterations' : 50,
-        'windowsize_half' : 3,
+        'number_of_iterations' : 3,
+        'windowsize_half' : 7,
         'sigma' : 0.55}
         
 start_time = timeit.default_timer()
