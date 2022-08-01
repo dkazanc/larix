@@ -72,7 +72,7 @@ imgplot = plt.imshow(sino_cut_new,cmap="gray")
 pars = {'algorithm' : INPAINT_EUCL_WEIGHTED, 
         'input' : sino_cut_new,
         'maskData' : mask,
-        'number_of_iterations' : 5,
+        'number_of_iterations' : 0,
         'windowsize_half' : 7}
         
 start_time = timeit.default_timer()
