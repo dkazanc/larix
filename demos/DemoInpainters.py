@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import timeit
 from scipy import io
-from larix.methods.misc import INPAINT_NDF, INPAINT_NM, INPAINT_LINCOMB
+#from larix.methods.misc import INPAINT_NDF, INPAINT_NM, INPAINT_EUCL_WEIGHTED
 ###############################################################################
 def printParametersToString(pars):
         txt = r''
@@ -62,37 +62,35 @@ print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 print ("___Inpainting using boundaries exatrapolation___")
 print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 ## plot 
-fig = plt.figure(6)
+fig = plt.figure()
 plt.suptitle('Performance of ')
 a=fig.add_subplot(1,2,1)
 a.set_title('Missing data sinogram')
 imgplot = plt.imshow(sino_cut_new,cmap="gray")
 
 # set parameters
-pars = {'algorithm' : INPAINT_LINCOMB, \
-        'input' : sino_cut_new+mask,\
+pars = {'algorithm' : INPAINT_EUCL_WEIGHTED, 
+        'input' : sino_cut_new,
         'maskData' : mask,
-        'number_of_iterations' : 1000,
-        'windowsize_half' : 3,
-        'sigma' : 0.55}
+        'number_of_iterations' : 5,
+        'windowsize_half' : 7}
         
 start_time = timeit.default_timer()
-(inp_simple, mask_upd) = INPAINT_LINCOMB(pars['input'],
+(inp_simple, mask_upd) = INPAINT_EUCL_WEIGHTED(pars['input'],
               pars['maskData'], 
               pars['number_of_iterations'],
-              pars['windowsize_half'],
-              pars['sigma'])
+              pars['windowsize_half'])
+
 
 
 txtstr = printParametersToString(pars)
 txtstr += "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 a=fig.add_subplot(1,2,2)
-
 # these are matplotlib.patch.Patch properties
 props = dict(boxstyle='round', facecolor='wheat', alpha=0.75)
 # place a text box in upper left in axes coords
-a.text(0.15, 0.25, txtstr, transform=a.transAxes, fontsize=14,
+a.text(0.1, 0.1, txtstr, transform=a.transAxes, fontsize=14,
          verticalalignment='top', bbox=props)
 imgplot = plt.imshow(inp_simple, cmap="gray")
 plt.title('{}'.format('Extrapolation inpainting results'))
@@ -159,7 +157,7 @@ pars = {'algorithm' : INPAINT_NDF, \
         'maskData' : mask,\
         'regularisation_parameter':80,\
         'edge_parameter':0.00009,\
-        'number_of_iterations' :1500 ,\
+        'number_of_iterations' :500 ,\
         'time_marching_parameter':0.000008,\
         'penalty_type':1
         }
@@ -202,7 +200,7 @@ imgplot = plt.imshow(sino_cut,cmap="gray")
 pars = {'algorithm' : INPAINT_NM, \
         'input' : sino_cut_new,\
         'maskData' : mask,\
-        'SW_increment': 1,\
+        'SW_increment': 2,\
         'number_of_iterations' : 150
         }
         

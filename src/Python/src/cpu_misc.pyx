@@ -20,7 +20,7 @@ cdef extern int medianfilter_main_float(float *Input, float *Output, int kernel_
 cdef extern int medianfilter_main_uint16(unsigned short *Input, unsigned short *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ);
 cdef extern int Diffusion_Inpaint_CPU_main(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float sigmaPar, int iterationsNumb, float tau, int penaltytype, int dimX, int dimY, int dimZ);
 cdef extern int NonlocalMarching_Inpaint_main(float *Input, unsigned char *M, float *Output, unsigned char *M_upd, int SW_increment, int iterationsNumb, int trigger, int dimX, int dimY, int dimZ);
-cdef extern int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, int W_halfsize, float sigma, int dimX, int dimY, int dimZ);
+cdef extern int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, int W_halfsize, int dimX, int dimY, int dimZ);
 #################################################################
 ##########################Autocropper ###########################
 #################################################################
@@ -335,19 +335,18 @@ def INPAINT_NM_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] inputData,
         raise ValueError("2D CPU nonlocal marching inpainting failed to return 0")
 
 #*********************Inpainting WITH****************************#
-#************simple linear combination method*********************#
+#*********************Weighted means*****************************#
 #****************************************************************#
-def INPAINT_LINCOMB(inputData, maskData, iterationsNumb, windowsize_half, sigma):
+def INPAINT_EUCL_WEIGHTED(inputData, maskData, iterationsNumb, windowsize_half):
     if inputData.ndim == 2:
-        return INPAINT_LINCOMB_2D(inputData, maskData, iterationsNumb, windowsize_half, sigma)
+        return INPAINT_EUC_WEIGHT_2D(inputData, maskData, iterationsNumb, windowsize_half)
     elif inputData.ndim == 3:
-        return INPAINT_LINCOMB_3D(inputData, maskData, iterationsNumb, windowsize_half, sigma)
+        return INPAINT_EUC_WEIGHT_3D(inputData, maskData, iterationsNumb, windowsize_half)
 
-def INPAINT_LINCOMB_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] inputData,
+def INPAINT_EUC_WEIGHT_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] inputData,
                np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
                int iterationsNumb,
-               int windowsize_half,
-               float sigma):
+               int windowsize_half):
 
     cdef long dims[2]
     dims[0] = inputData.shape[0]
@@ -359,16 +358,15 @@ def INPAINT_LINCOMB_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] inputData,
     cdef np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData_upd = \
             np.zeros([dims[0],dims[1]], dtype='uint8')
 
-    if (Inpaint_simple_CPU_main(&inputData[0,0], &maskData[0,0], &outputData[0,0], &maskData_upd[0,0], iterationsNumb, windowsize_half, sigma, dims[1], dims[0], 1)==0):
+    if (Inpaint_simple_CPU_main(&inputData[0,0], &maskData[0,0], &outputData[0,0], &maskData_upd[0,0], iterationsNumb, windowsize_half, dims[1], dims[0], 1)==0):
         return (outputData, maskData_upd)
     else:
         raise ValueError("2D CPU inpainting failed to return 0")
 
-def INPAINT_LINCOMB_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData,
+def INPAINT_EUC_WEIGHT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData,
                np.ndarray[np.uint8_t, ndim=3, mode="c"] maskData,
                int iterationsNumb,
-               int windowsize_half,
-               float sigma):
+               int windowsize_half):
 
     cdef long dims[3]
     dims[0] = inputData.shape[0]
@@ -381,7 +379,7 @@ def INPAINT_LINCOMB_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData,
     cdef np.ndarray[np.uint8_t, ndim=3, mode="c"] maskData_upd = \
             np.zeros([dims[0],dims[1],dims[2]], dtype='uint8')
 
-    if (Inpaint_simple_CPU_main(&inputData[0,0,0], &maskData[0,0,0], &outputData[0,0,0], &maskData_upd[0,0,0], iterationsNumb, windowsize_half, sigma, dims[2], dims[1], dims[0])==0):
+    if (Inpaint_simple_CPU_main(&inputData[0,0,0], &maskData[0,0,0], &outputData[0,0,0], &maskData_upd[0,0,0], iterationsNumb, windowsize_half, dims[2], dims[1], dims[0])==0):
         return (outputData, maskData_upd)
     else:
         raise ValueError("3D CPU inpainting failed to return 0")
