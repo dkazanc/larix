@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import timeit
 from scipy import io
-#from larix.methods.misc import INPAINT_NDF, INPAINT_NM, INPAINT_LINCOMB
+#from larix.methods.misc import INPAINT_NDF, INPAINT_NM, INPAINT_EUCL_WEIGHTED
 ###############################################################################
 def printParametersToString(pars):
         txt = r''
@@ -69,19 +69,17 @@ a.set_title('Missing data sinogram')
 imgplot = plt.imshow(sino_cut_new,cmap="gray")
 
 # set parameters
-pars = {'algorithm' : INPAINT_LINCOMB, \
-        'input' : sino_cut_new,\
+pars = {'algorithm' : INPAINT_EUCL_WEIGHTED, 
+        'input' : sino_cut_new,
         'maskData' : mask,
-        'number_of_iterations' : 3,
-        'windowsize_half' : 7,
-        'sigma' : 0.55}
+        'number_of_iterations' : 5,
+        'windowsize_half' : 7}
         
 start_time = timeit.default_timer()
-(inp_simple, mask_upd) = INPAINT_LINCOMB(pars['input'],
+(inp_simple, mask_upd) = INPAINT_EUCL_WEIGHTED(pars['input'],
               pars['maskData'], 
               pars['number_of_iterations'],
-              pars['windowsize_half'],
-              pars['sigma'])
+              pars['windowsize_half'])
 
 
 

@@ -33,11 +33,11 @@
  * [1] Inpainted image/volume
  */
 
-int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, int W_halfsize, float sigma, int dimX, int dimY, int dimZ)
+int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, int W_halfsize, int dimX, int dimY, int dimZ)
 {
     long i, j, k, i1, j1, k1, l, countmask, DimTotal, iterations_mask_complete;
     int i_m, j_m;
-    float *minmax_array, *Gauss_weights, *Updated=NULL;
+    float *Gauss_weights, *Updated=NULL;
     int W_fullsize, counter;
 
     DimTotal = (long)(dimX*dimY*dimZ);
@@ -49,16 +49,12 @@ int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, un
     /* copying M to Mask_upd */
     copyIm_unchar(Mask, M_upd, dimX, dimY, dimZ);
 
-    minmax_array = (float*) calloc (2,sizeof(float));
-    max_val_mask(Input, M_upd, minmax_array, (long)(dimX), (long)(dimY), (long)(dimZ));
-
     /*calculate all nonzero values in the given mask */
     countmask = 0;
     for (k=0; k<DimTotal; k++) {
       if (Mask[k] == 1) countmask++;
     }
     if (countmask == 0) {
-      free(minmax_array);
       free(Updated);
       free(Gauss_weights);
       return 0;
@@ -106,65 +102,31 @@ int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, un
       }
     else {
     /* 3D version */
+    /*
     #pragma omp parallel for shared(Input,M_upd) private(i,j,k)
     for(k=0; k<dimZ; k++) {
       for(i=0; i<dimX; i++) {
         for(j=0; j<dimY; j++) {
-    scaling_func(Input, M_upd, Output, sigma, minmax_array, i, j, k, (long)(dimX), (long)(dimY), (long)(dimZ)); /* scaling function */
+    scaling_func(Input, M_upd, Output, sigma, minmax_array, i, j, k, (long)(dimX), (long)(dimY), (long)(dimZ));
     }}}
     for (l=0; l<iterations; l++) {
     #pragma omp parallel for shared(Input,M_upd) private(i1,j1,k1)
     for(k1=0; k1<dimZ; k1++) {
       for(i1=0; i1<dimX; i1++) {
         for(j1=0; j1<dimY; j1++) {
-    mean_inp_3D(Input, M_upd, Output, sigma, W_halfsize, i1, j1, k1, (long)(dimX), (long)(dimY),  (long)(dimZ)); /* smoothing of the mask */
+    mean_inp_3D(Input, M_upd, Output, sigma, W_halfsize, i1, j1, k1, (long)(dimX), (long)(dimY),  (long)(dimZ));
     }}}
      }
+     */
 	   }
     free(Gauss_weights);
-    free(minmax_array);
     free(Updated);
     return 0;
 }
 
 /********************************************************************/
-/**************************COMMON function***************************/
-/********************************************************************/
-void scaling_func(float *Input, unsigned char *M_upd, float *Output, float sigma, float *minmax_array, long i, long j, long k, long dimX, long dimY, long dimZ)
-{
-	long  index;
-  index = (dimX*dimY)*k + j*dimX+i;
-
-  /* scaling according to the max value in the mask */
-  if (M_upd[index] == 1) Output[index] = sigma*(Input[index]/minmax_array[1]);
-	return;
-}
-/********************************************************************/
 /***************************2D Functions*****************************/
 /********************************************************************/
-/*mean smoothing of the inapainted values inside and in the viscinity of the mask */
-void mean_inp_2D(float *Input, unsigned char *M_upd, float *Output, float sigma, int W_halfsize, long i, long j, long dimX, long dimY)
-{
-  long i_m, j_m, i1, j1, index, index2, switcher, counter;
-	float sum_val;
-
-  index = j*dimX+i;
-  sum_val = 0.0f; switcher = 0; counter = 0;
-  for(i_m=-W_halfsize; i_m<=W_halfsize; i_m++) {
-      i1 = i+i_m;
-      if ((i1 < 0) || (i1 >= dimX)) i1 = i;
-      for(j_m=-W_halfsize; j_m<=W_halfsize; j_m++) {
-          j1 = j+j_m;
-          if ((j1 < 0) || (j1 >= dimY)) j1 = j;
-              index2 = j1*dimX + i1;
-              if (M_upd[index2] == 1) switcher = 1;
-              sum_val += Output[index2];
-              counter++;
-      }}
-      if (switcher == 1) Output[index] = sum_val/counter;
-	return;
-}
-
 void mean_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float *Updated, float *Gauss_weights, int W_halfsize, int W_fullsize, long i, long j, long dimX, long dimY)
 {
   long i_m, j_m, i1, j1, index, index2;
@@ -190,7 +152,7 @@ void mean_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float
               if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
                   index2 = j1*dimX + i1;
                   if (Output[index2] != 0.0) {
-                  /*ValVec[counter] = Output[index2]*(Gauss_weights[counterglob]/sumweigths);*/
+                  /* ValVec[counter] = Output[index2]*(Gauss_weights[counterglob]/sumweigths); */
                   sum_val += Output[index2]*Gauss_weights[counterglob];
                   sumweights += Gauss_weights[counterglob];
                   counter_local++;
@@ -221,7 +183,7 @@ void mean_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float
 /***************************3D Functions*****************************/
 /********************************************************************/
 /*mean smoothing of the inapainted values inside and in the viscinity of the mask */
-void mean_inp_3D(float *Input, unsigned char *M_upd, float *Output, float sigma, int W_halfsize, long i, long j, long k, long dimX, long dimY, long dimZ)
+void mean_inp_3D(float *Input, unsigned char *M_upd, float *Output, int W_halfsize, long i, long j, long k, long dimX, long dimY, long dimZ)
 {
   long i_m, j_m, k_m, i1, j1, k1, index, index2, switcher, counter;
 	float sum_val;
