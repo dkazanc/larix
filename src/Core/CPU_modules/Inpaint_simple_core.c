@@ -153,7 +153,8 @@ void mean_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float
                   index2 = j1*dimX + i1;
                   if (Output[index2] != 0.0) {
                   /* ValVec[counter] = Output[index2]*(Gauss_weights[counterglob]/sumweigths); */
-                  sum_val += Output[index2]*Gauss_weights[counterglob];
+                  //sum_val += Output[index2]*Gauss_weights[counterglob];
+                  sum_val += Output[index2];
                   sumweights += Gauss_weights[counterglob];
                   counter_local++;
                 }
@@ -168,7 +169,8 @@ void mean_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float
       sum_val += (ValVec[z]/counter)*multiplier;
       }
       */
-      Updated[index] = sum_val/sumweights;
+      //Updated[index] = sum_val/sumweights;
+      Updated[index] = sum_val/counter_local;
       M_upd[index] = 0;
         }
       }
