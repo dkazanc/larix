@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created April 2020
+Created August 2022
 
-Demo to show the capability of some inpainting methods
+Testing the capability of some inpainting methods
 
 @author: Daniil Kazantsev
 """
@@ -11,7 +11,6 @@ Demo to show the capability of some inpainting methods
 import matplotlib.pyplot as plt
 import numpy as np
 import timeit
-from scipy import io
 #from larix.methods.misc import INPAINT_NDF, INPAINT_NM, INPAINT_EUCL_WEIGHTED
 ###############################################################################
 def printParametersToString(pars):
@@ -30,28 +29,16 @@ def printParametersToString(pars):
 ###############################################################################
 
 # read sinogram and the mask
-sino = io.loadmat('../data/SinoInpaint.mat')
-sino_full = sino.get('Sinogram')
-Mask = sino.get('Mask')
-[angles_dim,detectors_dim] = sino_full.shape
-sino_full = sino_full/np.max(sino_full)
-#apply mask to sinogram
-sino_cut = sino_full*(1-Mask)
-#sino_cut_new = np.zeros((angles_dim,detectors_dim),'float32')
-#sino_cut_new = sino_cut.copy(order='c')
-#sino_cut_new[:] = sino_cut[:]
-sino_cut_new = np.ascontiguousarray(sino_cut, dtype=np.float32);
-#mask = np.zeros((angles_dim,detectors_dim),'uint8')
-#mask =Mask.copy(order='c')
-#mask[:] = Mask[:]
-mask = np.ascontiguousarray(Mask, dtype=np.uint8);
-mask[:,0:240] = 0
-mask[:,1211:None] = 0
+sinogram =  np.load('../data/sino_stripe_i12.npy')
+#mask =  np.load('../data/mask_stripe_i12.npy')
+mask = np.uint8(np.zeros(np.shape(sinogram)))
+mask[:,185:215] = 1
 
+sinogram[mask ==1] = 0.0
 
 plt.figure(1)
 plt.subplot(121)
-plt.imshow(sino_cut_new,vmin=0.0, vmax=1)
+plt.imshow(sinogram,vmin=0.0, vmax=1)
 plt.title('Missing Data sinogram')
 plt.subplot(122)
 plt.imshow(mask)
@@ -66,13 +53,13 @@ fig = plt.figure()
 plt.suptitle('Performance of ')
 a=fig.add_subplot(1,2,1)
 a.set_title('Missing data sinogram')
-imgplot = plt.imshow(sino_cut_new,cmap="gray")
+imgplot = plt.imshow(sinogram,cmap="gray")
 
 # set parameters
 pars = {'algorithm' : INPAINT_EUCL_WEIGHTED, 
-        'input' : sino_cut_new,
+        'input' : sinogram,
         'maskData' : mask,
-        'number_of_iterations' : 15,
+        'number_of_iterations' : 50,
         'windowsize_half' : 5}
         
 start_time = timeit.default_timer()
