@@ -131,15 +131,24 @@ void mean_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float
 {
   long i_m, j_m, i1, j1, index, index2;
   float sum_val, sumweights;
-  int counter_local,counterglob;
+  int counter_local, counterglob, counter_vicinity;
   index = j*dimX+i;
   /* check that you're on the region defined by the updated mask */
   if (M_upd[index] == 1) {
-  /* check that the pixel to be inpainted is NOT surrounded by zeros of the updated image (Output).
-  The idea here is to wait inpainting pixels which are far from the boundaries - to ensure a gradual front progression
-  */
-  if ((i-1 > 0) && (i+1 < dimX) && (j-1 > 0) && (j+1 < dimY)) {
-    if ((Output[j*dimX+(i-1)] != 0.0) || (Output[j*dimX+(i+1)] != 0.0) || (Output[(j-1)*dimX+i] != 0.0) || (Output[(j+1)*dimX+i] != 0.0)) {
+    /*check if have a usable information in the vicinity of the mask's edge*/
+  counter_vicinity = 0;
+  for(i_m=-1; i_m<=1; i_m++) {
+      i1 = i+i_m;
+      for(j_m=-1; j_m<=1; j_m++) {
+          j1 = j+j_m;
+          if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
+            if (Output[j1*dimX+i1] != 0.0){
+            counter_vicinity++;
+            break;
+            }
+    }
+  }}
+  if (counter_vicinity > 0) {
 
       counter_local = 0; sum_val = 0.0f; sumweights = 0.0f; counterglob = 0;
       for(i_m=-W_halfsize; i_m<=W_halfsize; i_m++) {
@@ -149,9 +158,7 @@ void mean_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float
               if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
                   index2 = j1*dimX + i1;
                   if (Output[index2] != 0.0) {
-                  /* ValVec[counter] = Output[index2]*(Gauss_weights[counterglob]/sumweigths); */
                   sum_val += Output[index2]*Gauss_weights[counterglob];
-                  //sum_val += Output[index2];
                   sumweights += Gauss_weights[counterglob];
                   counter_local++;
                 }
@@ -163,9 +170,9 @@ void mean_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float
       Updated[index] = sum_val/sumweights;
       M_upd[index] = 0;
       }
-      }
+        }
+
     }
-  }
 	return;
 }
 
@@ -180,7 +187,7 @@ void patch_selective_inpainting_2D(float *Input, unsigned char *M_upd, float *Ou
   index = j*dimX+i;
   /* check that you're on the region defined by the updated mask */
   if (M_upd[index] == 1) {
-  /*check if have a usable information in the vicinity of the mask edge*/
+  /*check if have a usable information in the vicinity of the mask's edge*/
   counter_local = 0; vicinity_mean = 0.0f;
   for(i_m=-1; i_m<=1; i_m++) {
       i1 = i+i_m;
@@ -188,7 +195,7 @@ void patch_selective_inpainting_2D(float *Input, unsigned char *M_upd, float *Ou
           j1 = j+j_m;
           if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
             if (Output[j1*dimX+i1] != 0.0){
-            vicinity_mean += Output[j1*dimX+i1]
+            vicinity_mean += Output[j1*dimX+i1];
             counter_local++;
             }
     }
