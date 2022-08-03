@@ -142,6 +142,7 @@ void sort_quick(float *x, int left_idx, int right_idx)
     return;
 }
 
+
 void max_val_mask(float *Input, unsigned char *Mask, float *minmax_array, long dimX, long dimY, long dimZ)
 {
     /* ____ getting a maximum and minimum values of the input array defined by MASK____

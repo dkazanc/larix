@@ -49,6 +49,16 @@ int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, un
     /* copying M to Mask_upd */
     copyIm_unchar(Mask, M_upd, dimX, dimY, dimZ);
 
+    /* pre-calculation of Gaussian distance weights  */
+    W_fullsize = (int)(2*W_halfsize + 1); /*full size of similarity window */
+    Gauss_weights = (float*)calloc(W_fullsize*W_fullsize,sizeof(float ));
+    counter = 0;
+    for(i_m=-W_halfsize; i_m<=W_halfsize; i_m++) {
+        for(j_m=-W_halfsize; j_m<=W_halfsize; j_m++) {
+            Gauss_weights[counter] = expf(-(powf((i_m), 2) + powf((j_m), 2))/(2*W_halfsize*W_halfsize));
+            counter++;
+        }
+    }
     /*calculate all nonzero values in the given mask */
     countmask = 0;
     for (k=0; k<DimTotal; k++) {
@@ -61,23 +71,13 @@ int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, un
     }
     iterations_mask_complete = countmask; /*the maximum number of required iterations to do the completion of the inpainted region */
 
-    /* pre-calculation of Gaussian distance weights  */
-    W_fullsize = (int)(2*W_halfsize + 1); /*full size of similarity window */
-    Gauss_weights = (float*)calloc(W_fullsize*W_fullsize,sizeof(float ));
-    counter = 0;
-    for(i_m=-W_halfsize; i_m<=W_halfsize; i_m++) {
-        for(j_m=-W_halfsize; j_m<=W_halfsize; j_m++) {
-            Gauss_weights[counter] = expf(-(powf((i_m), 2) + powf((j_m), 2))/(2*W_halfsize*W_halfsize));
-            counter++;
-        }
-    }
-
     if (dimZ == 1) {
     for (l=0; l<iterations_mask_complete; l++) {
     #pragma omp parallel for shared(Input,M_upd,Gauss_weights) private(i,j)
     for(i=0; i<dimX; i++) {
         for(j=0; j<dimY; j++) {
-    mean_inpainting_2D(Input, M_upd, Output, Updated, Gauss_weights, W_halfsize, W_fullsize, i, j, (long)(dimX), (long)(dimY));
+    //mean_inpainting_2D(Input, M_upd, Output, Updated, Gauss_weights, W_halfsize, W_fullsize, i, j, (long)(dimX), (long)(dimY));
+    patch_selective_inpainting_2D(Input, M_upd, Output, Updated, W_halfsize, W_fullsize, i, j, (long)(dimX), (long)(dimY));
     }}
     copyIm(Updated, Output, (long)(dimX), (long)(dimY), (long)(dimZ));
 
@@ -91,15 +91,16 @@ int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, un
       }
     }
     /*performing user defined iterations */
-    for (l=0; l<iterations; l++) {
+        for (l=0; l<iterations; l++) {
     #pragma omp parallel for shared(Input,M_upd,Gauss_weights) private(i,j)
     for(i=0; i<dimX; i++) {
         for(j=0; j<dimY; j++) {
     mean_inpainting_2D(Input, M_upd, Output, Updated, Gauss_weights, W_halfsize, W_fullsize, i, j, (long)(dimX), (long)(dimY));}}
+    //patch_selective_inpainting_2D(Input, M_upd, Output, Updated, W_halfsize, W_fullsize, i, j, (long)(dimX), (long)(dimY));}}        
     copyIm(Updated, Output, (long)(dimX), (long)(dimY), (long)(dimZ));
-    copyIm_unchar(Mask, M_upd, dimX, dimY, dimZ);
+    copyIm_unchar(Mask, M_upd, dimX, dimY, dimZ);    
         }
-      }
+    }
     else {
     /* 3D version */
     /*
@@ -176,13 +177,14 @@ void mean_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float
 	return;
 }
 
-void patch_selective_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float *Updated, float *Gauss_weights, int W_halfsize, int W_fullsize, long i, long j, long dimX, long dimY)
+void patch_selective_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float *Updated, int W_halfsize, int W_fullsize, long i, long j, long dimX, long dimY)
 {
-  long i_m, j_m, i1, j1, index, index2;
-  float sumweights, vicinity_mean;
-  float *Vec_difference;
-  int counter_local, counterglob;
-  Vec_difference = (float*) calloc(W_fullsize*W_fullsize, sizeof(float));
+  long i_m, j_m, i1, j1, k, index, index2;
+  float vicinity_mean, sumweight;
+  float *_differences, *_values;
+  int counter_local, neighbors_add, r;
+  _differences = (float*) calloc(W_fullsize*W_fullsize, sizeof(float));
+  _values = (float*) calloc(W_fullsize*W_fullsize, sizeof(float));
 
   index = j*dimX+i;
   /* check that you're on the region defined by the updated mask */
@@ -202,9 +204,11 @@ void patch_selective_inpainting_2D(float *Input, unsigned char *M_upd, float *Ou
   }}
   /*If we've got usable data in the vicinity then proceed with inpainting */
   if (vicinity_mean != 0.0f) {
-  vicinity_mean = vicinity_mean/counter_local; /*get mean values in the vicinity*/
+  vicinity_mean = vicinity_mean/counter_local; /* get the mean of values in the vicinity */
 
-  counter_local = 0; sumweights = 0.0f; counterglob = 0;
+  sumweight = 0.0f;
+  /* fill the vectors */
+  counter_local = 0;
       for(i_m=-W_halfsize; i_m<=W_halfsize; i_m++) {
           i1 = i+i_m;
           for(j_m=-W_halfsize; j_m<=W_halfsize; j_m++) {
@@ -212,20 +216,33 @@ void patch_selective_inpainting_2D(float *Input, unsigned char *M_upd, float *Ou
               if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
                   index2 = j1*dimX + i1;
                   if (Output[index2] != 0.0) {
-                  Vec_difference[counter_local] = fabs(Output[index2]-vicinity_mean);
-                  sumweights += Gauss_weights[counterglob];
+                  _differences[counter_local] = fabs(Output[index2]-vicinity_mean);
+                  _values[counter_local] = Output[index2];
                   counter_local++;
-                }
+                  }
               }
-            counterglob++;
           }}
+
+  /* performing sorting of values in vectors according to the abs difference */
+    // sort_quick(_differences, 0, counter_local); 
+    
+  r = rand() % counter_local;
+
+  /*
+    neighbors_add = ceil((float)counter_local/2);    
+    for(k=0; k<neighbors_add; k++) {
+      sumweight += _differences[0]+vicinity_mean;
     }
+    */
+
+    Updated[index] = _values[r];
+    M_upd[index] = 0;
+      }
   }
-  free(Vec_difference);
+  free(_differences);
+  free(_values);
 	return;
 }
-
-
 
 /********************************************************************/
 /***************************3D Functions*****************************/
