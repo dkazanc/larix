@@ -20,22 +20,23 @@
 #include "Inpaint_simple_core.h"
 #include "utils.h"
 
-/* C-OMP implementation of simple inpainting shemes
- * inpainting using averaged interface values
+/* Simple morphological inpainting schemes which are progressing from the edge inwards, 
+ * therefore acting like a diffusion-type process 
  *
  * Input Parameters:
  * 1. Image/volume to inpaint
  * 2. Mask of the same size as (1) in 'unsigned char' format  (ones mark the region to inpaint, zeros belong to the data)
  * 3. Iterations number
- * 4. sigma - controlling parameter to start inpainting
+ * 4. Half-window size of the searching window
+ * 5. method type to select an inpainting value: 0 - mean, 1 - meadian, 2 - random neighbour
  *
  * Output:
- * [1] Inpainted image/volume
+ * [1] Inpainted image
  */
 
-int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, int W_halfsize, int dimX, int dimY, int dimZ)
+int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, int W_halfsize, int method_type, int dimX, int dimY, int dimZ)
 {
-    long i, j, k, i1, j1, k1, l, countmask, DimTotal, iterations_mask_complete;
+    long i, j, k, l, countmask, DimTotal, iterations_mask_complete;
     int i_m, j_m;
     float *Gauss_weights, *Updated=NULL;
     int W_fullsize, counter;
@@ -75,13 +76,13 @@ int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, un
     for (l=0; l<iterations_mask_complete; l++) {
     #pragma omp parallel for shared(Input,M_upd,Gauss_weights) private(i,j)
     for(i=0; i<dimX; i++) {
-        for(j=0; j<dimY; j++) {
-    //mean_inpainting_2D(Input, M_upd, Output, Updated, Gauss_weights, W_halfsize, W_fullsize, i, j, (long)(dimX), (long)(dimY));
-    patch_selective_inpainting_2D(Input, M_upd, Output, Updated, W_halfsize, W_fullsize, i, j, (long)(dimX), (long)(dimY));
+        for(j=0; j<dimY; j++) {    
+    if ((method_type == 1) || (method_type == 2)) median_rand_inpainting_2D(Input, M_upd, Output, Updated, W_halfsize, W_fullsize, method_type, i, j, (long)(dimX), (long)(dimY));
+    else eucl_weighting_inpainting_2D(Input, M_upd, Output, Updated, Gauss_weights, W_halfsize, W_fullsize, i, j, (long)(dimX), (long)(dimY));
     }}
     copyIm(Updated, Output, (long)(dimX), (long)(dimY), (long)(dimZ));
 
-    /*check here if the iterations to complete the masked region needs to be terminated */
+    /* check here if the iterations to complete the masked region needs to be terminated */
     countmask = 0;
     for (k=0; k<DimTotal; k++) {
       if (M_upd[k] == 1) countmask++;
@@ -90,35 +91,18 @@ int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, un
       break; /*exit iterations_mask_complete loop */
       }
     }
-    /*performing user defined iterations */
+    /* performing user defined iterations */
         for (l=0; l<iterations; l++) {
     #pragma omp parallel for shared(Input,M_upd,Gauss_weights) private(i,j)
     for(i=0; i<dimX; i++) {
         for(j=0; j<dimY; j++) {
-    mean_inpainting_2D(Input, M_upd, Output, Updated, Gauss_weights, W_halfsize, W_fullsize, i, j, (long)(dimX), (long)(dimY));}}
-    //patch_selective_inpainting_2D(Input, M_upd, Output, Updated, W_halfsize, W_fullsize, i, j, (long)(dimX), (long)(dimY));}}        
+    eucl_weighting_inpainting_2D(Input, M_upd, Output, Updated, Gauss_weights, W_halfsize, W_fullsize, i, j, (long)(dimX), (long)(dimY));}}    
     copyIm(Updated, Output, (long)(dimX), (long)(dimY), (long)(dimZ));
     copyIm_unchar(Mask, M_upd, dimX, dimY, dimZ);    
         }
     }
     else {
     /* 3D version */
-    /*
-    #pragma omp parallel for shared(Input,M_upd) private(i,j,k)
-    for(k=0; k<dimZ; k++) {
-      for(i=0; i<dimX; i++) {
-        for(j=0; j<dimY; j++) {
-    scaling_func(Input, M_upd, Output, sigma, minmax_array, i, j, k, (long)(dimX), (long)(dimY), (long)(dimZ));
-    }}}
-    for (l=0; l<iterations; l++) {
-    #pragma omp parallel for shared(Input,M_upd) private(i1,j1,k1)
-    for(k1=0; k1<dimZ; k1++) {
-      for(i1=0; i1<dimX; i1++) {
-        for(j1=0; j1<dimY; j1++) {
-    mean_inp_3D(Input, M_upd, Output, sigma, W_halfsize, i1, j1, k1, (long)(dimX), (long)(dimY),  (long)(dimZ));
-    }}}
-     }
-     */
 	   }
     free(Gauss_weights);
     free(Updated);
@@ -128,8 +112,9 @@ int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, un
 /********************************************************************/
 /***************************2D Functions*****************************/
 /********************************************************************/
-void mean_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float *Updated, float *Gauss_weights, int W_halfsize, int W_fullsize, long i, long j, long dimX, long dimY)
+void eucl_weighting_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float *Updated, float *Gauss_weights, int W_halfsize, int W_fullsize, long i, long j, long dimX, long dimY)
 {
+  /* applying inpainting with euclidian (distance) weighting */
   long i_m, j_m, i1, j1, index, index2;
   float sum_val, sumweights;
   int counter_local, counterglob, counter_vicinity;
@@ -177,13 +162,12 @@ void mean_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float
 	return;
 }
 
-void patch_selective_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float *Updated, int W_halfsize, int W_fullsize, long i, long j, long dimX, long dimY)
+void median_rand_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float *Updated, int W_halfsize, int W_fullsize, int method_type, long i, long j, long dimX, long dimY)
 {
-  long i_m, j_m, i1, j1, k, index, index2;
-  float vicinity_mean, sumweight;
-  float *_differences, *_values;
-  int counter_local, neighbors_add, r;
-  _differences = (float*) calloc(W_fullsize*W_fullsize, sizeof(float));
+  long i_m, j_m, i1, j1, index, index2;
+  float vicinity_mean;
+  float *_values;
+  int counter_local, r, median_val;
   _values = (float*) calloc(W_fullsize*W_fullsize, sizeof(float));
 
   index = j*dimX+i;
@@ -206,7 +190,6 @@ void patch_selective_inpainting_2D(float *Input, unsigned char *M_upd, float *Ou
   if (vicinity_mean != 0.0f) {
   vicinity_mean = vicinity_mean/counter_local; /* get the mean of values in the vicinity */
 
-  sumweight = 0.0f;
   /* fill the vectors */
   counter_local = 0;
       for(i_m=-W_halfsize; i_m<=W_halfsize; i_m++) {
@@ -216,30 +199,25 @@ void patch_selective_inpainting_2D(float *Input, unsigned char *M_upd, float *Ou
               if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
                   index2 = j1*dimX + i1;
                   if (Output[index2] != 0.0) {
-                  _differences[counter_local] = fabs(Output[index2]-vicinity_mean);
                   _values[counter_local] = Output[index2];
                   counter_local++;
                   }
               }
-          }}
-
-  /* performing sorting of values in vectors according to the abs difference */
-    // sort_quick(_differences, 0, counter_local); 
-    
-  r = rand() % counter_local;
-
-  /*
-    neighbors_add = ceil((float)counter_local/2);    
-    for(k=0; k<neighbors_add; k++) {
-      sumweight += _differences[0]+vicinity_mean;
-    }
-    */
-
-    Updated[index] = _values[r];
-    M_upd[index] = 0;
-      }
+          }}   
+  if (method_type == 1) {
+  /* inpainting based on the median neighbour */
+  sort_quick(_values, 0, counter_local); 
+  median_val = (int)(counter_local/2);
+  Updated[index] = _values[median_val];
   }
-  free(_differences);
+  else {
+  /* inpainting based on a random neighbour */
+  r = rand() % counter_local;
+  Updated[index] = _values[r];
+  }
+  M_upd[index] = 0;
+      }
+  }  
   free(_values);
 	return;
 }
@@ -247,29 +225,3 @@ void patch_selective_inpainting_2D(float *Input, unsigned char *M_upd, float *Ou
 /********************************************************************/
 /***************************3D Functions*****************************/
 /********************************************************************/
-/*mean smoothing of the inapainted values inside and in the viscinity of the mask */
-void mean_inp_3D(float *Input, unsigned char *M_upd, float *Output, int W_halfsize, long i, long j, long k, long dimX, long dimY, long dimZ)
-{
-  long i_m, j_m, k_m, i1, j1, k1, index, index2, switcher, counter;
-	float sum_val;
-
-  index = (dimX*dimY)*k + j*dimX+i;
-  sum_val = 0.0f; switcher = 0; counter = 0;
-  for(k_m=-W_halfsize; k_m<=W_halfsize; k_m++) {
-    k1 = k+k_m;
-    if ((k1 < 0) || (k1 >= dimZ)) k1 = k;
-    for(i_m=-W_halfsize; i_m<=W_halfsize; i_m++) {
-      i1 = i+i_m;
-      if ((i1 < 0) || (i1 >= dimX)) i1 = i;
-      for(j_m=-W_halfsize; j_m<=W_halfsize; j_m++) {
-          j1 = j+j_m;
-          if ((j1 < 0) || (j1 >= dimY)) j1 = j;
-
-              index2 = (dimX*dimY)*k1 + j1*dimX+i1;
-              if (M_upd[index2] == 1) switcher = 1;
-              sum_val += Output[index2];
-              counter++;
-      }}}
-      if (switcher == 1) Output[index] = sum_val/counter;
-	return;
-}
