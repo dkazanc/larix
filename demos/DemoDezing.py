@@ -37,28 +37,28 @@ P = int(np.sqrt(2)*N_size) #detectors
 sino_an = TomoP2D.ModelSino(model, N_size, P, angles, path_library2D)
 
 # forming dictionaries with artifact types
-_noise_ =  {'type' : 'Gaussian',
-            'sigma' : 3.5, 
-            'seed' : 1}
+_noise_ =  {'noise_type' : 'Poisson',
+            'noise_sigma' : 5000, # noise amplitude
+            'noise_seed' : 0,
+            'noise_prelog': True}
 
 # adding zingers
-_zingers_ = {'percentage' : 0.3,
-             'modulus' : 15}
+_zingers_ = {'zingers_percentage' : 0.25,
+             'zingers_modulus' : 10}
 
-sino_an_noisy = _Artifacts_(sino_an, _noise_, _zingers_, _stripes_={}, _sinoshifts_= {})
+[sino_an_noisy, raw] = _Artifacts_(sino_an, **_noise_, **_zingers_)
 
 plt.figure(1)
 plt.rcParams.update({'font.size': 21})
 plt.imshow(sino_an_noisy, cmap="BuPu")
 plt.title('{}''{}'.format('Analytical sinogram of model no.',model))
 
-print("Applying Median Filter in 2D...")
 
 pars = {'input_data' : sino_an_noisy, # input grayscale image
         'kernel_size' : 5}
 
 start_time = timeit.default_timer()
-filtered = MEDIAN_FILT(pars['input_data'], pars['kernel_size'])
+filtered = MEDIAN_FILT(pars['input_data'].copy(order='C'), pars['kernel_size'])
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 
@@ -74,7 +74,7 @@ pars = {'input_data' : sino_an_noisy, # input grayscale image
         'mu_threshold': 100.0}
 
 start_time = timeit.default_timer()
-dezingered = MEDIAN_DEZING(pars['input_data'], pars['kernel_size'], pars['mu_threshold'])
+dezingered = MEDIAN_DEZING(pars['input_data'].copy(order='C'), pars['kernel_size'], pars['mu_threshold'])
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 

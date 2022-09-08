@@ -116,6 +116,7 @@ void sort_bubble_uint16(unsigned short *x, int n_size)
     return;
 }
 
+/*
 void sort_quick(float *x, int left_idx, int right_idx)
 {
       float temp;
@@ -141,6 +142,73 @@ void sort_quick(float *x, int left_idx, int right_idx)
             sort_quick(x, i, right_idx);
     return;
 }
+*/
+
+void quicksort_float(float *x, int first, int last)
+{
+   int i, j, pivot;
+   float temp;
+
+   if(first<last){
+      pivot=first;
+      i=first;
+      j=last;
+
+      while(i<j){
+         while(x[i]<=x[pivot]&&i<last)
+            i++;
+         while(x[j]>x[pivot])
+            j--;
+         if(i<j){
+            temp=x[i];
+            x[i]=x[j];
+            x[j]=temp;
+         }
+      }
+
+      temp=x[pivot];
+      x[pivot]=x[j];
+      x[j]=temp;
+      quicksort_float(x,first,j-1);
+      quicksort_float(x,j+1,last);
+
+   }
+   return;
+}
+
+void quicksort_uint16(unsigned short *x, int first, int last)
+{
+   int i, j, pivot;
+   unsigned short temp;
+
+   if(first<last){
+      pivot=first;
+      i=first;
+      j=last;
+
+      while(i<j){
+         while(x[i]<=x[pivot]&&i<last)
+            i++;
+         while(x[j]>x[pivot])
+            j--;
+         if(i<j){
+            temp=x[i];
+            x[i]=x[j];
+            x[j]=temp;
+         }
+      }
+
+      temp=x[pivot];
+      x[pivot]=x[j];
+      x[j]=temp;
+      quicksort_uint16(x,first,j-1);
+      quicksort_uint16(x,j+1,last);
+
+   }
+   return;
+}
+
+
 
 void max_val_mask(float *Input, unsigned char *Mask, float *minmax_array, long dimX, long dimY, long dimZ)
 {

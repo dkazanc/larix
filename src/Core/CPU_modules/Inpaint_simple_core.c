@@ -26,19 +26,24 @@
  * Input Parameters:
  * 1. Image/volume to inpaint
  * 2. Mask of the same size as (1) in 'unsigned char' format  (ones mark the region to inpaint, zeros belong to the data)
- * 3. Iterations number
- * 4. sigma - controlling parameter to start inpainting
+ * 3. Iterations number - this is an additional number of iterations to run after the region has been inpainted
+ * 4. ncores - number of CPU threads to use (if given), 0 is the default value - using all available cores
  *
  * Output:
  * [1] Inpainted image/volume
  */
 
-int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, int W_halfsize, int dimX, int dimY, int dimZ)
+int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, int W_halfsize, int ncores, int dimX, int dimY, int dimZ)
 {
     long i, j, k, i1, j1, k1, l, countmask, DimTotal, iterations_mask_complete;
     int i_m, j_m;
     float *Gauss_weights, *Updated=NULL;
     int W_fullsize, counter;
+
+    if (ncores > 0) {
+    omp_set_dynamic(0);     // Explicitly disable dynamic teams
+    omp_set_num_threads(ncores); // Use a number of threads for all consecutive parallel regions 
+    }    
 
     DimTotal = (long)(dimX*dimY*dimZ);
     Updated = calloc(DimTotal, sizeof(float));
@@ -91,7 +96,7 @@ int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, un
       }
     }
     /*performing user defined iterations */
-    for (l=0; l<iterations; l++) {
+    for (l=0; l<iterations; l++) {      
     #pragma omp parallel for shared(Input,M_upd,Gauss_weights) private(i,j)
     for(i=0; i<dimX; i++) {
         for(j=0; j<dimY; j++) {

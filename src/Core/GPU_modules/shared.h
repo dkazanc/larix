@@ -21,30 +21,39 @@ const int CONSTVECSIZE_1331 = 1331;
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
-__device__ void sort_quick(float *x, int left_idx, int right_idx)
+
+__device__  void quicksort_float(float *x, int first, int last)
 {
-      int i = left_idx, j = right_idx;
-      float pivot = x[(left_idx + right_idx) / 2];
-      while (i <= j)
-      {
-            while (x[i] < pivot)
-                  i++;
-            while (x[j] > pivot)
-                  j--;
-            if (i <= j) {
-		  float temp;
-                  temp = x[i];
-                  x[i] = x[j];
-                  x[j] = temp;
-                  i++;
-                  j--;
-            }
-      };
-      if (left_idx < j)
-            sort_quick(x, left_idx, j);
-      if (i < right_idx)
-            sort_quick(x, i, right_idx);
+   int i, j, pivot;
+   float temp;
+
+   if(first<last){
+      pivot=first;
+      i=first;
+      j=last;
+
+      while(i<j){
+         while(x[i]<=x[pivot]&&i<last)
+            i++;
+         while(x[j]>x[pivot])
+            j--;
+         if(i<j){
+            temp=x[i];
+            x[i]=x[j];
+            x[j]=temp;
+         }
+      }
+
+      temp=x[pivot];
+      x[pivot]=x[j];
+      x[j]=temp;
+      quicksort_float(x,first,j-1);
+      quicksort_float(x,j+1,last);
+
+   }
+   return;
 }
+
 
 __device__ void sort_bubble(float *x, int n_size)
 {

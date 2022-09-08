@@ -11,7 +11,7 @@ Testing the capability of some inpainting methods
 import matplotlib.pyplot as plt
 import numpy as np
 import timeit
-#from larix.methods.misc import INPAINT_NDF, INPAINT_NM, INPAINT_EUCL_WEIGHTED
+from larix.methods.misc import INPAINT_NDF, INPAINT_NM, INPAINT_EUCL_WEIGHTED
 ###############################################################################
 def printParametersToString(pars):
         txt = r''
@@ -30,7 +30,6 @@ def printParametersToString(pars):
 
 # read sinogram and the mask
 sinogram =  np.load('../data/sino_stripe_i12.npy')
-#mask =  np.load('../data/mask_stripe_i12.npy')
 mask = np.uint8(np.zeros(np.shape(sinogram)))
 mask[:,185:215] = 1
 
@@ -66,9 +65,7 @@ start_time = timeit.default_timer()
 (inp_simple, mask_upd) = INPAINT_EUCL_WEIGHTED(pars['input'],
               pars['maskData'], 
               pars['number_of_iterations'],
-              pars['windowsize_half'])
-
-
+              pars['windowsize_half')
 
 txtstr = printParametersToString(pars)
 txtstr += "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
