@@ -11,7 +11,7 @@ Testing the capability of some inpainting methods
 import matplotlib.pyplot as plt
 import numpy as np
 import timeit
-from larix.methods.misc import INPAINT_NDF, INPAINT_NM, INPAINT_EUCL_WEIGHTED
+from larix.methods.misc import INPAINT_NDF, INPAINT_EUCL_WEIGHTED
 ###############################################################################
 def printParametersToString(pars):
         txt = r''
@@ -58,15 +58,17 @@ imgplot = plt.imshow(sinogram,cmap="gray")
 pars = {'algorithm' : INPAINT_EUCL_WEIGHTED, 
         'input' : sinogram,
         'maskData' : mask,
-        'number_of_iterations' : 50,
-        'windowsize_half' : 5}
+        'number_of_iterations' : 15,
+        'windowsize_half' : 5,
+        'method_type' : 'random'}
         
 start_time = timeit.default_timer()
 (inp_simple, mask_upd) = INPAINT_EUCL_WEIGHTED(pars['input'],
               pars['maskData'], 
               pars['number_of_iterations'],
-              pars['windowsize_half')
-
+              pars['windowsize_half'],
+              pars['method_type'])
+              
 txtstr = printParametersToString(pars)
 txtstr += "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
@@ -89,15 +91,15 @@ fig = plt.figure(3)
 plt.suptitle('Performance of linear inpainting using the CPU')
 a=fig.add_subplot(1,2,1)
 a.set_title('Missing data sinogram')
-imgplot = plt.imshow(sino_cut_new,cmap="gray")
+imgplot = plt.imshow(sinogram,cmap="gray")
 
 # set parameters
 pars = {'algorithm' : INPAINT_NDF, \
-        'input' : sino_cut_new,\
+        'input' : sinogram,\
         'maskData' : mask,\
         'regularisation_parameter':5000,\
         'edge_parameter':0,\
-        'number_of_iterations' :5000 ,\
+        'number_of_iterations' :7000 ,\
         'time_marching_parameter':0.000075,\
         'penalty_type':1
         }
@@ -119,7 +121,7 @@ a=fig.add_subplot(1,2,2)
 # these are matplotlib.patch.Patch properties
 props = dict(boxstyle='round', facecolor='wheat', alpha=0.75)
 # place a text box in upper left in axes coords
-a.text(0.15, 0.25, txtstr, transform=a.transAxes, fontsize=14,
+a.text(0.1, 0.1, txtstr, transform=a.transAxes, fontsize=14,
          verticalalignment='top', bbox=props)
 imgplot = plt.imshow(ndf_inp_linear, cmap="gray")
 plt.title('{}'.format('Linear diffusion inpainting results'))
@@ -133,11 +135,11 @@ fig = plt.figure(4)
 plt.suptitle('Performance of nonlinear diffusion inpainting using the CPU')
 a=fig.add_subplot(1,2,1)
 a.set_title('Missing data sinogram')
-imgplot = plt.imshow(sino_cut_new,cmap="gray")
+imgplot = plt.imshow(sinogram,cmap="gray")
 
 # set parameters
 pars = {'algorithm' : INPAINT_NDF, \
-        'input' : sino_cut_new,\
+        'input' : sinogram,\
         'maskData' : mask,\
         'regularisation_parameter':80,\
         'edge_parameter':0.00009,\
@@ -164,47 +166,8 @@ a=fig.add_subplot(1,2,2)
 # these are matplotlib.patch.Patch properties
 props = dict(boxstyle='round', facecolor='wheat', alpha=0.75)
 # place a text box in upper left in axes coords
-a.text(0.15, 0.25, txtstr, transform=a.transAxes, fontsize=14,
+a.text(0.1, 0.1, txtstr, transform=a.transAxes, fontsize=14,
          verticalalignment='top', bbox=props)
 imgplot = plt.imshow(ndf_inp_nonlinear, cmap="gray")
 plt.title('{}'.format('Nonlinear diffusion inpainting results'))
-#%%
-print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
-print ("Inpainting using nonlocal marching")
-print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
-
-## plot 
-fig = plt.figure(5)
-plt.suptitle('Performance of NM inpainting using the CPU')
-a=fig.add_subplot(1,2,1)
-a.set_title('Missing data sinogram')
-imgplot = plt.imshow(sino_cut,cmap="gray")
-
-# set parameters
-pars = {'algorithm' : INPAINT_NM, \
-        'input' : sino_cut_new,\
-        'maskData' : mask,\
-        'SW_increment': 2,\
-        'number_of_iterations' : 150
-        }
-        
-start_time = timeit.default_timer()
-(nvm_inp, mask_upd) = INPAINT_NM(pars['input'],
-              pars['maskData'],
-              pars['SW_increment'],
-              pars['number_of_iterations'])
-             
-
-txtstr = printParametersToString(pars)
-txtstr += "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
-print (txtstr)
-a=fig.add_subplot(1,2,2)
-
-# these are matplotlib.patch.Patch properties
-props = dict(boxstyle='round', facecolor='wheat', alpha=0.75)
-# place a text box in upper left in axes coords
-a.text(0.15, 0.25, txtstr, transform=a.transAxes, fontsize=14,
-         verticalalignment='top', bbox=props)
-imgplot = plt.imshow(nvm_inp, cmap="gray")
-plt.title('{}'.format('Nonlocal Marching inpainting results'))
 #%%

@@ -25,28 +25,12 @@ limitations under the License.
 #include "utils.h"
 #include "DLSDefines.h"
 
-
-/* C-OMP implementation of simple inpainting shemes
- * inpainting using averaged interface values
- *
- * Input Parameters:
- * 1. Image/volume to inpaint
- * 2. Mask of the same size as (1) in 'unsigned char' format  (ones mark the region to inpaint, zeros belong to the data)
- * 3. Iterations number
- * 3. sigma - controlling parameter to start inpainting
- *
- * Output:
- * [1] Inpainted image/volume
- */
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-DLS_EXPORT int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, int W_halfsize, int ncores, int dimX, int dimY, int dimZ);
-DLS_EXPORT void mean_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float *Updated, float *Gauss_weights, int W_halfsize, int W_fullsize, long i, long j, long dimX, long dimY);
-DLS_EXPORT void patch_selective_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float *Updated, float *Gauss_weights, int W_halfsize, int W_fullsize, long i, long j, long dimX, long dimY);
-DLS_EXPORT void mean_inp_3D(float *Input, unsigned char *M_upd, float *Output, int W_halfsize, long i, long j, long k, long dimX, long dimY, long dimZ);
+DLS_EXPORT int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, int W_halfsize, int method_type, int ncores, int dimX, int dimY, int dimZ);
+DLS_EXPORT void eucl_weighting_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float *Updated, float *Gauss_weights, int W_halfsize, int W_fullsize, long i, long j, long dimX, long dimY);
+DLS_EXPORT void median_rand_inpainting_2D(float *Input, unsigned char *M_upd, float *Output, float *Updated, int W_halfsize, int W_fullsize, int method_type, long i, long j, long dimX, long dimY);
 #ifdef __cplusplus
 }
 #endif
