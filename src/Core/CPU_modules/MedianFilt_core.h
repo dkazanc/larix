@@ -35,8 +35,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-DLS_EXPORT int medianfilter_main_float(float *Input, float *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ);
-DLS_EXPORT int medianfilter_main_uint16(unsigned short *Input, unsigned short *Output, int kernel_size, float mu_threshold, int dimX, int dimY, int dimZ);
+DLS_EXPORT int medianfilter_main_float(float *Input, float *Output, int kernel_size, float mu_threshold, int ncores, int dimX, int dimY, int dimZ);
+DLS_EXPORT int medianfilter_main_uint16(unsigned short *Input, unsigned short *Output, int kernel_size, float mu_threshold, int ncores, int dimX, int dimY, int dimZ);
 /************2D functions ***********/
 DLS_EXPORT void medfilt2D_float(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
 DLS_EXPORT void medfilt2D_uint16(unsigned short *Input, unsigned short *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
