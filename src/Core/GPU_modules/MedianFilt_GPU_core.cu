@@ -329,7 +329,7 @@ __global__ void medfilt5_kernel_uint16_2D(unsigned short *Input, unsigned short*
 /********************************************************************/
 /***************************3D Functions*****************************/
 /********************************************************************/
-__global__ void medfilt1_kernel_3D(float *Input, float* Output, int offset, int kernel_half_size, int sizefilter_total, float mu_threshold, int midval, int N, int M, int Z, int num_total)
+__global__ void medfilt1_kernel_3D(float *Input, float* Output, unsigned long long offset, int kernel_half_size, int sizefilter_total, float mu_threshold, int midval, int N, int M, int Z, int num_total)
   {
       float ValVec[CONSTVECSIZE_27];
       long i1, j1, k1, i_m, j_m, k_m, counter;
@@ -339,9 +339,9 @@ __global__ void medfilt1_kernel_3D(float *Input, float* Output, int offset, int 
       // calculate the number of vertical slices to offset the k index by to get
       // to the first vertical slice of the volume that the current stream
       // should be processing
-      const int k_offset = offset / (N*M);
-      const long k = blockDim.z * blockIdx.z + threadIdx.z + k_offset;
-      const long index = i + N*j + N*M*k;
+      const unsigned long long k_offset = offset / ((unsigned long long)N*(unsigned long long)M);
+      const unsigned long long k = (unsigned long long)blockDim.z * (unsigned long long)blockIdx.z + (unsigned long long)threadIdx.z + (unsigned long long)k_offset;
+      const unsigned long long index = (unsigned long long)i + (unsigned long long)N*(unsigned long long)j + (unsigned long long)N*(unsigned long long)M*(unsigned long long)k;
 
       if (index < num_total && i < N && j < M && k < Z)	{
       counter = 0l;
@@ -1036,19 +1036,18 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
        return -1;
    }
 
-        int ImSize, sizefilter_total, kernel_half_size, midval;
-        ImSize = N*M*Z;
+        int sizefilter_total, kernel_half_size, midval;
+        const unsigned long long ImSize = (unsigned long long)N*(unsigned long long)M*(unsigned long long)Z;
         float *d_input0, *d_output0;
 
         /*set GPU device*/
         checkCudaErrors(cudaSetDevice(gpu_device));
 
         const int nStreams = 4;
-        const int n = ImSize;
-        //const int n = ImSize * nStreams;
+        const unsigned long long n = ImSize;
         // calculate the absolute minimum number of pixels that should be
         // processed per stream
-        const int ideal_stream_size = n / nStreams;
+        const unsigned long long ideal_stream_size = n / nStreams;
         // find the integer multiple of rows of the image that each stream needs
         // to process in order to cover AT LEAST ideal_stream_size, but will in
         // practice be a bit larger
@@ -1057,15 +1056,15 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         // calculate the number of bytes of data that each stream should be
         // processing
         const int stream_size = rows_per_stream * N;
-        const int stream_bytes = stream_size * sizeof(float);
+        const unsigned long long stream_bytes = (unsigned long long)stream_size * sizeof(float);
         // since the number of rows per stream was rounded UP, the amount of
         // data copied to the GPU for the last stream isn't quite as big as for
         // the other streams; calculate how many rows are leftover to process
         // for the last stream
         const int leftover_rows = M - ((nStreams - 1) * rows_per_stream);
-        const int bytes = n * sizeof(float);
+        const unsigned long long bytes = n * sizeof(float);
         // number of bytes for one row of the 2D image
-        const int im_row_bytes = N * sizeof(float);
+        const unsigned long long im_row_bytes = N * sizeof(float);
 
         // create events and streams
         cudaStream_t stream[nStreams];
@@ -1080,7 +1079,7 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         float* pinned_mem_input;
         float* pinned_mem_output;
         cudaHostAlloc(&pinned_mem_input, bytes, cudaHostAllocDefault);
-        for (int i = 0; i < ImSize; i++) {
+        for (unsigned long long i = 0; i < ImSize; i++) {
           pinned_mem_input[i] = Input[i];
         }
         cudaHostAlloc(&pinned_mem_output, bytes, cudaHostAllocDefault);
@@ -1220,7 +1219,7 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
 
         // calculate the absolute minimum number of pixels that should be
         // processed per stream
-        const int ideal_stream_size = n / nStreams;
+        const unsigned long long ideal_stream_size = n / nStreams;
         // find the integer multiple of slices of the volume that each stream
         // needs to process in order to cover AT LEAST ideal_stream_size, but
         // will in practice be a bit larger
@@ -1228,17 +1227,17 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         const int slices_per_stream = ceil(ideal_slices_per_stream);
         // calculate the number of bytes of data that each stream should be
         // processing
-        const int stream_size = slices_per_stream * N * M;
-        const int stream_bytes = stream_size * sizeof(float);
+        const unsigned long long stream_size = slices_per_stream * (unsigned long long)N * (unsigned long long)M;
+        const unsigned long long stream_bytes = stream_size * sizeof(float);
         // since the number of slices per stream was rounded UP, the amount of
         // data copied to the GPU for the last stream isn't quite as big as for
         // the other streams; calculate how many slices are leftover to process
         // for the last stream
         const int leftover_slices = Z - ((nStreams - 1) * slices_per_stream);
-        const int leftover_slab_bytes = leftover_slices * N * M * sizeof(float);
+        const unsigned long long leftover_slab_bytes = leftover_slices * (unsigned long long)N * (unsigned long long)M * sizeof(float);
 
         // calculate the number of bytes in a single slice of the volume
-        const int vol_slice_bytes = N * M * sizeof(float);
+        const unsigned long long vol_slice_bytes = (unsigned long long)N * (unsigned long long)M * sizeof(float);
 
         // Each stream will process a subset of the data with shape
         // (x, y, z) = (N, M, slices_per_stream). Calculate a (reasonably)
@@ -1342,11 +1341,11 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
 
 
           // number of bytes to copy for a stream
-          int bytes_to_copy_h2d;
-          int bytes_to_copy_d2h;
-          int copy_offset_h2d;
-          int copy_offset_d2h;
-          int process_offset;
+          unsigned long long bytes_to_copy_h2d;
+          unsigned long long bytes_to_copy_d2h;
+          unsigned long long copy_offset_h2d;
+          unsigned long long copy_offset_d2h;
+          unsigned long long process_offset;
 
           // Benchmark approach 2: WITH streaming, looping over different
           // operations
@@ -1504,7 +1503,7 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
         // when using pinned memory to hold output, copy result from pinned
         // memeory to paged memory (the Output pointer) so then the result is
         // seen by the python wrapper
-        for (int i = 0; i < ImSize; i++) {
+        for (unsigned long long i = 0; i < ImSize; i++) {
           Output[i] = pinned_mem_output[i];
         }
 
