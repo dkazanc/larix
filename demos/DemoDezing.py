@@ -54,11 +54,11 @@ plt.imshow(sino_an_noisy, cmap="BuPu")
 plt.title('{}''{}'.format('Analytical sinogram of model no.',model))
 
 
-pars = {'input_data' : sino_an_noisy, # input grayscale image
+pars = {'input_data' : np.float32(sino_an_noisy), # input grayscale image
         'kernel_size' : 5}
 
 start_time = timeit.default_timer()
-filtered = MEDIAN_FILT(pars['input_data'].copy(order='C'), pars['kernel_size'])
+filtered = MEDIAN_FILT(pars['input_data'], pars['kernel_size'])
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 
@@ -69,12 +69,12 @@ plt.title('{}''{}'.format('Filtered sinogram of model no.',model))
 
 print("Applying Dezinger Filter in 2D...")
 
-pars = {'input_data' : sino_an_noisy, # input grayscale image
+pars = {'input_data' : np.float32(sino_an_noisy), # input grayscale image
         'kernel_size' : 5,
         'mu_threshold': 100.0}
 
 start_time = timeit.default_timer()
-dezingered = MEDIAN_DEZING(pars['input_data'].copy(order='C'), pars['kernel_size'], pars['mu_threshold'])
+dezingered = MEDIAN_DEZING(pars['input_data'], pars['kernel_size'], pars['mu_threshold'])
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 
@@ -86,7 +86,7 @@ plt.title('{}''{}'.format('Dezingered sinogram of model no.',model))
 #%%
 print("Applying Median Filter in 2D using GPU...")
 
-pars = {'input_data' : sino_an_noisy, # input grayscale image
+pars = {'input_data' : np.float32(sino_an_noisy), # input grayscale image
         'kernel_size' : 5}
 
 start_time = timeit.default_timer()
@@ -101,7 +101,7 @@ plt.title('{}''{}'.format('GPU Filtered sinogram of model no.',model))
 
 print("Applying GPU-accelerated Dezinger Filter in 2D...")
 
-pars = {'input_data' : sino_an_noisy, # input grayscale image
+pars = {'input_data' : np.float32(sino_an_noisy), # input grayscale image
         'kernel_size' : 5,
         'mu_threshold': 100.0}
 

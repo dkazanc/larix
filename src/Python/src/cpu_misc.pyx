@@ -16,7 +16,7 @@ import numpy as np
 cimport numpy as np
 
 cdef extern int Autocrop_main(float *Input, float *mask_box, float *crop_indeces, float threshold, int margin_skip, int statbox_size, int increase_crop, int dimX, int dimY, int dimZ);
-cdef extern int medianfilter_main_float(float *Input, float *Output, int kernel_size, float mu_threshold, int ncores, int dimX, int dimY, int dimZ);
+cdef extern int medianfilter_main_float(float *Input, float *Output, int kernel_size, float mu_threshold, int ncores, int dimX, int dimY, int dimZ)
 cdef extern int medianfilter_main_uint16(unsigned short *Input, unsigned short *Output, int kernel_size, float mu_threshold, int ncores, int dimX, int dimY, int dimZ);
 cdef extern int Diffusion_Inpaint_CPU_main(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float sigmaPar, int iterationsNumb, float tau, int penaltytype, int dimX, int dimY, int dimZ);
 cdef extern int NonlocalMarching_Inpaint_main(float *Input, unsigned char *M, float *Output, unsigned char *M_upd, int SW_increment, int iterationsNumb, int trigger, int dimX, int dimY, int dimZ);
@@ -86,6 +86,8 @@ def MEDIAN_FILT(Input, kernel_size, ncores=0):
         return  MEDIAN_FILT_float32_3D(Input, kernel_size, ncores)
     elif ((Input.ndim == 3) and (input_type == 'uint16')):
         return  MEDIAN_FILT_uint16_3D(Input, kernel_size, ncores)
+    else:
+        print("the data type or dimension is not supported!")
 
 def MEDIAN_FILT_float32_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
                             int kernel_size,
@@ -178,7 +180,9 @@ def MEDIAN_DEZING(Input, kernel_size, mu_threshold, ncores=0):
         return  MEDIAN_DEZING_float32_3D(Input, kernel_size, mu_threshold, ncores)
     elif ((Input.ndim == 3) and (input_type == 'uint16')):
         return  MEDIAN_DEZING_uint16_3D(Input, kernel_size, mu_threshold, ncores)
-
+    else:
+        print("the data type or dimension is not supported!")
+        
 def MEDIAN_DEZING_float32_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
                             int kernel_size,
                             float mu_threshold,
