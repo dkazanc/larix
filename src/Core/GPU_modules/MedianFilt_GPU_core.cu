@@ -1168,7 +1168,7 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
             copy_offset_h2d = 0;
             bytes_to_copy_h2d = stream_bytes;
           }
-          checkCudaErrors( cudaMemcpyAsync(&d_input0[copy_offset_h2d], &Input[copy_offset_h2d],
+          checkCudaErrors( cudaMemcpyAsync(&d_input0[copy_offset_h2d], &pinned_mem_input[copy_offset_h2d],
                                      bytes_to_copy_h2d, cudaMemcpyHostToDevice,
                                      stream[i]) );
           // running the kernel
@@ -1182,7 +1182,7 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
           medfilt1_kernel_2D<<<dimGrid, dimBlock, 0, stream[i] >>>(d_input0, d_output0, process_offset, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
 
           /* copy processed data from device to the host */
-          checkCudaErrors( cudaMemcpyAsync(&Output[copy_offset_d2h], &d_output0[copy_offset_d2h],
+          checkCudaErrors( cudaMemcpyAsync(&pinned_mem_output[copy_offset_d2h], &d_output0[copy_offset_d2h],
                                      bytes_to_copy_d2h, cudaMemcpyDeviceToHost,
                                      stream[i]) );
           checkCudaErrors( cudaDeviceSynchronize() );
