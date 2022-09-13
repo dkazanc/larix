@@ -1188,15 +1188,6 @@ extern "C" int MedianFilt_GPU_main_float32(float *Input, float *Output, int kern
           checkCudaErrors( cudaDeviceSynchronize() );
           }
 
-        /*destroy streams*/
-        for (int i = 0; i < nStreams; ++i)
-          checkCudaErrors( cudaStreamDestroy(stream[i]) );
-
-        /*free GPU memory*/
-        checkCudaErrors(cudaFree(d_input0));
-        checkCudaErrors(cudaFree(d_output0));
-        /*checkCudaErrors( cudaEventElapsedTime(&ms, startEvent, stopEvent) );*/
-
         /*
         if (kernel_size == 3) medfilt1_kernel_2D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
         else if (kernel_size == 5) medfilt2_kernel_2D<<<dimGrid,dimBlock>>>(d_input0, d_output0, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
