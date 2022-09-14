@@ -844,17 +844,21 @@ __global__ void medfilt5_pad_kernel_uint16_3D(unsigned short *Input, unsigned sh
       return;
     }
 
-__global__ void medfilt1_kernel_uint16_3D(unsigned short *Input, unsigned short *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, int midval, int N, int M, int Z, int num_total)
+__global__ void medfilt1_kernel_uint16_3D(unsigned short *Input, unsigned short *Output, unsigned long long offset, int kernel_half_size, int sizefilter_total, float mu_threshold, int midval, int N, int M, int Z, int num_total)
   {
       unsigned short ValVec[CONSTVECSIZE_27];
       long i1, j1, k1, i_m, j_m, k_m, counter;
 
       const long i = blockDim.x * blockIdx.x + threadIdx.x;
       const long j = blockDim.y * blockIdx.y + threadIdx.y;
-      const long k = blockDim.z * blockIdx.z + threadIdx.z;
-      const long index = N*M*k + i + N*j;
+      // calculate the number of vertical slices to offset the k index by to get
+      // to the first vertical slice of the volume that the current stream
+      // should be processing
+      const unsigned long long k_offset = offset / ((unsigned long long)N*(unsigned long long)M);
+      const unsigned long long k = (unsigned long long)blockDim.z * (unsigned long long)blockIdx.z + (unsigned long long)threadIdx.z + (unsigned long long)k_offset;
+      const unsigned long long index = (unsigned long long)i + (unsigned long long)N*(unsigned long long)j + (unsigned long long)N*(unsigned long long)M*(unsigned long long)k;
 
-      if (index < num_total)	{
+      if (index < num_total && i < N && j < M && k < Z)	{
       counter = 0l;
       for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
             i1 = i + i_m;
@@ -1628,11 +1632,52 @@ extern "C" int MedianFilt_GPU_main_uint16(unsigned short *Input, unsigned short 
        }
 	else {
 		    /*3D case*/
+
+        const StreamInfo streamInfo = calculate_stream_size(nStreams, N, M, Z);
+        const unsigned long long stream_bytes = streamInfo.stream_size * sizeof(unsigned short);
+        const int leftover_slices = Z - ((nStreams - 1) * streamInfo.slices_per_stream);
+        const unsigned long long leftover_slab_bytes = leftover_slices * (unsigned long long)N * (unsigned long long)M * sizeof(unsigned short);
+        // calculate the number of bytes in a single slice of the volume
+        const unsigned long long vol_slice_bytes = (unsigned long long)N * (unsigned long long)M * sizeof(unsigned short);
+
+        // Each stream will process a subset of the data with shape
+        // (x, y, z) = (N, M, slices_per_stream). Calculate a (reasonably)
+        // optimal grid size of (8, 8, 8) thread-blocks to map onto the 3D
+        // volume
+        int grid_x_dim = 0;
+        int grid_y_dim = 0;
+        int grid_z_dim = 0;
+        int vertical_count = 0;
+        int horizontal_count = 0;
+        int depth_count = 0;
+
+        while (vertical_count < M) {
+          grid_y_dim++;
+          vertical_count += BLKYSIZE;
+        }
+
+        while (horizontal_count < N) {
+          grid_x_dim++;
+          horizontal_count += BLKXSIZE;
+        }
+
+        while (depth_count < streamInfo.slices_per_stream) {
+          grid_z_dim++;
+          depth_count += BLKZSIZE;
+        }
+
         dim3 dimBlock(BLKXSIZE,BLKYSIZE,BLKZSIZE);
-        dim3 dimGrid(idivup(N,BLKXSIZE), idivup(M,BLKYSIZE),idivup(Z,BLKXSIZE));
+        dim3 dimGrid(grid_x_dim, grid_y_dim, grid_z_dim);
         sizefilter_total = (int)(pow(kernel_size, 3));
         kernel_half_size = (int)((kernel_size-1)/2);
         midval = (int)(sizefilter_total/2);
+
+        // number of bytes to copy for a stream
+        unsigned long long bytes_to_copy_h2d;
+        unsigned long long bytes_to_copy_d2h;
+        unsigned long long copy_offset_h2d;
+        unsigned long long copy_offset_d2h;
+        unsigned long long process_offset;
 
         if (Z == kernel_size) {
         /* performs operation only on the central frame using all 3D information */
@@ -1643,16 +1688,53 @@ extern "C" int MedianFilt_GPU_main_uint16(unsigned short *Input, unsigned short 
         else medfilt5_pad_kernel_uint16_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
           }
         else {
-        /* Full data (traditional) 3D case */
-        if (kernel_size == 3) medfilt1_kernel_uint16_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        else if (kernel_size == 5) medfilt2_kernel_uint16_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        else if (kernel_size == 7) medfilt3_kernel_uint16_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        else if (kernel_size == 9) medfilt4_kernel_uint16_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
-        else medfilt5_kernel_uint16_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+
+          for (int i = 0; i < nStreams; ++i) {
+            process_offset = i * streamInfo.stream_size;
+            copy_offset_d2h = i * streamInfo.stream_size;
+            bytes_to_copy_d2h = stream_bytes;
+
+            if(nStreams > 1) {
+              if (i == 0) {
+                copy_offset_h2d = 0;
+                bytes_to_copy_h2d = stream_bytes + vol_slice_bytes;
+              }
+              else if (1 <= i && i < nStreams - 1) {
+                copy_offset_h2d = i* streamInfo.stream_size - N*M;
+                bytes_to_copy_h2d = stream_bytes + 2*vol_slice_bytes;
+              }
+              else {
+                copy_offset_h2d = i* streamInfo.stream_size - N*M;
+                bytes_to_copy_h2d = leftover_slab_bytes + vol_slice_bytes;
+                bytes_to_copy_d2h = leftover_slices * N*M * sizeof(unsigned short);
+              }
             }
-        checkCudaErrors( cudaDeviceSynchronize() );
-        checkCudaErrors(cudaPeekAtLastError() );
-    		}
+            else {
+              copy_offset_h2d = 0;
+              bytes_to_copy_h2d = stream_bytes;
+            }
+
+            // copy a slab of the data from CPU to GPU memory
+            checkCudaErrors( cudaMemcpyAsync(&d_input[copy_offset_h2d], &pinned_mem_input[copy_offset_h2d],
+                                      bytes_to_copy_h2d, cudaMemcpyHostToDevice,
+                                      stream[i]) );
+
+            /* Full data (traditional) 3D case */
+            if (kernel_size == 3) medfilt1_kernel_uint16_3D<<<dimGrid,dimBlock,0,stream[i]>>>(d_input, d_output, process_offset, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+            else if (kernel_size == 5) medfilt2_kernel_uint16_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+            else if (kernel_size == 7) medfilt3_kernel_uint16_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+            else if (kernel_size == 9) medfilt4_kernel_uint16_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+            else medfilt5_kernel_uint16_3D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, Z, ImSize);
+
+            // copy a slab of the processed data from GPU to CPU memory
+            checkCudaErrors( cudaMemcpyAsync(&pinned_mem_output[copy_offset_d2h], &d_output[copy_offset_d2h],
+                                      bytes_to_copy_d2h, cudaMemcpyDeviceToHost,
+                                      stream[i]) );
+            }
+          checkCudaErrors( cudaDeviceSynchronize() );
+          checkCudaErrors(cudaPeekAtLastError() );
+          }
+        }
 
         // when using pinned memory to hold output, copy result from pinned
         // memeory to paged memory (the Output pointer) so then the result is
