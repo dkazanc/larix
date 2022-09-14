@@ -186,13 +186,14 @@ __global__ void medfilt5_kernel_2D(float *Input, float* Output, int kernel_half_
         }
     }
 
-__global__ void medfilt1_kernel_uint16_2D(unsigned short *Input, unsigned short* Output, int kernel_half_size, int sizefilter_total, float mu_threshold, int midval, int N, int M, int num_total)
+__global__ void medfilt1_kernel_uint16_2D(unsigned short *Input, unsigned short* Output, int offset, int kernel_half_size, int sizefilter_total, float mu_threshold, int midval, int N, int M, int num_total)
   {
       unsigned short ValVec[CONSTVECSIZE_9];
       int i1, j1, i_m, j_m, counter = 0;
 
       const int i = blockDim.x * blockIdx.x + threadIdx.x;
-      const int j = blockDim.y * blockIdx.y + threadIdx.y;
+      const int j_offset = offset / N;
+      const int j = blockDim.y * blockIdx.y + threadIdx.y + j_offset;
       const int index = i + N*j;
 
       if (index < num_total && i < N && j < M)	{
@@ -1497,29 +1498,131 @@ extern "C" int MedianFilt_GPU_main_uint16(unsigned short *Input, unsigned short 
       fprintf(stderr, "No CUDA devices found\n");
        return -1;
    }
-        int ImSize, sizefilter_total, kernel_half_size, midval;
+        int sizefilter_total, kernel_half_size, midval;
         unsigned short *d_input, *d_output;
-        ImSize = N*M*Z;
+        const unsigned long long ImSize = (unsigned long long)N*(unsigned long long)M*(unsigned long long)Z;
 
-        checkCudaErrors(cudaMalloc((void**)&d_input,ImSize*sizeof(unsigned short)));
-        checkCudaErrors(cudaMalloc((void**)&d_output,ImSize*sizeof(unsigned short)));
+        const int nStreams = 4;
+        const unsigned long long bytes = ImSize * sizeof(unsigned short);
 
-        checkCudaErrors(cudaMemcpy(d_input,Input,ImSize*sizeof(unsigned short),cudaMemcpyHostToDevice));
-        checkCudaErrors(cudaMemcpy(d_output,Input,ImSize*sizeof(unsigned short),cudaMemcpyHostToDevice));
+        // create events and streams
+        cudaStream_t stream[nStreams];
+        for (int i = 0; i < nStreams; ++i)
+          checkCudaErrors( cudaStreamCreate(&stream[i]) );
+
+        checkCudaErrors(cudaMalloc((void**)&d_input, bytes));
+        checkCudaErrors(cudaMalloc((void**)&d_output, bytes));
+
+        // allocate pinned memory for data
+        unsigned short* pinned_mem_input;
+        unsigned short* pinned_mem_output;
+        cudaHostAlloc(&pinned_mem_input, bytes, cudaHostAllocDefault);
+        for (unsigned long long i = 0; i < ImSize; i++) {
+          pinned_mem_input[i] = Input[i];
+        }
+        cudaHostAlloc(&pinned_mem_output, bytes, cudaHostAllocDefault);
 
 	if (Z == 1) {
         /*2D case */
-        dim3 dimBlock(BLKXSIZE2D,BLKYSIZE2D);
-        dim3 dimGrid(idivup(N,BLKXSIZE2D), idivup(M,BLKYSIZE2D));
+
+        const StreamInfo streamInfo = calculate_stream_size(nStreams, N, M, Z);
+        const unsigned long long stream_bytes = streamInfo.stream_size * sizeof(unsigned short);
+        const int leftover_rows = M - ((nStreams - 1) * streamInfo.slices_per_stream);
+        const unsigned long long leftover_row_bytes = leftover_rows * (unsigned long long)N * sizeof(unsigned short);
+        // calculate the number of bytes in a single row of the image
+        const unsigned long long im_row_bytes = (unsigned long long)N * sizeof(unsigned short);
+
+        const int blockSize = 16;
+
+        // Each stream will process a subset of the data with shape
+        // (rows_per_stream, N). Calculate a (reasonably) optimal grid size of
+        // (16, 16) thread-blocks to map onto the 2D image
+        int grid_x_dim = 0;
+        int grid_y_dim = 0;
+        int vertical_count = 0;
+        int horizontal_count = 0;
+
+        while (vertical_count < streamInfo.slices_per_stream) {
+          grid_y_dim++;
+          vertical_count += blockSize;
+        }
+
+        while (horizontal_count < N) {
+          grid_x_dim++;
+          horizontal_count += blockSize;
+        }
+
+        dim3 dimBlock(blockSize,blockSize);
+        dim3 dimGrid(grid_x_dim, grid_y_dim);
         sizefilter_total = (int)(pow(kernel_size,2));
         kernel_half_size = (int)((kernel_size-1)/2);
         midval = (int)(sizefilter_total/2);
 
-        if (kernel_size == 3) medfilt1_kernel_uint16_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
-        else if (kernel_size == 5) medfilt2_kernel_uint16_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
-        else if (kernel_size == 7) medfilt3_kernel_uint16_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
-        else if (kernel_size == 9) medfilt4_kernel_uint16_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
-        else medfilt5_kernel_uint16_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+        // number of bytes to copy for a stream
+        int bytes_to_copy_h2d;
+        int bytes_to_copy_d2h;
+        int copy_offset_h2d;
+        int copy_offset_d2h;
+        int process_offset;
+        for (int i = 0; i < nStreams; ++i) {
+          // every stream should still be processing the same number of
+          // elements, just that the memeory address where the data for a
+          // particular stream starts changes for every stream
+          process_offset = i * streamInfo.stream_size;
+          // since every stream processes the same number of elements, it should
+          // always copy the same number of elements back from GPU to CPU, just
+          // with a different memory address offset for each stream
+          copy_offset_d2h = i * streamInfo.stream_size;
+          bytes_to_copy_d2h = stream_bytes;
+          /* copy streamed data from host to the device */
+          if (nStreams > 1) {
+            if (i == 0) {
+              // for stream 0, copy an extra row of pixels that comes after the
+              // rows being processed in this stream, so then those neighbouring
+              // pixels are avaiable for processing in this stream
+              bytes_to_copy_h2d = stream_bytes + im_row_bytes;
+              copy_offset_h2d = 0;
+            }
+            else if (1 <= i && i < nStreams - 1) {
+              // for streams 1 to (nStreams - 1), copy an extra row of pixels in
+              // the image that come before AND after the rows being processed
+              // in these streams over to the GPU:
+              // this so then neighbouring pixels of the first and last rows of
+              // the rows being processed in this stream are guaranteed to be in
+              // GPU memory
+              copy_offset_h2d = i * streamInfo.stream_size - N;
+              bytes_to_copy_h2d = stream_bytes + 2*im_row_bytes;
+            }
+            else {
+              // for the last stream, copy an extra row of pixels that comes
+              // before the rows being processed in this stream, so then those
+              // neighbouring pixels are available in this stream
+              copy_offset_h2d = i * streamInfo.stream_size - N;
+              bytes_to_copy_h2d = leftover_row_bytes + im_row_bytes;
+              bytes_to_copy_d2h = leftover_rows * N * sizeof(unsigned short);
+            }
+          }
+          else {
+            copy_offset_h2d = 0;
+            bytes_to_copy_h2d = stream_bytes;
+          }
+
+          checkCudaErrors( cudaMemcpyAsync(&d_input[copy_offset_h2d], &pinned_mem_input[copy_offset_h2d],
+                                     bytes_to_copy_h2d, cudaMemcpyHostToDevice,
+                                     stream[i]) );
+
+          // run the kernel
+          medfilt1_kernel_uint16_2D<<<dimGrid, dimBlock, 0, stream[i]>>>(d_input, d_output, process_offset, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+//        if (kernel_size == 3) medfilt1_kernel_uint16_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+//        else if (kernel_size == 5) medfilt2_kernel_uint16_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+//        else if (kernel_size == 7) medfilt3_kernel_uint16_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+//        else if (kernel_size == 9) medfilt4_kernel_uint16_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+//        else medfilt5_kernel_uint16_2D<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, mu_threshold, midval, N, M, ImSize);
+
+          checkCudaErrors( cudaMemcpyAsync(&pinned_mem_output[copy_offset_d2h], &d_output[copy_offset_d2h],
+                                     bytes_to_copy_d2h, cudaMemcpyDeviceToHost,
+                                     stream[i]) );
+        }
         checkCudaErrors( cudaDeviceSynchronize() );
         checkCudaErrors(cudaPeekAtLastError() );
        }
@@ -1550,8 +1653,25 @@ extern "C" int MedianFilt_GPU_main_uint16(unsigned short *Input, unsigned short 
         checkCudaErrors( cudaDeviceSynchronize() );
         checkCudaErrors(cudaPeekAtLastError() );
     		}
-        checkCudaErrors(cudaMemcpy(Output,d_output,ImSize*sizeof(unsigned short),cudaMemcpyDeviceToHost));
+
+        // when using pinned memory to hold output, copy result from pinned
+        // memeory to paged memory (the Output pointer) so then the result is
+        // seen by the python wrapper
+        for (unsigned long long i = 0; i < ImSize; i++) {
+          Output[i] = pinned_mem_output[i];
+        }
+
+        /*destroy streams*/
+        for (int i = 0; i < nStreams; ++i)
+          checkCudaErrors( cudaStreamDestroy(stream[i]) );
+
+        /*free GPU memory*/
         checkCudaErrors(cudaFree(d_input));
         checkCudaErrors(cudaFree(d_output));
+
+        // free pinned memory on host
+        cudaFreeHost(pinned_mem_input);
+        cudaFreeHost(pinned_mem_output);
+
         return 0;
 }
