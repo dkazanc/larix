@@ -176,7 +176,7 @@ __global__ void medfilt5_kernel_2D(float *Input, float* Output, int kernel_half_
                 if ((j1 < 0) || (j1 >= M)) j1 = j;
                 ValVec[counter++] = Input[i1 + N*j1];
         }}
-        //sort_quick(ValVec, 0, CONSTVECSIZE_121); /* perform sorting */
+        //quicksort_float(ValVec, 0, 120); /* perform sorting */        
         sort_bubble(ValVec, CONSTVECSIZE_121); /* perform sorting */
         if (mu_threshold == 0.0f) Output[index] = ValVec[midval]; /* perform median filtration */
         else {

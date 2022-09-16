@@ -7,9 +7,9 @@ cd build
 #make clean
 export VERSION=0.1.3
 # install Python modules without CUDA
-#cmake ../ -DBUILD_PYTHON_WRAPPER=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./install
+cmake ../ -DBUILD_PYTHON_WRAPPER=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./install
 # install Python modules with CUDA
-cmake ../ -DBUILD_PYTHON_WRAPPER=ON -DBUILD_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./install
+#cmake ../ -DBUILD_PYTHON_WRAPPER=ON -DBUILD_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./install
 make install
 ############### Python(linux)###############
 cp install/lib/liblarix.so install/python/larix/methods
@@ -29,3 +29,5 @@ ipython build_testing_3d.py
 #spyder --new-instance
 
 # All built shared objects will be placed into larix/build/install/python/larix/methods
+# in order to be able import modules you need to go to the folder larix/build/install/python to be able to import
+# modules

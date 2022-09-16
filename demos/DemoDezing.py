@@ -37,25 +37,25 @@ P = int(np.sqrt(2)*N_size) #detectors
 sino_an = TomoP2D.ModelSino(model, N_size, P, angles, path_library2D)
 
 # forming dictionaries with artifact types
-_noise_ =  {'noise_type' : 'Gaussian',
-            'noise_amplitude' : 0.5, # noise amplitude
-            'noise_seed' : 0}
+_noise_ =  {'noise_type' : 'Poisson',
+            'noise_sigma' : 5000, # noise amplitude
+            'noise_seed' : 0,
+            'noise_prelog': True}
 
 # adding zingers
-_zingers_ = {'zingers_percentage' : 0.3,
-             'zingers_modulus' : 15}
+_zingers_ = {'zingers_percentage' : 0.25,
+             'zingers_modulus' : 10}
 
-sino_an_noisy = _Artifacts_(sino_an, **_noise_, **_zingers_)
+[sino_an_noisy, raw] = _Artifacts_(sino_an, **_noise_, **_zingers_)
 
 plt.figure(1)
 plt.rcParams.update({'font.size': 21})
 plt.imshow(sino_an_noisy, cmap="BuPu")
 plt.title('{}''{}'.format('Analytical sinogram of model no.',model))
-#%%
-print("Applying Median Filter in 2D...")
 
-pars = {'input_data' : sino_an_noisy, # input grayscale image
-        'kernel_size' : 3}
+
+pars = {'input_data' : np.float32(sino_an_noisy), # input grayscale image
+        'kernel_size' : 5}
 
 start_time = timeit.default_timer()
 filtered = MEDIAN_FILT(pars['input_data'], pars['kernel_size'])
@@ -69,7 +69,7 @@ plt.title('{}''{}'.format('Filtered sinogram of model no.',model))
 
 print("Applying Dezinger Filter in 2D...")
 
-pars = {'input_data' : sino_an_noisy, # input grayscale image
+pars = {'input_data' : np.float32(sino_an_noisy), # input grayscale image
         'kernel_size' : 5,
         'mu_threshold': 100.0}
 
@@ -86,8 +86,8 @@ plt.title('{}''{}'.format('Dezingered sinogram of model no.',model))
 #%%
 print("Applying Median Filter in 2D using GPU...")
 
-pars = {'input_data' : sino_an_noisy, # input grayscale image
-        'kernel_size' : 3}
+pars = {'input_data' : np.float32(sino_an_noisy), # input grayscale image
+        'kernel_size' : 5}
 
 start_time = timeit.default_timer()
 filtered_gpu = MEDIAN_FILT_GPU(pars['input_data'], pars['kernel_size'])
@@ -101,8 +101,8 @@ plt.title('{}''{}'.format('GPU Filtered sinogram of model no.',model))
 
 print("Applying GPU-accelerated Dezinger Filter in 2D...")
 
-pars = {'input_data' : sino_an_noisy, # input grayscale image
-        'kernel_size' : 3,
+pars = {'input_data' : np.float32(sino_an_noisy), # input grayscale image
+        'kernel_size' : 5,
         'mu_threshold': 100.0}
 
 start_time = timeit.default_timer()
