@@ -17,24 +17,28 @@ cimport numpy as np
 
 CUDAErrorMessage = 'CUDA error'
 
-cdef extern int MedianFilt_GPU_main_float32(float *Input, float *Output, int kernel_size, float mu_threshold, int N, int M, int Z);
+cdef extern int MedianFilt_GPU_main_float32(float *Input, float *Output, int kernel_size, float mu_threshold, int gpu_device, int N, int M, int Z);
 cdef extern int MedianFilt_GPU_main_uint16(unsigned short *Input, unsigned short *Output, int kernel_size, float mu_threshold, int N, int M, int Z);
 #################################################################################
 ###########################Median Filtering (GPU) ###############################
 #################################################################################
-def MEDIAN_FILT_GPU(Input, kernel_size):
+def MEDIAN_FILT_GPU(Input, kernel_size, *gpu_device_list):
     input_type = Input.dtype
+    if not gpu_device_list:
+        gpu_device = 0 # set to be a default 0th device
+    else:
+        gpu_device = gpu_device_list[0] # set to be a chosen GPU device
     if ((Input.ndim == 2) and (input_type == 'float32')):
-        return MEDIAN_FILT_GPU_float32_2D(Input, kernel_size)
+        return MEDIAN_FILT_GPU_float32_2D(Input, kernel_size, gpu_device)
     elif ((Input.ndim == 2) and (input_type == 'uint16')):
-        return MEDIAN_FILT_GPU_uint16_2D(Input, kernel_size)
+        return MEDIAN_FILT_GPU_uint16_2D(Input, kernel_size, gpu_device)
     elif ((Input.ndim == 3) and (input_type == 'float32')):
-        return  MEDIAN_FILT_GPU_float32_3D(Input, kernel_size)
+        return  MEDIAN_FILT_GPU_float32_3D(Input, kernel_size, gpu_device)
     elif ((Input.ndim == 3) and (input_type == 'uint16')):
-        return  MEDIAN_FILT_GPU_uint16_3D(Input, kernel_size)
+        return  MEDIAN_FILT_GPU_uint16_3D(Input, kernel_size, gpu_device)
 
 def MEDIAN_FILT_GPU_float32_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
-                    int kernel_size):
+                    int kernel_size, int gpu_device):
 
     cdef long dims[2]
     dims[0] = Input.shape[0]
@@ -44,7 +48,7 @@ def MEDIAN_FILT_GPU_float32_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
             np.zeros([dims[0],dims[1]], dtype='float32')
 
     if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
-        if (MedianFilt_GPU_main_float32(&Input[0,0], &Output[0,0], kernel_size, 0.0, dims[1], dims[0], 1)==0):
+        if (MedianFilt_GPU_main_float32(&Input[0,0], &Output[0,0], kernel_size, 0.0, gpu_device, dims[1], dims[0], 1)==0):
             return Output
         else:
             raise ValueError(CUDAErrorMessage)
@@ -52,7 +56,7 @@ def MEDIAN_FILT_GPU_float32_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
         print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
 
 def MEDIAN_FILT_GPU_uint16_2D(np.ndarray[np.uint16_t, ndim=2, mode="c"] Input,
-                    int kernel_size):
+                    int kernel_size, int gpu_device):
 
     cdef long dims[2]
     dims[0] = Input.shape[0]
@@ -70,7 +74,7 @@ def MEDIAN_FILT_GPU_uint16_2D(np.ndarray[np.uint16_t, ndim=2, mode="c"] Input,
         print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
 
 def MEDIAN_FILT_GPU_float32_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
-                    int kernel_size):
+                    int kernel_size, int gpu_device):
 
     cdef long dims[3]
     dims[0] = Input.shape[0]
@@ -81,7 +85,7 @@ def MEDIAN_FILT_GPU_float32_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
             np.zeros([dims[0],dims[1],dims[2]], dtype='float32')
 
     if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
-        if (MedianFilt_GPU_main_float32(&Input[0,0,0], &Output[0,0,0], kernel_size, 0.0, dims[2], dims[1], dims[0])==0):
+        if (MedianFilt_GPU_main_float32(&Input[0,0,0], &Output[0,0,0], kernel_size, 0.0, gpu_device, dims[2], dims[1], dims[0])==0):
             return Output
         else:
             raise ValueError(CUDAErrorMessage)
@@ -90,7 +94,7 @@ def MEDIAN_FILT_GPU_float32_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
 
 
 def MEDIAN_FILT_GPU_uint16_3D(np.ndarray[np.uint16_t, ndim=3, mode="c"] Input,
-                              int kernel_size):
+                              int kernel_size, int gpu_device):
 
     cdef long dims[3]
     dims[0] = Input.shape[0]
@@ -110,20 +114,25 @@ def MEDIAN_FILT_GPU_uint16_3D(np.ndarray[np.uint16_t, ndim=3, mode="c"] Input,
 #################################################################################
 #########################Median Dezingering (GPU) ###############################
 #################################################################################
-def MEDIAN_DEZING_GPU(Input, kernel_size, mu_threshold):
+def MEDIAN_DEZING_GPU(Input, kernel_size, mu_threshold, *gpu_device_list):
     input_type = Input.dtype
+    if not gpu_device_list:
+        gpu_device = 0 # set to be a default 0th device
+    else:
+        gpu_device = gpu_device_list[0] # set to be a chosen GPU device
     if ((Input.ndim == 2) and (input_type == 'float32')):
-        return MEDIAN_DEZING_float32_GPU_2D(Input, kernel_size, mu_threshold)
+        return MEDIAN_DEZING_float32_GPU_2D(Input, kernel_size, mu_threshold, gpu_device)
     elif ((Input.ndim == 2) and (input_type == 'uint16')):
         return MEDIAN_DEZING_uint16_GPU_2D(Input, kernel_size, mu_threshold)
     elif ((Input.ndim == 3) and (input_type == 'float32')):
-        return  MEDIAN_DEZING_float32_GPU_3D(Input, kernel_size, mu_threshold)
+        return  MEDIAN_DEZING_float32_GPU_3D(Input, kernel_size, mu_threshold, gpu_device)
     elif ((Input.ndim == 3) and (input_type == 'uint16')):
         return  MEDIAN_DEZING_uint16_GPU_3D(Input, kernel_size, mu_threshold)
 
 def MEDIAN_DEZING_float32_GPU_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
                     int kernel_size,
-                    float mu_threshold):
+                    float mu_threshold,
+                    int gpu_device):
 
     cdef long dims[2]
     dims[0] = Input.shape[0]
@@ -133,7 +142,7 @@ def MEDIAN_DEZING_float32_GPU_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Inpu
             np.zeros([dims[0],dims[1]], dtype='float32')
 
     if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
-        if (MedianFilt_GPU_main_float32(&Input[0,0], &Output[0,0], kernel_size, mu_threshold, dims[1], dims[0], 1)==0):
+        if (MedianFilt_GPU_main_float32(&Input[0,0], &Output[0,0], kernel_size, mu_threshold, gpu_device, dims[1], dims[0], 1)==0):
             return Output
         else:
             raise ValueError(CUDAErrorMessage)
@@ -162,7 +171,8 @@ def MEDIAN_DEZING_uint16_GPU_2D(np.ndarray[np.uint16_t, ndim=2, mode="c"] Input,
 
 def MEDIAN_DEZING_float32_GPU_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
                     int kernel_size,
-                    float mu_threshold):
+                    float mu_threshold,
+                    int gpu_device):
 
     cdef long dims[3]
     dims[0] = Input.shape[0]
@@ -173,7 +183,7 @@ def MEDIAN_DEZING_float32_GPU_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Inpu
             np.zeros([dims[0],dims[1],dims[2]], dtype='float32')
 
     if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
-        if (MedianFilt_GPU_main_float32(&Input[0,0,0], &Output[0,0,0], kernel_size, mu_threshold, dims[2], dims[1], dims[0])==0):
+        if (MedianFilt_GPU_main_float32(&Input[0,0,0], &Output[0,0,0], kernel_size, mu_threshold, gpu_device, dims[2], dims[1], dims[0])==0):
             return Output
         else:
             raise ValueError(CUDAErrorMessage)
