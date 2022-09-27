@@ -21,7 +21,7 @@
  *
  * Input Parameters:
  * 1. Noisy image/volume
- * 2. kernel_size: The size of the median filter window
+ * 2. kernel_size: The full size of the median filter window
  * 3. mu_threshold: if not a zero value then deinzger
 
  * Output:
