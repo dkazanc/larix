@@ -34,7 +34,6 @@ int medianfilter_main_float(float *Input, float *Output, int kernel_size, float 
     /* copy input into output */
     copyIm(Input, Output, (long)(dimX), (long)(dimY), (long)(dimZ));
 
-
     if (ncores > 0) {
     omp_set_dynamic(0);     // Explicitly disable dynamic teams
     omp_set_num_threads(ncores); // Use a number of threads for all consecutive parallel regions 
