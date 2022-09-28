@@ -5,6 +5,9 @@
 #define BLKXSIZE2D 16
 #define BLKYSIZE2D 16
 
+#define TILEDIMX 16
+#define TILEDIMY 16
+
 const int CONSTVECSIZE_9 = 9;
 const int CONSTVECSIZE_25 = 25;
 const int CONSTVECSIZE_49 = 49;

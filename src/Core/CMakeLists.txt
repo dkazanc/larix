@@ -81,7 +81,7 @@ if (BUILD_CUDA)
       set(CUDA_NVCC_FLAGS "-Xcompiler -fPIC -shared -D_FORCE_INLINES")
       message("CUDA FLAGS ${CUDA_NVCC_FLAGS}")
       CUDA_ADD_LIBRARY(larixcuda SHARED
-        ${CMAKE_CURRENT_SOURCE_DIR}/GPU_modules/MedianFilt_GPU_core.cu
+        ${CMAKE_CURRENT_SOURCE_DIR}/GPU_modules/MedianFilt_shared_GPU_core.cu
       )
       if (UNIX)
         message ("I'd install into ${CMAKE_INSTALL_PREFIX}/lib")
