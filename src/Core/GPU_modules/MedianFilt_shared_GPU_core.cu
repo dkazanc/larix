@@ -26,41 +26,6 @@
  * Output:
  * [1] Filtered or dezingered image/volume
  */
-/********************************************************************/
-/***************************2D Functions*****************************/
-/********************************************************************/
-
-__global__ void global3d_kernel(float *Input, float* Output, int kernel_half_size, int sizefilter_total, int midval, int N, int M, int Z, int num_total)
-    {
-      float ValVec[CONSTVECSIZE_27];
-      long i1, j1, k1, i_m, j_m, k_m, counter;
-
-      const long i = blockDim.x * blockIdx.x + threadIdx.x;
-      const long j = blockDim.y * blockIdx.y + threadIdx.y;
-      const long k = blockDim.z * blockIdx.z + threadIdx.z;
-      const long index = N*M*k + i + N*j;
-
-      if (index < num_total)	{
-      counter = 0l;
-      for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
-            i1 = i + i_m;
-            if ((i1 < 0) || (i1 >= N)) i1 = i;
-            for(j_m=-kernel_half_size; j_m<=kernel_half_size; j_m++) {
-              j1 = j + j_m;
-              if ((j1 < 0) || (j1 >= M)) j1 = j;
-                for(k_m=-kernel_half_size; k_m<=kernel_half_size; k_m++) {
-                  k1 = k + k_m;
-                  if ((k1 < 0) || (k1 >= Z)) k1 = k;
-                  ValVec[counter] = Input[N*M*k1 + i1 + N*j1];
-                  counter++;
-      }}}
-      //quicksort_float(ValVec, 0, 8); /* perform sorting */
-      sort_bubble(ValVec, CONSTVECSIZE_27); /* perform sorting */
-
-      Output[index] = ValVec[midval-1]; /* perform median filtration */
-      }
-      return;
-    }
 
 // this function is used to shift elements along the Z local column
 inline __device__ void advance(float *field, const int num_points)
@@ -71,9 +36,11 @@ inline __device__ void advance(float *field, const int num_points)
 }
 
 
-    // The kernel will work on an input which has been already padded with radius elements
-    // so the "in" parameter points to the first element to be process inside an inner volume
-    // of side nx,ny,nz with stride stride_x, which in general coulb be stride_x = nx + 2*radius
+/***************************2D Functions*****************************/
+
+// The kernel will work on an input which has been already padded with radius elements
+// so the "in" parameter points to the first element to be process inside an inner volume
+// of side nx,ny,nz with stride stride_x, which in general coulb be stride_x = nx + 2*radius
 
   template <int radius, int diameter> // diameter should be set to 2*radius+1
 inline __device__ void medfilt_kernel_2D_t(
@@ -222,38 +189,38 @@ __global__ void medfilt_kernel_2D_r5(float *in, float *out, int nx, int ny, int 
   medfilt_kernel_2D_t<5,11>(in, out, nx, ny, nz, stride_x, stride_yx);
 }
 
+/* global memory 3D kernel to do filtering */
+__global__ void global3d_kernel(float *Input, float* Output, int kernel_half_size, int sizefilter_total, int midval, int N, int M, int Z, int num_total)
+    {
+      float ValVec[CONSTVECSIZE_27];
+      long i1, j1, k1, i_m, j_m, k_m, counter;
 
-extern "C"
-void medfilt_kernel_2D(
-    float *input,
-    float *output,
-    int nx, int ny, int nz,
-    int stride_x, int stride_yx,
-    int radius
-    )
-{
-  dim3 threads = dim3(TILEDIMX, TILEDIMY);
-  dim3 blocks = dim3(nx/threads.x + 1, ny/threads.y + 1);
-  switch (radius) {
-    case 1:
-      medfilt_kernel_2D_r1<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
-      break;
-    case 2:
-      medfilt_kernel_2D_r2<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
-      break;
-    case 3:
-      medfilt_kernel_2D_r3<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
-      break;
-    case 4:
-      medfilt_kernel_2D_r4<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
-      break;
-    case 5:
-      medfilt_kernel_2D_r5<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
-      break;
-    default:
-      fprintf(stderr,"ERROR: medilter_kernel_2D not implemented for radius=%d\n", radius);
-  }
-}
+      const long i = blockDim.x * blockIdx.x + threadIdx.x;
+      const long j = blockDim.y * blockIdx.y + threadIdx.y;
+      const long k = blockDim.z * blockIdx.z + threadIdx.z;
+      const long index = N*M*k + i + N*j;
+
+      if (index < num_total)	{
+      counter = 0l;
+      for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
+            i1 = i + i_m;
+            if ((i1 < 0) || (i1 >= N)) i1 = i;
+            for(j_m=-kernel_half_size; j_m<=kernel_half_size; j_m++) {
+              j1 = j + j_m;
+              if ((j1 < 0) || (j1 >= M)) j1 = j;
+                for(k_m=-kernel_half_size; k_m<=kernel_half_size; k_m++) {
+                  k1 = k + k_m;
+                  if ((k1 < 0) || (k1 >= Z)) k1 = k;
+                  ValVec[counter] = Input[N*M*k1 + i1 + N*j1];
+                  counter++;
+      }}}
+      //quicksort_float(ValVec, 0, 8); /* perform sorting */
+      sort_bubble(ValVec, CONSTVECSIZE_27); /* perform sorting */
+
+      Output[index] = ValVec[midval-1]; /* perform median filtration */
+      }
+      return;
+    }
 
   template <int radius, int diameter> // diameter should be set to 2*radius+1
 inline __device__ void medfilt_kernel_3D_t(
@@ -424,6 +391,41 @@ __global__ void medfilt_kernel_3D_r5(float *in, float *out, int nx, int ny, int 
   medfilt_kernel_3D_t<5,11>(in, out, nx, ny, nz, stride_x, stride_yx);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////// HOST FUNCTIONS /////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+extern "C"
+void medfilt_kernel_2D(
+    float *input,
+    float *output,
+    int nx, int ny, int nz,
+    int stride_x, int stride_yx,
+    int radius
+    )
+{
+  dim3 threads = dim3(TILEDIMX, TILEDIMY);
+  dim3 blocks = dim3(nx/threads.x + 1, ny/threads.y + 1);
+  switch (radius) {
+    case 1:
+      medfilt_kernel_2D_r1<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
+      break;
+    case 2:
+      medfilt_kernel_2D_r2<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
+      break;
+    case 3:
+      medfilt_kernel_2D_r3<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
+      break;
+    case 4:
+      medfilt_kernel_2D_r4<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
+      break;
+    case 5:
+      medfilt_kernel_2D_r5<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
+      break;
+    default:
+      fprintf(stderr,"ERROR: medilter_kernel_2D not implemented for radius=%d\n", radius);
+  }
+}
+
 extern "C"
 void medfilt_kernel_3D(
     float *input,
@@ -456,9 +458,6 @@ void medfilt_kernel_3D(
   }
 }
 
-////////////////////////////////////////////////
-/////////////// HOST FUNCTION ///////////////////
-/////////////////////////////////////////////////
 extern "C" int MedianFilt_shared_GPU_main_float32(
   float *Input,   // outer input volume padded
   float *Output,  // outer output volume padded
