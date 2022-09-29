@@ -13,8 +13,7 @@ from tomophantom import TomoP3D
 import os
 
 model = 13 # select a model
-#N_size = (32*20,32*20,32) # not working
-N_size = 256 # working
+N_size = 1024 
 # one can specify an exact path to the parameters file
 path = os.path.dirname(tomophantom.__file__)
 path_library3D = os.path.join(path, "Phantom3DLibrary.dat")
@@ -50,5 +49,5 @@ matplotlib.image.imsave('noisy_image.png', phantom_3D[:,midval,:])
 matplotlib.image.imsave('denoisedCPU.png', volume_filteredCPU[:,midval,:])
 matplotlib.image.imsave('denoisedGPU.png', volume_filteredGPU[:,midval,:])
 matplotlib.image.imsave('denoised_CPU_GPU_residual.png', np.abs(volume_filteredCPU[:,midval,:] - volume_filteredGPU[:,midval,:]))
-IPython.embed()
+#IPython.embed()
 

@@ -32,7 +32,7 @@
 
 __global__ void global3d_kernel(float *Input, float* Output, int kernel_half_size, int sizefilter_total, int midval, int N, int M, int Z, int num_total)
     {
-      float ValVec[CONSTVECSIZE_9];
+      float ValVec[CONSTVECSIZE_27];
       long i1, j1, k1, i_m, j_m, k_m, counter;
 
       const long i = blockDim.x * blockIdx.x + threadIdx.x;
@@ -55,9 +55,9 @@ __global__ void global3d_kernel(float *Input, float* Output, int kernel_half_siz
                   counter++;
       }}}
       //quicksort_float(ValVec, 0, 8); /* perform sorting */
-      sort_bubble(ValVec, CONSTVECSIZE_9); /* perform sorting */
+      sort_bubble(ValVec, CONSTVECSIZE_27); /* perform sorting */
 
-        Output[index] = ValVec[midval]; /* perform median filtration */
+      Output[index] = ValVec[midval-1]; /* perform median filtration */
       }
       return;
     }
@@ -503,6 +503,13 @@ extern "C" int MedianFilt_shared_GPU_main_float32(
 
   // medfilt_kernel_2D(inner_input, inner_output, nx, ny, nz, N, N*M, radius);
   medfilt_kernel_3D(inner_input, inner_output, nx, ny, nz, N, N*M, radius);
+  /*global memory kernel*/
+  //int sizefilter_total = (int)(pow((radius*2+1),2));
+  //int midval = (int)(sizefilter_total/2);
+  //int num_total = (int)(N*M*Z);
+  //dim3 dimBlock(BLKXSIZE,BLKYSIZE,BLKZSIZE);
+  //dim3 dimGrid(idivup(N,BLKXSIZE), idivup(M,BLKYSIZE),idivup(Z,BLKZSIZE));
+  //global3d_kernel<<<dimGrid,dimBlock>>>(d_input, d_output, radius, sizefilter_total, midval, N, M, Z, num_total);
 
   checkCudaErrors(cudaDeviceSynchronize());
   checkCudaErrors(cudaPeekAtLastError());
