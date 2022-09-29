@@ -25,6 +25,7 @@ cd install/python/
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:../lib
 #ipython build_testing.py
 ipython build_testing_3d_phantom.py
+#cuda-memcheck python build_testing_3d_phantom.py
 
 # another option is to run spyder and go the folder larix/build/install/python to be able to import modules
 #spyder --new-instance

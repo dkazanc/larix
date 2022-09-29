@@ -75,7 +75,187 @@ inline __device__ void advance(float *field, const int num_points)
     // so the "in" parameter points to the first element to be process inside an inner volume
     // of side nx,ny,nz with stride stride_x, which in general coulb be stride_x = nx + 2*radius
 
-template <int radius, int diameter> // diameter = 2*radius+1
+  template <int radius, int diameter> // diameter should be set to 2*radius+1
+inline __device__ void medfilt_kernel_2D_t(
+    float *in,
+    float *out,
+    int nx, // faster dimension
+    int ny,
+    int nz, // slower dimension
+    int stride_x, // stride along faster dimension
+    int stride_yx // stride along each plane
+    )
+{
+  __shared__ float s_data[TILEDIMY+2*radius][TILEDIMX+2*radius];
+  float ValVec[diameter*diameter]; // 2D
+
+  float *input  = (float*) in;
+  float *output = (float*) out;
+
+  int tx = threadIdx.x + radius;
+  int ty = threadIdx.y + radius;
+  int ix = blockIdx.x * blockDim.x + threadIdx.x;
+  int iy = blockIdx.y * blockDim.y + threadIdx.y;
+
+  bool im_in_x = ix < nx;
+  bool im_in_y = iy < ny;
+
+  int tiledimx = TILEDIMX;
+  int tiledimy = TILEDIMY;
+  // resize tile if current threadblock is on the border
+  if ( (blockIdx.x+1) * blockDim.x > nx) {
+    tiledimx = nx % blockDim.x;
+  }
+  if ((blockIdx.y+1) * blockDim.y > ny) {
+    tiledimy = ny % blockDim.y;
+  }
+
+  input  += iy*stride_x + ix;
+  output += iy*stride_x + ix;
+
+  for(int iz=0; iz<nz; iz++)
+  {
+    int index = 0;
+    // loading local neighbours of thread (tx,ty) plane by plane
+    {
+      // make sure all threads have completed previous plane
+      __syncthreads();
+
+      {
+        // filling the bulk elements of the tile
+        if (im_in_x && im_in_y) { // threads inside inner volume
+          s_data[ty][tx] = *input;
+        }
+
+        // fill halos
+        // TODO: for the moment halos are read directly from global memory, 
+        //       we should find a better trick to lower global memory accesses
+
+        if (im_in_y) {
+          if (threadIdx.x < radius ) {
+            // along x lower
+            s_data[ty][tx-radius] = input[-radius];
+            // along x upper
+            s_data[ty][tx+tiledimx] = input[+tiledimx];
+          }
+        }
+
+        if (im_in_x) {
+          if (threadIdx.y < radius) {
+            // along y upper
+            s_data[ty-radius][tx] = input[-radius*stride_x];
+            // along y lower
+            s_data[ty+tiledimy][tx] = input[+tiledimy*stride_x];
+          }
+        }
+
+        // filling corners
+        if (threadIdx.x < radius && threadIdx.y < radius) {
+          s_data[ty-radius][tx-radius] = input[-radius*stride_x-radius];
+          s_data[ty-radius][tx+tiledimx] = input[-radius*stride_x+tiledimx];
+          s_data[ty+tiledimy][tx-radius] = input[+tiledimy*stride_x-radius];
+          s_data[ty+tiledimy][tx+tiledimx] = input[+tiledimy*stride_x+tiledimx];
+        }
+
+      }
+
+      // make sure all elements are in shared memory
+      __syncthreads();
+
+      for(int ry = -radius; ry <= radius; ry++) {
+        for(int rx = -radius; rx <= radius; rx++) {
+          ValVec[index++] = s_data[ty+ry][tx+rx];
+        }
+      }
+
+#ifdef WITH_DEBUG
+      if (threadIdx.x == nx/2 && threadIdx.y == ny/2) {
+        printf("\n");
+        for(int ty = 0; ty < TILEDIMY+2*radius; ty++) {
+          printf("%2d] ", ty);
+          for(int tx = 0; tx < TILEDIMX+2*radius; tx++) {
+            printf("%4.0f ", s_data[ty][tx]);
+          }
+          printf("\n");
+        }
+        printf("ValVec centered at (%d, %d):\n", threadIdx.x, threadIdx.y);
+        for (int idx = 0; idx<diameter*diameter*diameter; idx++) {
+          printf("%2.0f ", ValVec[idx]);
+        }
+      }
+#endif // WITH_DEBUG
+
+    }
+
+    const int midpoint = radius + radius*diameter;
+    if (im_in_x && im_in_y) {
+#ifndef WITH_DEBUG
+      sort_bubble(ValVec, diameter*diameter*diameter);
+#endif // WITH_DEBUG
+      *output = ValVec[midpoint];
+    }
+
+    // update pointer to next plane
+    input  += stride_yx;
+    output += stride_yx;
+  }
+}
+// instances of predefined kernel templates with selected radius/diameter
+__global__ void medfilt_kernel_2D_r1(float *in, float *out, int nx, int ny, int nz, int stride_x, int stride_yx)
+{
+  medfilt_kernel_2D_t<1,3>(in, out, nx, ny, nz, stride_x, stride_yx);
+}
+__global__ void medfilt_kernel_2D_r2(float *in, float *out, int nx, int ny, int nz, int stride_x, int stride_yx)
+{
+  medfilt_kernel_2D_t<2,5>(in, out, nx, ny, nz, stride_x, stride_yx);
+}
+__global__ void medfilt_kernel_2D_r3(float *in, float *out, int nx, int ny, int nz, int stride_x, int stride_yx)
+{
+  medfilt_kernel_2D_t<3,7>(in, out, nx, ny, nz, stride_x, stride_yx);
+}
+__global__ void medfilt_kernel_2D_r4(float *in, float *out, int nx, int ny, int nz, int stride_x, int stride_yx)
+{
+  medfilt_kernel_2D_t<4,9>(in, out, nx, ny, nz, stride_x, stride_yx);
+}
+__global__ void medfilt_kernel_2D_r5(float *in, float *out, int nx, int ny, int nz, int stride_x, int stride_yx)
+{
+  medfilt_kernel_2D_t<5,11>(in, out, nx, ny, nz, stride_x, stride_yx);
+}
+
+
+extern "C"
+void medfilt_kernel_2D(
+    float *input,
+    float *output,
+    int nx, int ny, int nz,
+    int stride_x, int stride_yx,
+    int radius
+    )
+{
+  dim3 threads = dim3(TILEDIMX, TILEDIMY);
+  dim3 blocks = dim3(nx/threads.x + 1, ny/threads.y + 1);
+  switch (radius) {
+    case 1:
+      medfilt_kernel_2D_r1<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
+      break;
+    case 2:
+      medfilt_kernel_2D_r2<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
+      break;
+    case 3:
+      medfilt_kernel_2D_r3<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
+      break;
+    case 4:
+      medfilt_kernel_2D_r4<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
+      break;
+    case 5:
+      medfilt_kernel_2D_r5<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
+      break;
+    default:
+      fprintf(stderr,"ERROR: medilter_kernel_2D not implemented for radius=%d\n", radius);
+  }
+}
+
+  template <int radius, int diameter> // diameter should be set to 2*radius+1
 inline __device__ void medfilt_kernel_3D_t(
     float *in,
     float *out,
@@ -87,7 +267,9 @@ inline __device__ void medfilt_kernel_3D_t(
     )
 {
   __shared__ float s_data[TILEDIMY+2*radius][TILEDIMX+2*radius];
-  float ValVec[diameter*diameter*diameter]; // I'd suggest to put this in global and reuse it plane by plane
+  float local_input[diameter];
+  float ValVec[diameter*diameter*diameter]; // 3D
+
   float *input  = (float*) in;
   float *output = (float*) out;
   float *input_prefill  = (float*) in;
@@ -96,143 +278,238 @@ inline __device__ void medfilt_kernel_3D_t(
   int ty = threadIdx.y + radius;
   int ix = blockIdx.x * blockDim.x + threadIdx.x;
   int iy = blockIdx.y * blockDim.y + threadIdx.y;
-  input  += iy*stride_x + ix;
-  output += iy*stride_x + ix;
+
   bool im_in_x = ix < nx;
   bool im_in_y = iy < ny;
-  int offset = -radius*stride_yx;
-  input_prefill = input + offset; // hypotesys: in volume surrounded by padding
-  float local_input[diameter];
 
-  // prefill Z columns per thread skipping the first element since 
-  // it will be filled using the advance function in main loop along Z
-  for(int i=1; i<diameter; i++)
-  {
-    local_input[i] = *input_prefill;
-    input_prefill += stride_yx;
+  int tiledimx = TILEDIMX;
+  int tiledimy = TILEDIMY;
+  // resize tile if current threadblock is on the border
+  if ( (blockIdx.x+1) * blockDim.x > nx) {
+    tiledimx = nx % blockDim.x;
   }
+  if ((blockIdx.y+1) * blockDim.y > ny) {
+    tiledimy = ny % blockDim.y;
+  }
+
+  input  += iy*stride_x + ix;
+  output += iy*stride_x + ix;
+  input_prefill += iy*stride_x + ix;
+
+  input_prefill -= radius*stride_yx; // start filling from radius planes lower
+  // prefill Z column local_input per thread skipping the first element since 
+  // it will be filled using the advance function in main loop over Z planes
+  if (im_in_x && im_in_y) {
+    for(int i=1; i<diameter; i++)
+    {
+      local_input[i] = *input_prefill;
+      input_prefill += stride_yx;
+    }
+  }
+
   for(int iz=0; iz<nz; iz++)
   {
     // shift elements and insert a new one on top
-    advance( local_input, diameter-1 );
-    local_input[diameter-1] = *input_prefill;
+    if (im_in_x && im_in_y) { // threads inside inner volume
+      advance( local_input, diameter-1 );
+      local_input[diameter-1] = *input_prefill;
+    }
+
     int index = 0;
     // loading local neighbours of thread (tx,ty) plane by plane
-    for(int rz = -radius; rz < radius; rz++) {
+    for(int rz = -radius; rz <= radius; rz++) 
+    {
       // make sure all threads have completed previous plane
       __syncthreads();
-      // filling the bulk elements of the tile
-      if (im_in_x && im_in_y)     s_data[ty][tx] = local_input[rz];
-      // fill halos
-      // TODO: for the moment halos are read directly from global memory, 
-      //       we should find a better trick to lower global memory accesses
-      // along x lower
-      if (tx < radius) {
-        s_data[ty][tx-radius] = input[rz*stride_yx-radius];
+
+      {
+        // filling the bulk elements of the tile
+        if (im_in_x && im_in_y) { // threads inside inner volume
+          s_data[ty][tx] = local_input[radius+rz];
+        }
+
+        // fill halos
+        // TODO: for the moment halos are read directly from global memory, 
+        //       we should find a better trick to lower global memory accesses
+
+        if (im_in_y) {
+          if (threadIdx.x < radius ) {
+            // along x lower
+            s_data[ty][tx-radius] = input[rz*stride_yx-radius];
+            // along x upper
+            s_data[ty][tx+tiledimx] = input[rz*stride_yx+tiledimx];
+          }
+        }
+
+        if (im_in_x) {
+          if (threadIdx.y < radius) {
+            // along y upper
+            s_data[ty-radius][tx] = input[rz*stride_yx-radius*stride_x];
+            // along y lower
+            s_data[ty+tiledimy][tx] = input[rz*stride_yx+tiledimy*stride_x];
+          }
+        }
+
+        // filling corners
+        if (threadIdx.x < radius && threadIdx.y < radius) {
+          s_data[ty-radius][tx-radius] = input[rz*stride_yx-radius*stride_x-radius];
+          s_data[ty-radius][tx+tiledimx] = input[rz*stride_yx-radius*stride_x+tiledimx];
+          s_data[ty+tiledimy][tx-radius] = input[rz*stride_yx+tiledimy*stride_x-radius];
+          s_data[ty+tiledimy][tx+tiledimx] = input[rz*stride_yx+tiledimy*stride_x+tiledimx];
+        }
       }
-      // along x upper
-      if (tx > TILEDIMX - radius && im_in_x) {
-        s_data[ty][tx+radius] = input[rz*stride_yx+radius];
-      }
-      // along y upper
-      if (ty < radius) {
-        s_data[ty-radius][tx] = input[rz*stride_yx-radius*stride_x];
-      }
-      // along y lower
-      if (ty > TILEDIMY - radius && im_in_y) {
-        s_data[ty+radius][tx] = input[rz*stride_yx+radius*stride_x];
-      }
-      // filling corners
-      if (tx < radius && ty < radius) {
-        s_data[ty-radius][tx-radius] = input[rz*stride_yx-radius*stride_x-radius];
-      }
-      if (tx > TILEDIMX - radius && ty < radius && im_in_x) {
-        s_data[ty-radius][tx+radius] = input[rz*stride_yx-radius*stride_x+radius];
-      }
-      if (tx < radius && ty > TILEDIMY - radius && im_in_y) {
-        s_data[ty+radius][tx-radius] = input[rz*stride_yx+radius*stride_x-radius];
-      }
-      if (tx > TILEDIMX - radius && ty > TILEDIMY - radius && im_in_x && im_in_y) {
-        s_data[ty+radius][tx+radius] = input[rz*stride_yx+radius*stride_x+radius];
-      }
+
       // make sure all elements are in shared memory
       __syncthreads();
-      for(int ry = -radius; ry < radius; ry++) {
-        for(int rx = -radius; rx < radius; rx++) {
+
+      for(int ry = -radius; ry <= radius; ry++) {
+        for(int rx = -radius; rx <= radius; rx++) {
           ValVec[index++] = s_data[ty+ry][tx+rx];
         }
       }
+
+#ifdef WITH_DEBUG
+      if (threadIdx.x == nx/2 && threadIdx.y == ny/2) {
+        printf("\n");
+        for(int ty = 0; ty < TILEDIMY+2*radius; ty++) {
+          printf("%2d] ", ty);
+          for(int tx = 0; tx < TILEDIMX+2*radius; tx++) {
+            printf("%4.0f ", s_data[ty][tx]);
+          }
+          printf("\n");
+        }
+        printf("ValVec centered at (%d, %d):\n", threadIdx.x, threadIdx.y);
+        for (int idx = 0; idx<diameter*diameter*diameter; idx++) {
+          printf("%2.0f ", ValVec[idx]);
+        }
+      }
+#endif // WITH_DEBUG
+
     } // move to next local plane
-         
-    if (im_in_x && im_in_y) *output = ValVec[radius+radius*diameter+radius*diameter*diameter];
+
+    const int midpoint = radius + radius*diameter + radius*diameter*diameter;
+    if (im_in_x && im_in_y) {
+#ifndef WITH_DEBUG
+      sort_bubble(ValVec, diameter*diameter*diameter);      
+#endif // WITH_DEBUG
+      *output = ValVec[midpoint];
+    }
+
     // update pointer to next plane
     input  += stride_yx;
     output += stride_yx;
-    input_prefill  += stride_yx;
-    }
-} 
-////////////////////////////////////////////////
-/////////////// HOST FUNCTION ///////////////////
-/////////////////////////////////////////////////
+    input_prefill += stride_yx;
+  }
+}
+
+// instances of predefined kernel templates with selected radius/diameter
+__global__ void medfilt_kernel_3D_r1(float *in, float *out, int nx, int ny, int nz, int stride_x, int stride_yx)
+{
+  medfilt_kernel_3D_t<1,3>(in, out, nx, ny, nz, stride_x, stride_yx);
+}
+__global__ void medfilt_kernel_3D_r2(float *in, float *out, int nx, int ny, int nz, int stride_x, int stride_yx)
+{
+  medfilt_kernel_3D_t<2,5>(in, out, nx, ny, nz, stride_x, stride_yx);
+}
+__global__ void medfilt_kernel_3D_r3(float *in, float *out, int nx, int ny, int nz, int stride_x, int stride_yx)
+{
+  medfilt_kernel_3D_t<3,7>(in, out, nx, ny, nz, stride_x, stride_yx);
+}
+__global__ void medfilt_kernel_3D_r4(float *in, float *out, int nx, int ny, int nz, int stride_x, int stride_yx)
+{
+  medfilt_kernel_3D_t<4,9>(in, out, nx, ny, nz, stride_x, stride_yx);
+}
+__global__ void medfilt_kernel_3D_r5(float *in, float *out, int nx, int ny, int nz, int stride_x, int stride_yx)
+{
+  medfilt_kernel_3D_t<5,11>(in, out, nx, ny, nz, stride_x, stride_yx);
+}
+
 extern "C"
-__global__ void medfilt_kernel_3D_r5(
+void medfilt_kernel_3D(
     float *input,
     float *output,
     int nx, int ny, int nz,
-    int stride_x, int stride_yx
+    int stride_x, int stride_yx,
+    int radius
     )
 {
-  /*switching here different radii*/
-  const int diameter = 2*1+1;
-  medfilt_kernel_3D_t<1, diameter>(
-      input, output,
-      nx, ny, nz,
-      stride_x, stride_yx
-      );
+  dim3 threads = dim3(TILEDIMX, TILEDIMY);
+  dim3 blocks = dim3(nx/threads.x + 1, ny/threads.y + 1);
+  switch (radius) {
+    case 1:
+      medfilt_kernel_3D_r1<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
+      break;                                
+    case 2:
+      medfilt_kernel_3D_r2<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
+      break;
+    case 3:
+      medfilt_kernel_3D_r3<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
+      break;
+    case 4:
+      medfilt_kernel_3D_r4<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
+      break;
+    case 5:
+      medfilt_kernel_3D_r5<<<blocks, threads>>>(input, output, nx, ny, nz, stride_x, stride_yx);
+      break;
+    default:
+      fprintf(stderr,"ERROR: medilter_kernel_3D not implemented for radius=%d\n", radius);
+  }
 }
 
-extern "C" int MedianFilt_shared_GPU_main_float32(float *Input, float *Output, int kernel_size, int gpu_device, int N, int M, int Z)
+////////////////////////////////////////////////
+/////////////// HOST FUNCTION ///////////////////
+/////////////////////////////////////////////////
+extern "C" int MedianFilt_shared_GPU_main_float32(
+  float *Input,   // outer input volume padded
+  float *Output,  // outer output volume padded
+  int radius,     // padding width
+  int gpu_device, // requested device id
+  int N, // outer volume padded faster dimension
+  int M, 
+  int Z  // outer volume padded slower dimension
+)
 {
   int deviceCount = -1; // number of devices
   cudaGetDeviceCount(&deviceCount);
+  if (deviceCount == 0) {
+    fprintf(stderr, "No CUDA devices found\n");
+    return -1;
+  }
+
   /*set GPU device*/
+  if (deviceCount <= gpu_device) {
+    fprintf(stderr, "Not enough devices to pick device id %d. Selecting last available device\n", gpu_device);
+    gpu_device = deviceCount-1;
+  }
   checkCudaErrors(cudaSetDevice(gpu_device));  
 
-  if (deviceCount == 0) {
-      fprintf(stderr, "No CUDA devices found\n");
-       return -1;
-   }
-        int ImSize, sizefilter_total, kernel_half_size, midval;
-        float *d_input, *d_output;
-        ImSize = N*M*Z;
+  float *d_input, *d_output;
+  size_t ImSize = ((size_t) N) * M * Z;
 
-        checkCudaErrors(cudaMalloc((void**)&d_input,ImSize*sizeof(float)));
-        checkCudaErrors(cudaMalloc((void**)&d_output,ImSize*sizeof(float)));
+  checkCudaErrors(cudaMalloc((void**)&d_input,ImSize*sizeof(float)));
+  checkCudaErrors(cudaMalloc((void**)&d_output,ImSize*sizeof(float)));
 
-        checkCudaErrors(cudaMemcpy(d_input,Input,ImSize*sizeof(float),cudaMemcpyHostToDevice));
-        checkCudaErrors(cudaMemcpy(d_output,Input,ImSize*sizeof(float),cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(d_input,Input,ImSize*sizeof(float),cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(d_output,Input,ImSize*sizeof(float),cudaMemcpyHostToDevice));
 
-	    /*3D case*/
-        dim3 dimBlock(BLKXSIZE,BLKYSIZE,BLKZSIZE);
-        dim3 dimGrid(idivup(N,BLKXSIZE), idivup(M,BLKYSIZE),idivup(Z,BLKXSIZE));
-        sizefilter_total = (int)(pow(kernel_size, 3));
-        kernel_half_size = (int)((kernel_size-1)/2);
-        midval = (int)(sizefilter_total/2);
+  // N,M,Z are outer dimensions (padded)
+  // nx, ny, nz are inner dimensions
+  int nx = N - 2*radius;
+  int ny = M - 2*radius;
+  int nz = Z - 2*radius;
+  // pointing to first element of inner volumes inside padded outer volumes
+  float *inner_input  = d_input  + radius*(1 + N + N*M);
+  float *inner_output = d_output + radius*(1 + N + N*M);
 
-        /* Full data (traditional) 3D case */
-        //if (kernel_size == 3) global3d_kernel<<<dimGrid,dimBlock>>>(d_input, d_output, kernel_half_size, sizefilter_total, midval, N, M, Z, ImSize);
-        printf("%i %i %i\n", N, M, Z);
-        dim3 threads = dim3(TILEDIMX,TILEDIMY);
-        dim3 blocks(N/threads.x+1, M/threads.y+1);
-        const int stride_x = N;
-        const int stride_yx = N*M;
-        medfilt_kernel_3D_r5<<<threads,blocks>>>(d_input, d_output, N-2*kernel_half_size, M-2*kernel_half_size, Z-2*kernel_half_size, stride_x, stride_yx);
+  // medfilt_kernel_2D(inner_input, inner_output, nx, ny, nz, N, N*M, radius);
+  medfilt_kernel_3D(inner_input, inner_output, nx, ny, nz, N, N*M, radius);
 
-        checkCudaErrors( cudaDeviceSynchronize() );
-        checkCudaErrors(cudaPeekAtLastError() );
+  checkCudaErrors(cudaDeviceSynchronize());
+  checkCudaErrors(cudaPeekAtLastError());
 
-        checkCudaErrors(cudaMemcpy(Output,d_output,ImSize*sizeof(float),cudaMemcpyDeviceToHost));
-        checkCudaErrors(cudaFree(d_input));
-        checkCudaErrors(cudaFree(d_output));
-        return 0;    
+  checkCudaErrors(cudaMemcpy(Output,d_output,ImSize*sizeof(float),cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaFree(d_input));
+  checkCudaErrors(cudaFree(d_output));
+
+  return 0;    
 }

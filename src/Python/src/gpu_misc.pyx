@@ -19,11 +19,11 @@ CUDAErrorMessage = 'CUDA error'
 
 #cdef extern int MedianFilt_GPU_main_float32(float *Input, float *Output, int kernel_size, float mu_threshold, int gpu_device, int N, int M, int Z);
 #cdef extern int MedianFilt_GPU_main_uint16(unsigned short *Input, unsigned short *Output, int kernel_size, float mu_threshold, int N, int M, int Z);
-cdef extern int MedianFilt_shared_GPU_main_float32(float *Input, float *Output, int kernel_size, int gpu_device, int N, int M, int Z);
+cdef extern int MedianFilt_shared_GPU_main_float32(float *Input, float *Output, int radius, int gpu_device, int N, int M, int Z);
 #################################################################################
 ###########################Median Filtering (GPU) ###############################
 #################################################################################
-def MEDIAN_FILT_GPU(Input, kernel_size, *gpu_device_list):
+def MEDIAN_FILT_GPU(Input, radius, *gpu_device_list):
     input_type = Input.dtype
     if not gpu_device_list:
         gpu_device = 0 # set to be a default 0th device
@@ -34,12 +34,12 @@ def MEDIAN_FILT_GPU(Input, kernel_size, *gpu_device_list):
     elif ((Input.ndim == 2) and (input_type == 'uint16')):
         return 0
     elif ((Input.ndim == 3) and (input_type == 'float32')):
-        return  MEDIAN_FILT_GPU_float32_3D(Input, kernel_size, gpu_device)
+        return  MEDIAN_FILT_GPU_float32_3D(Input, radius, gpu_device)
     elif ((Input.ndim == 3) and (input_type == 'uint16')):
         return  0
 
 def MEDIAN_FILT_GPU_float32_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
-                    int kernel_size, int gpu_device):
+                    int radius, int gpu_device):
 
     cdef long dims[3]
     dims[0] = Input.shape[0]
@@ -49,10 +49,7 @@ def MEDIAN_FILT_GPU_float32_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
     cdef np.ndarray[np.float32_t, ndim=3, mode="c"] Output = \
             np.zeros([dims[0],dims[1],dims[2]], dtype='float32')
 
-    if ((kernel_size  == 3) or (kernel_size  == 5) or (kernel_size  == 7) or (kernel_size == 9) or (kernel_size == 11)):
-        if (MedianFilt_shared_GPU_main_float32(&Input[0,0,0], &Output[0,0,0], kernel_size, gpu_device, dims[2], dims[1], dims[0])==0):
-            return Output
-        else:
-            raise ValueError(CUDAErrorMessage)
+    if (MedianFilt_shared_GPU_main_float32(&Input[0,0,0], &Output[0,0,0], radius, gpu_device, dims[2], dims[1], dims[0])==0):
+        return Output
     else:
-        print("Accepted kernel sizes are 3, 5, 7, 9, and 11")
+        raise ValueError(CUDAErrorMessage)
