@@ -6,9 +6,10 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from larix.methods.misc import MEDIAN_FILT
-from larix.methods.misc_gpu import MEDIAN_FILT_GPU
+from larix.methods.misc_gpu import MEDIAN_FILT_GPU_SHARED
 
-size_tuple = (100,100,100)
+
+size_tuple = (50,50,100)
 print("Creating a 3D array...")
 Noise3DArray = np.ones((size_tuple))
 
@@ -30,7 +31,7 @@ pars = {'input_data' : np.float32(Noise3DArray), # input grayscale image
 
 print("Applying Median Filter in 3D using the GPU...")
 start_time = timeit.default_timer()
-volume_filteredGPU = MEDIAN_FILT_GPU(pars['input_data'], pars['kernel_half_size'])
+volume_filteredGPU = MEDIAN_FILT_GPU_SHARED(pars['input_data'], pars['kernel_half_size'])
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 

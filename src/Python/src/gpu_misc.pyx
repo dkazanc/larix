@@ -23,22 +23,37 @@ cdef extern int MedianFilt_shared_GPU_main_float32(float *Input, float *Output, 
 #################################################################################
 ###########################Median Filtering (GPU) ###############################
 #################################################################################
-def MEDIAN_FILT_GPU(Input, radius, *gpu_device_list):
+def MEDIAN_FILT_GPU_SHARED(Input, radius, *gpu_device_list):
     input_type = Input.dtype
     if not gpu_device_list:
         gpu_device = 0 # set to be a default 0th device
     else:
         gpu_device = gpu_device_list[0] # set to be a chosen GPU device
     if ((Input.ndim == 2) and (input_type == 'float32')):
-        return 0
+        return MEDIAN_FILT_GPU_shared_float32_2D(Input, radius, gpu_device)
     elif ((Input.ndim == 2) and (input_type == 'uint16')):
         return 0
     elif ((Input.ndim == 3) and (input_type == 'float32')):
-        return  MEDIAN_FILT_GPU_float32_3D(Input, radius, gpu_device)
+        return MEDIAN_FILT_GPU_shared_float32_3D(Input, radius, gpu_device)
     elif ((Input.ndim == 3) and (input_type == 'uint16')):
         return  0
 
-def MEDIAN_FILT_GPU_float32_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
+def MEDIAN_FILT_GPU_shared_float32_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] Input,
+                    int radius, int gpu_device):
+
+    cdef long dims[2]
+    dims[0] = Input.shape[0]
+    dims[1] = Input.shape[1]
+
+    cdef np.ndarray[np.float32_t, ndim=2, mode="c"] Output = \
+            np.zeros([dims[0],dims[1]], dtype='float32')
+
+    if (MedianFilt_shared_GPU_main_float32(&Input[0,0], &Output[0,0], radius, gpu_device, dims[1], dims[0], 1)==0):
+        return Output
+    else:
+        raise ValueError(CUDAErrorMessage)
+    
+def MEDIAN_FILT_GPU_shared_float32_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
                     int radius, int gpu_device):
 
     cdef long dims[3]

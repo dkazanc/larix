@@ -16,12 +16,13 @@
 #include "MedianFilt_shared_GPU_core.h"
 #include "shared.h"
 #define MAXSTR 100
-/* CUDA implementation of the median filtration and dezingering (2D/3D case)
+/* CUDA implementation of the median filtration and dezingering (2D/3D case) using shared
+ * memory: thanks to Luca Ferraro (CINECA)
  *
  * Input Parameters:
  * 1. Noisy image/volume
- * 2. kernel_size: The size of the median filter window
- * 3. mu_threshold: if not a zero value then deinzger
+ * 2. radius_kernel: The half-size (radius) of the median filter window
+ * 3. mu_threshold: if not a zero then median is applied to outliers only (zingers)
 
  * Output:
  * [1] Filtered or dezingered image/volume
@@ -35,9 +36,7 @@ inline __device__ void advance(float *field, const int num_points)
     field[i] = field[i+1];
 }
 
-
 /***************************2D Functions*****************************/
-
 // The kernel will work on an input which has been already padded with radius elements
 // so the "in" parameter points to the first element to be process inside an inner volume
 // of side nx,ny,nz with stride stride_x, which in general coulb be stride_x = nx + 2*radius
@@ -123,7 +122,6 @@ inline __device__ void medfilt_kernel_2D_t(
           s_data[ty+tiledimy][tx-radius] = input[+tiledimy*stride_x-radius];
           s_data[ty+tiledimy][tx+tiledimx] = input[+tiledimy*stride_x+tiledimx];
         }
-
       }
 
       // make sure all elements are in shared memory
@@ -188,39 +186,6 @@ __global__ void medfilt_kernel_2D_r5(float *in, float *out, int nx, int ny, int 
 {
   medfilt_kernel_2D_t<5,11>(in, out, nx, ny, nz, stride_x, stride_yx);
 }
-
-/* global memory 3D kernel to do filtering */
-__global__ void global3d_kernel(float *Input, float* Output, int kernel_half_size, int sizefilter_total, int midval, int N, int M, int Z, int num_total)
-    {
-      float ValVec[CONSTVECSIZE_27];
-      long i1, j1, k1, i_m, j_m, k_m, counter;
-
-      const long i = blockDim.x * blockIdx.x + threadIdx.x;
-      const long j = blockDim.y * blockIdx.y + threadIdx.y;
-      const long k = blockDim.z * blockIdx.z + threadIdx.z;
-      const long index = N*M*k + i + N*j;
-
-      if (index < num_total)	{
-      counter = 0l;
-      for(i_m=-kernel_half_size; i_m<=kernel_half_size; i_m++) {
-            i1 = i + i_m;
-            if ((i1 < 0) || (i1 >= N)) i1 = i;
-            for(j_m=-kernel_half_size; j_m<=kernel_half_size; j_m++) {
-              j1 = j + j_m;
-              if ((j1 < 0) || (j1 >= M)) j1 = j;
-                for(k_m=-kernel_half_size; k_m<=kernel_half_size; k_m++) {
-                  k1 = k + k_m;
-                  if ((k1 < 0) || (k1 >= Z)) k1 = k;
-                  ValVec[counter] = Input[N*M*k1 + i1 + N*j1];
-                  counter++;
-      }}}
-      //quicksort_float(ValVec, 0, 8); /* perform sorting */
-      sort_bubble(ValVec, CONSTVECSIZE_27); /* perform sorting */
-
-      Output[index] = ValVec[midval-1]; /* perform median filtration */
-      }
-      return;
-    }
 
   template <int radius, int diameter> // diameter should be set to 2*radius+1
 inline __device__ void medfilt_kernel_3D_t(
@@ -500,15 +465,8 @@ extern "C" int MedianFilt_shared_GPU_main_float32(
   float *inner_input  = d_input  + radius*(1 + N + N*M);
   float *inner_output = d_output + radius*(1 + N + N*M);
 
-  // medfilt_kernel_2D(inner_input, inner_output, nx, ny, nz, N, N*M, radius);
-  medfilt_kernel_3D(inner_input, inner_output, nx, ny, nz, N, N*M, radius);
-  /*global memory kernel*/
-  //int sizefilter_total = (int)(pow((radius*2+1),2));
-  //int midval = (int)(sizefilter_total/2);
-  //int num_total = (int)(N*M*Z);
-  //dim3 dimBlock(BLKXSIZE,BLKYSIZE,BLKZSIZE);
-  //dim3 dimGrid(idivup(N,BLKXSIZE), idivup(M,BLKYSIZE),idivup(Z,BLKZSIZE));
-  //global3d_kernel<<<dimGrid,dimBlock>>>(d_input, d_output, radius, sizefilter_total, midval, N, M, Z, num_total);
+  if (Z == 1) medfilt_kernel_2D(inner_input, inner_output, nx, ny, nz, N, N*M, radius);
+  else medfilt_kernel_3D(inner_input, inner_output, nx, ny, nz, N, N*M, radius);
 
   checkCudaErrors(cudaDeviceSynchronize());
   checkCudaErrors(cudaPeekAtLastError());
