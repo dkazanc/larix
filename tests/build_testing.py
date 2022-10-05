@@ -7,19 +7,28 @@ import timeit
 from numpy import random
 
 from larix.methods.misc import MEDIAN_FILT, MEDIAN_DEZING
-from larix.methods.misc_gpu import MEDIAN_FILT_GPU, MEDIAN_DEZING_GPU
+#from larix.methods.misc_gpu import MEDIAN_FILT_GPU, MEDIAN_DEZING_GPU
+from larix.methods.misc_gpu import MEDIAN_FILT_GPU, MEDIAN_FILT_GPU_SHARED
 
-#image2d = np.float32(random.random((150,250)))   # Test data
-image2d = np.load('sino_noisy.npy') # load noisy sinogram
-image2d_filteredCPU = np.load('sino_denoiseCPU.npy') # the CPU benchmark
+image2d = np.float32(random.random((150,250)))   # Test data
+#image2d = np.load('sino_noisy.npy') # load noisy sinogram
+#image2d_filteredCPU = np.load('sino_denoiseCPU.npy') # the CPU benchmark
 
-print("Applying Median Filter in 2D using GPU...")
+print("Applying Median Filter in 2D using the CPU...")
+pars = {'input_data' : np.float32(image2d), # input a grayscale image
+        'radius' : 3}
+image2d_filteredCPU = MEDIAN_FILT(pars['input_data'], pars['radius'])
 
-pars = {'input_data' : image2d, # input a grayscale image
-        'kernel_size' : 3}
+pars = {'input_data' : np.float32(image2d), # input a grayscale image
+        'radius' : 1}
+
+print("Applying Median Filter in 2D using the GPU...")
+
+pars = {'input_data' : np.float32(image2d), # input a grayscale image
+        'radius' : 1}
 
 start_time = timeit.default_timer()
-image2d_filteredGPU = MEDIAN_FILT_GPU(pars['input_data'], pars['kernel_size'])
+image2d_filteredGPU = MEDIAN_FILT_GPU(pars['input_data'], pars['radius'])
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 

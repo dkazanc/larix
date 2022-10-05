@@ -14,10 +14,8 @@ make install
 ############### Python(linux)###############
 cp install/lib/liblarix.so install/python/larix/methods
 # copy testing script and data
-#cp ../tests/build_testing.py install/python/
-cp ../tests/build_testing_3d* install/python/
-cp ../data/sino_noisy.npy install/python/
-cp ../data/sino_denoiseCPU.npy install/python/
+cp ../tests/build_testing* install/python/
+cp ../data/sino* install/python/
 cp ../data/data3D_to_crop.npy.bz2 install/python/
 cp ../data/volume_filteredCPU.npy.bz2 install/python/
 cd install/python/

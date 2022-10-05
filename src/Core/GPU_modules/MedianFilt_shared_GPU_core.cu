@@ -1,4 +1,4 @@
-/* This works has been developed at Diamond Light Source Ltd.
+/* This software has been developed at Diamond Light Source Ltd.
 *
 * Copyright 2020 Daniil Kazantsev
 *
@@ -12,7 +12,6 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-
 #include "MedianFilt_shared_GPU_core.h"
 #include "shared.h"
 #define MAXSTR 100
@@ -27,14 +26,6 @@
  * Output:
  * [1] Filtered or dezingered image/volume
  */
-
-// this function is used to shift elements along the Z local column
-inline __device__ void advance(float *field, const int num_points)
-{
-#pragma unroll
-  for(int i=0; i<num_points; i++)
-    field[i] = field[i+1];
-}
 
 /***************************2D Functions*****************************/
 // The kernel will work on an input which has been already padded with radius elements
@@ -79,8 +70,6 @@ inline __device__ void medfilt_kernel_2D_t(
   input  += iy*stride_x + ix;
   output += iy*stride_x + ix;
 
-  for(int iz=0; iz<nz; iz++)
-  {
     int index = 0;
     // loading local neighbours of thread (tx,ty) plane by plane
     {
@@ -163,7 +152,6 @@ inline __device__ void medfilt_kernel_2D_t(
     // update pointer to next plane
     input  += stride_yx;
     output += stride_yx;
-  }
 }
 // instances of predefined kernel templates with selected radius/diameter
 __global__ void medfilt_kernel_2D_r1(float *in, float *out, int nx, int ny, int nz, int stride_x, int stride_yx)
