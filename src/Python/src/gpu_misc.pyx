@@ -1,4 +1,5 @@
 # distutils: language=c++
+# cython: language_level=3
 """
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -48,10 +49,13 @@ def MEDIAN_FILT_GPU_shared_float32_2D(np.ndarray[np.float32_t, ndim=2, mode="c"]
     cdef np.ndarray[np.float32_t, ndim=2, mode="c"] Output = \
             np.zeros([dims[0],dims[1]], dtype='float32')
 
-    if (MedianFilt_shared_GPU_main_float32(&Input[0,0], &Output[0,0], radius, gpu_device, dims[1], dims[0], 1)==0):
-        return Output
+    if ((radius  == 1) or (radius  == 2) or (radius  == 3) or (radius == 4) or (radius == 5)):
+        if (MedianFilt_shared_GPU_main_float32(&Input[0,0], &Output[0,0], radius, gpu_device, dims[1], dims[0], 1)==0):
+            return Output
+        else:
+            raise ValueError(CUDAErrorMessage)
     else:
-        raise ValueError(CUDAErrorMessage)
+        print("Accepted kernel sizes are 1, 2, 3, 4, and 5")            
     
 def MEDIAN_FILT_GPU_shared_float32_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] Input,
                     int radius, int gpu_device):
@@ -64,10 +68,13 @@ def MEDIAN_FILT_GPU_shared_float32_3D(np.ndarray[np.float32_t, ndim=3, mode="c"]
     cdef np.ndarray[np.float32_t, ndim=3, mode="c"] Output = \
             np.zeros([dims[0],dims[1],dims[2]], dtype='float32')
 
-    if (MedianFilt_shared_GPU_main_float32(&Input[0,0,0], &Output[0,0,0], radius, gpu_device, dims[2], dims[1], dims[0])==0):
-        return Output
+    if ((radius  == 1) or (radius  == 2) or (radius  == 3) or (radius == 4) or (radius == 5)):
+        if (MedianFilt_shared_GPU_main_float32(&Input[0,0,0], &Output[0,0,0], radius, gpu_device, dims[2], dims[1], dims[0])==0):
+            return Output
+        else:
+            raise ValueError(CUDAErrorMessage)
     else:
-        raise ValueError(CUDAErrorMessage)
+        print("Accepted kernel sizes are 1, 2, 3, 4, and 5")    
 
 ########################## GLOBAL MEDIAN ##################################
 def MEDIAN_FILT_GPU(Input, radius, *gpu_device_list):

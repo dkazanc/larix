@@ -22,29 +22,29 @@
 #include "DLSDefines.h"
 
 /* C-OMP implementation of the median filtration and dezingering (2D/3D case)
-* Input Parameters:
-* 1. Noisy image/volume
-* 2. kernel_size: The size of the median filter window
-* 3. mu_threshold: if not a zero value then deinzger
+ * Input Parameters:
+ * 1. Noisy image/volume
+ * 2. radius: The half-size (radius) of the median filter window
+ * 3. mu_threshold: if not a zero then median is applied to outliers only (zingers)
 
-* Output:
-* [1] Filtered or dezingered image/volume
+ * Output:
+ * [1] Filtered or dezingered image/volume
  */
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-DLS_EXPORT int medianfilter_main_float(float *Input, float *Output, int kernel_size, float mu_threshold, int ncores, int dimX, int dimY, int dimZ);
-DLS_EXPORT int medianfilter_main_uint16(unsigned short *Input, unsigned short *Output, int kernel_size, float mu_threshold, int ncores, int dimX, int dimY, int dimZ);
+DLS_EXPORT int medianfilter_main_float(float *Input, float *Output, int radius, float mu_threshold, int ncores, int dimX, int dimY, int dimZ);
+DLS_EXPORT int medianfilter_main_uint16(unsigned short *Input, unsigned short *Output, int radius, float mu_threshold, int ncores, int dimX, int dimY, int dimZ);
 /************2D functions ***********/
-DLS_EXPORT void medfilt2D_float(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
-DLS_EXPORT void medfilt2D_uint16(unsigned short *Input, unsigned short *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
+DLS_EXPORT void medfilt2D_float(float *Input, float *Output, int radius, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
+DLS_EXPORT void medfilt2D_uint16(unsigned short *Input, unsigned short *Output, int radius, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
 /************3D functions ***********/
-DLS_EXPORT void medfilt3D_pad_float(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
-DLS_EXPORT void medfilt3D_float(float *Input, float *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long k, long index, long dimX, long dimY, long dimZ);
-DLS_EXPORT void medfilt3D_pad_uint16(unsigned short *Input, unsigned short *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
-DLS_EXPORT void medfilt3D_uint16(unsigned short *Input, unsigned short *Output, int kernel_half_size, int sizefilter_total, float mu_threshold, long i, long j, long k, long index, long dimX, long dimY, long dimZ);
+DLS_EXPORT void medfilt3D_pad_float(float *Input, float *Output, int radius, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
+DLS_EXPORT void medfilt3D_float(float *Input, float *Output, int radius, int sizefilter_total, float mu_threshold, long i, long j, long k, long index, long dimX, long dimY, long dimZ);
+DLS_EXPORT void medfilt3D_pad_uint16(unsigned short *Input, unsigned short *Output, int radius, int sizefilter_total, float mu_threshold, long i, long j, long index, long dimX, long dimY);
+DLS_EXPORT void medfilt3D_uint16(unsigned short *Input, unsigned short *Output, int radius, int sizefilter_total, float mu_threshold, long i, long j, long k, long index, long dimX, long dimY, long dimZ);
 #ifdef __cplusplus
 }
 #endif

@@ -14,18 +14,15 @@ image2d = np.float32(random.random((150,250)))   # Test data
 #image2d = np.load('sino_noisy.npy') # load noisy sinogram
 #image2d_filteredCPU = np.load('sino_denoiseCPU.npy') # the CPU benchmark
 
+pars = {'input_data' : np.float32(image2d), # input a grayscale image
+        'radius' : 1}
+
 print("Applying Median Filter in 2D using the CPU...")
 pars = {'input_data' : np.float32(image2d), # input a grayscale image
-        'radius' : 3}
+        'radius' : 1}
 image2d_filteredCPU = MEDIAN_FILT(pars['input_data'], pars['radius'])
 
-pars = {'input_data' : np.float32(image2d), # input a grayscale image
-        'radius' : 1}
-
 print("Applying Median Filter in 2D using the GPU...")
-
-pars = {'input_data' : np.float32(image2d), # input a grayscale image
-        'radius' : 1}
 
 start_time = timeit.default_timer()
 image2d_filteredGPU = MEDIAN_FILT_GPU(pars['input_data'], pars['radius'])

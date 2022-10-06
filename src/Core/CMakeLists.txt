@@ -6,6 +6,11 @@ project(larix_core LANGUAGES CXX CUDA)
 include(CheckLanguage)
 check_language(CUDA)
 
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+ set(CMAKE_CUDA_ARCHITECTURES OFF)
+endif()
+enable_language(CUDA)
+
 # The version number.
 set (larix_VERSION $ENV{larix_VERSION} CACHE INTERNAL "Larix is an image processing library" FORCE)
 

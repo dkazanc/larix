@@ -17,7 +17,7 @@
 #include "shared.h"
 #include "stream_arithmetic.h"
 /* CUDA implementation of the median filtration and dezingering (2D/3D case) 
- * using global memory with streaming (thanks Yousef Moazzam)
+ * using global memory with streaming (thanks to Yousef Moazzam)
  *
  * Input Parameters:
  * 1. Noisy image/volume

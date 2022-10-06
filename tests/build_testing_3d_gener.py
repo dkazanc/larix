@@ -17,27 +17,24 @@ print("Applying noise to the array...")
 np.random.seed(0)
 Noise3DArray += np.random.normal(loc = 0.0, scale = 0.2, size = np.shape(Noise3DArray))
 
+pars = {'input_data' : np.float32(Noise3DArray), # input grayscale image
+        'radius' : 1}
+
 print("Applying Median Filter in 3D using the CPU...")
-pars = {'input_data' : np.float32(Noise3DArray), # input grayscale image
-        'kernel_size' : 5}
-
 start_time = timeit.default_timer()
-volume_filteredCPU = MEDIAN_FILT(pars['input_data'], pars['kernel_size'])
-txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
-print (txtstr)
-
-pars = {'input_data' : np.float32(Noise3DArray), # input grayscale image
-        'radius' : 2}
-
-print("Applying Median Filter in 3D using the GPU (global memory)...")
-start_time = timeit.default_timer()
-volume_filteredGPU = MEDIAN_FILT_GPU(pars['input_data'], pars['radius'])
+volume_filteredCPU = MEDIAN_FILT(pars['input_data'], pars['radius'])
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 
 print("Applying Median Filter in 3D using the GPU (shared memory)...")
 start_time = timeit.default_timer()
 volume_filteredGPU_shared = MEDIAN_FILT_GPU_SHARED(pars['input_data'], pars['radius'])
+txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
+print (txtstr)
+
+print("Applying Median Filter in 3D using the GPU (global memory)...")
+start_time = timeit.default_timer()
+volume_filteredGPU = MEDIAN_FILT_GPU(pars['input_data'], pars['radius'])
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 
