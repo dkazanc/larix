@@ -386,15 +386,15 @@ extern "C" int MedianFilt_global_GPU_main_float32(float *Input, float *Output, i
             if(nStreams > 1) {
               if (i == 0) {
                 copy_offset_h2d = 0;
-                bytes_to_copy_h2d = stream_bytes + vol_slice_bytes;
+                bytes_to_copy_h2d = stream_bytes + vol_slice_bytes * radius;
               }
               else if (1 <= i && i < nStreams - 1) {
-                copy_offset_h2d = i* streamInfo.stream_size - N*M;
-                bytes_to_copy_h2d = stream_bytes + 2*vol_slice_bytes;
+                copy_offset_h2d = i* streamInfo.stream_size - N*M*radius;
+                bytes_to_copy_h2d = stream_bytes + 2*radius*vol_slice_bytes;
               }
               else {
-                copy_offset_h2d = i* streamInfo.stream_size - N*M;
-                bytes_to_copy_h2d = leftover_slab_bytes + vol_slice_bytes;
+                copy_offset_h2d = i* streamInfo.stream_size - N*M*radius;
+                bytes_to_copy_h2d = leftover_slab_bytes + vol_slice_bytes * radius;
                 bytes_to_copy_d2h = leftover_slices * N*M * sizeof(float);
               }
             }
