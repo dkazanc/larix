@@ -377,12 +377,9 @@ extern "C" int MedianFilt_global_GPU_main_float32(float *Input, float *Output, i
         unsigned long long copy_offset_d2h;
         unsigned long long process_offset;
 
-        // WITH streaming, looping over different operations
+        // WITH streaming, looping over like-operations
+        // loop over h2d data transfers
         for (int i = 0; i < nStreams; ++i) {
-            process_offset = i * streamInfo.stream_size;
-            copy_offset_d2h = i * streamInfo.stream_size;
-            bytes_to_copy_d2h = stream_bytes;
-
             if(nStreams > 1) {
               if (i == 0) {
                 copy_offset_h2d = 0;
@@ -402,14 +399,17 @@ extern "C" int MedianFilt_global_GPU_main_float32(float *Input, float *Output, i
               copy_offset_h2d = 0;
               bytes_to_copy_h2d = stream_bytes;
             }
+          // copy a slab of the data from CPU to GPU memory
+          checkCudaErrors( cudaMemcpyAsync(&d_input0[copy_offset_h2d], &pinned_mem_input[copy_offset_h2d],
+                                    bytes_to_copy_h2d, cudaMemcpyHostToDevice,
+                                    stream[i]) );
+        }
 
-            // copy a slab of the data from CPU to GPU memory
-            checkCudaErrors( cudaMemcpyAsync(&d_input0[copy_offset_h2d], &pinned_mem_input[copy_offset_h2d],
-                                      bytes_to_copy_h2d, cudaMemcpyHostToDevice,
-                                      stream[i]) );
+        // loop over kernel launches
+        for (int i = 0; i < nStreams; ++i) {
+          process_offset = i * streamInfo.stream_size;
 
-          // running the kernel
-           switch (radius) {
+          switch (radius) {
             case 1:
               medfilt_kernel_global_3D_r1<<<dimGrid, dimBlock, 0, stream[i]>>>(d_input0, d_output0, process_offset, N, M, Z, ImSize, mu_threshold);
               break;
@@ -428,13 +428,24 @@ extern "C" int MedianFilt_global_GPU_main_float32(float *Input, float *Output, i
             default:
               fprintf(stderr,"ERROR: medfilter_kernel_3D is not implemented for radius=%d\n", radius);
           }
-            // copy a slab of the processed data from GPU to CPU memory
-            checkCudaErrors( cudaMemcpyAsync(&pinned_mem_output[copy_offset_d2h], &d_output0[copy_offset_d2h],
-                                      bytes_to_copy_d2h, cudaMemcpyDeviceToHost,
-                                      stream[i]) );
-            checkCudaErrors( cudaDeviceSynchronize() );
-            checkCudaErrors(cudaPeekAtLastError() );                                      
-          }
+        }
+
+        // loop over d2h data transfers
+        for (int i = 0; i < nStreams; ++i) {
+            copy_offset_d2h = i * streamInfo.stream_size;
+
+            if(nStreams > 1 && i == nStreams - 1) {
+              bytes_to_copy_d2h = leftover_slices * N*M * sizeof(float);
+            }
+            else {
+              bytes_to_copy_d2h = stream_bytes;
+            }
+          checkCudaErrors( cudaMemcpyAsync(&pinned_mem_output[copy_offset_d2h], &d_output0[copy_offset_d2h],
+                                    bytes_to_copy_d2h, cudaMemcpyDeviceToHost,
+                                    stream[i]) );
+        }
+        checkCudaErrors( cudaDeviceSynchronize() );
+        checkCudaErrors(cudaPeekAtLastError() );
       }
         // when using pinned memory to hold output, copy result from pinned
         // memeory to paged memory (the Output pointer) so then the result is
