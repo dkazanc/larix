@@ -103,7 +103,7 @@ int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, un
         for(j=0; j<dimY; j++) {
     eucl_weighting_inpainting_2D(Input, M_upd, Output, Updated, Gauss_weights, W_halfsize, W_fullsize, i, j, (long)(dimX), (long)(dimY));}}    
     copyIm(Updated, Output, (long)(dimX), (long)(dimY), (long)(dimZ));
-    copyIm_unchar(Mask, M_upd, dimX, dimY, dimZ);    
+    if (l < iterations - 1) copyIm_unchar(Mask, M_upd, dimX, dimY, dimZ);
         }
     }
     else {

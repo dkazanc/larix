@@ -58,7 +58,7 @@ imgplot = plt.imshow(sinogram,cmap="gray")
 pars = {'algorithm' : INPAINT_EUCL_WEIGHTED, 
         'input' : sinogram,
         'maskData' : mask,
-        'number_of_iterations' : 15,
+        'number_of_iterations' : 0,
         'windowsize_half' : 5,
         'method_type' : 'random'}
         

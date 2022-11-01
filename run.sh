@@ -21,11 +21,11 @@ cp ../data/volume_filteredCPU.npy.bz2 install/python/
 cd install/python/
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:../lib
 #ipython build_testing.py
-ipython build_testing_3d_gener.py
+#ipython build_testing_3d_gener.py
 #cuda-memcheck python build_testing_3d_gener.py
 
 # another option is to run spyder and go the folder larix/build/install/python to be able to import modules
-#spyder --new-instance
+spyder --new-instance
 
 # All built shared objects will be placed into larix/build/install/python/larix/methods
 # in order to be able import modules you need to go to the folder larix/build/install/python to be able to import
