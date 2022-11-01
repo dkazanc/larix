@@ -33,8 +33,6 @@ sinogram =  np.load('../data/sino_stripe_i12.npy')
 mask = np.uint8(np.zeros(np.shape(sinogram)))
 mask[:,185:215] = 1
 
-sinogram[mask ==1] = 0.0
-
 plt.figure(1)
 plt.subplot(121)
 plt.imshow(sinogram,vmin=0.0, vmax=1)
@@ -58,7 +56,7 @@ imgplot = plt.imshow(sinogram,cmap="gray")
 pars = {'algorithm' : INPAINT_EUCL_WEIGHTED, 
         'input' : sinogram,
         'maskData' : mask,
-        'number_of_iterations' : 0,
+        'number_of_iterations' : 10,
         'windowsize_half' : 5,
         'method_type' : 'random'}
         
@@ -80,7 +78,6 @@ a.text(0.1, 0.1, txtstr, transform=a.transAxes, fontsize=14,
          verticalalignment='top', bbox=props)
 imgplot = plt.imshow(inp_simple, cmap="gray")
 plt.title('{}'.format('Extrapolation inpainting results'))
-pars['number_of_iterations']
 #%%
 print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 print ("___Inpainting using linear diffusion (2D)__")

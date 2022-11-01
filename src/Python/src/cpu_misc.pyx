@@ -347,16 +347,16 @@ def INPAINT_NM_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] inputData,
 #*********************Euclidian Weighting************************#
 #****************************************************************#
 def INPAINT_EUCL_WEIGHTED(inputData, maskData, iterationsNumb, windowsize_half, method_type, ncores=0):
+    if (method_type == 'median'):
+        method_type_int = 1
+    elif (method_type == 'random'):
+        method_type_int = 2
+    else: 
+        method_type_int = 0
     if inputData.ndim == 2:
-        if (method_type == 'median'):
-            method_type_int = 1
-        elif (method_type == 'random'):
-            method_type_int = 2
-        else: 
-            method_type_int = 0
         return INPAINT_EUC_WEIGHT_2D(inputData, maskData, iterationsNumb, windowsize_half, method_type_int, ncores)
     elif inputData.ndim == 3:
-        raise ValueError("3D inpainting of this type is not yet available")
+        return INPAINT_EUC_WEIGHT_3D(inputData, maskData, iterationsNumb, windowsize_half, method_type_int, ncores)
 def INPAINT_EUC_WEIGHT_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] inputData,
                np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData,
                int iterationsNumb,
@@ -378,3 +378,25 @@ def INPAINT_EUC_WEIGHT_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] inputData,
         return (outputData, maskData_upd)
     else:
         raise ValueError("2D CPU inpainting failed to return 0")
+def INPAINT_EUC_WEIGHT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData,
+               np.ndarray[np.uint8_t, ndim=3, mode="c"] maskData,
+               int iterationsNumb,
+               int windowsize_half,
+               int method_type_int, 
+               int ncores):
+
+    cdef long dims[3]
+    dims[0] = inputData.shape[0]
+    dims[1] = inputData.shape[1]
+    dims[2] = inputData.shape[2]
+
+    cdef np.ndarray[np.float32_t, ndim=3, mode="c"] outputData = \
+            np.zeros([dims[0],dims[1],dims[2]], dtype='float32')
+
+    cdef np.ndarray[np.uint8_t, ndim=3, mode="c"] maskData_upd = \
+            np.zeros([dims[0],dims[1],dims[2]], dtype='uint8')
+
+    if (Inpaint_simple_CPU_main(&inputData[0,0,0], &maskData[0,0,0], &outputData[0,0,0], &maskData_upd[0,0,0], iterationsNumb, windowsize_half, method_type_int, ncores, dims[2], dims[1], dims[0])==0):
+        return (outputData, maskData_upd)
+    else:
+        raise ValueError("3D CPU inpainting failed to return 0")
