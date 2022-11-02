@@ -11,7 +11,7 @@ Testing the capability of some inpainting methods
 import matplotlib.pyplot as plt
 import numpy as np
 import timeit
-from larix.methods.misc import INPAINT_NDF, INPAINT_EUCL_WEIGHTED
+#from larix.methods.misc import INPAINT_NDF, INPAINT_EUCL_WEIGHTED
 ###############################################################################
 def printParametersToString(pars):
         txt = r''
@@ -28,11 +28,24 @@ def printParametersToString(pars):
         return txt
 ###############################################################################
 
-# read sinogram and the mask
-sinogram =  np.load('../data/sino_stripe_i12.npy')
-mask = np.uint8(np.zeros(np.shape(sinogram)))
-mask[:,185:215] = 1
+def _gradient(data, axis):
+    return np.gradient(data, axis=axis)
 
+# 3d projection data
+proj3d_data =  np.load('../data/sino_stripes_crop3D.npy')
+
+grad_data = _gradient(proj3d_data,axis=1)
+
+#sumplot = np.sum(grad_data[:,5,:],0)
+
+#mask = np.uint8(np.zeros(np.shape(sinogram)))
+#mask[:,185:215] = 1
+
+plt.figure(1)
+plt.imshow(proj3d_data[:,5,:])
+plt.title('Missing Data sinogram')
+plt.show()
+"""
 plt.figure(1)
 plt.subplot(121)
 plt.imshow(sinogram,vmin=0.0, vmax=1)
@@ -41,6 +54,7 @@ plt.subplot(122)
 plt.imshow(mask)
 plt.title('Mask')
 plt.show()
+"""
 #%%
 print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 print ("___Inpainting using boundaries exatrapolation___")
