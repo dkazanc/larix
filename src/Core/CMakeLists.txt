@@ -1,6 +1,15 @@
 #cmake_minimum_required (VERSION 3.0)
 
-project(larix_core)
+#project(larix_core)
+
+project(larix_core LANGUAGES CXX CUDA)
+include(CheckLanguage)
+check_language(CUDA)
+
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+ set(CMAKE_CUDA_ARCHITECTURES OFF)
+endif()
+enable_language(CUDA)
 
 # The version number.
 set (larix_VERSION $ENV{larix_VERSION} CACHE INTERNAL "Larix is an image processing library" FORCE)
@@ -74,15 +83,15 @@ message ("I'd install into ${CMAKE_INSTALL_PREFIX} lib bin")
 	)
 endif()
 
-# GPU Regularisers
 if (BUILD_CUDA)
-    find_package(CUDA)
-    if (CUDA_FOUND)
-      set(CUDA_NVCC_FLAGS "-Xcompiler -fPIC -shared -D_FORCE_INLINES")
+    #find_package(CUDA)
+    #if (CUDA_FOUND)
+      set(CUDA_NVCC_FLAGS "-Xcompiler -fPIC -shared -D_FORCE_INLINES -rdc=true -Xptxas -O3,-v -maxrregcount=96")
       message("CUDA FLAGS ${CUDA_NVCC_FLAGS}")
-      CUDA_ADD_LIBRARY(larixcuda SHARED
+      ADD_LIBRARY(larixcuda SHARED
+        ${CMAKE_CURRENT_SOURCE_DIR}/GPU_modules/MedianFilt_shared_GPU_core.cu
         ${CMAKE_CURRENT_SOURCE_DIR}/GPU_modules/MedianFilt_GPU_core.cu
-      )
+        )
       if (UNIX)
         message ("I'd install into ${CMAKE_INSTALL_PREFIX}/lib")
         install(TARGETS larixcuda
@@ -97,7 +106,7 @@ if (BUILD_CUDA)
         CONFIGURATIONS ${CMAKE_BUILD_TYPE}
         )
       endif()
-    else()
-      message("CUDA NOT FOUND")
-    endif()
+    #else()
+    #  message("CUDA NOT FOUND")
+    #endif()
 endif()

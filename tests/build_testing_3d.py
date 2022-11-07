@@ -1,9 +1,10 @@
 import numpy as np
 import timeit
 import bz2
+#import IPython
 
-#from larix.methods.misc import MEDIAN_FILT, MEDIAN_DEZING
-from larix.methods.misc_gpu import MEDIAN_FILT_GPU, MEDIAN_DEZING_GPU
+from larix.methods.misc import MEDIAN_FILT
+from larix.methods.misc_gpu import MEDIAN_FILT_GPU
 
 # load the volume data
 print("Decompressing data3D_to_crop.npy.bz2 file containing noisy volume...")
@@ -14,16 +15,23 @@ print("Decompressing volume_filteredCPU.npy.bz2 file containing CPU benchmark...
 with bz2.BZ2File('volume_filteredCPU.npy.bz2', 'r') as f:
     volume_filteredCPU = np.load(f, allow_pickle=True)
 
-print("Applying Median Filter in 3D using GPU...")
-
 pars = {'input_data' : volume, # input a grayscale image
         'kernel_size' : 3}
 
+
+#start_time = timeit.default_timer()
+#volume_filteredCPU = MEDIAN_FILT(pars['input_data'], pars['kernel_size'])
+#txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
+#print (txtstr)
+
+
+print("Applying Median Filter in 3D using GPU...")
 start_time = timeit.default_timer()
 volume_filteredGPU = MEDIAN_FILT_GPU(pars['input_data'], pars['kernel_size'])
 txtstr = "%s = %.3fs" % ('elapsed time',timeit.default_timer() - start_time)
 print (txtstr)
 
+#IPython.embed()
 # generate a result for 3D filtering on the CPU to have something to compare to
 # when testing the GPU filtering
 #volume_filteredCPU = MEDIAN_FILT(pars['input_data'], pars['kernel_size'])
