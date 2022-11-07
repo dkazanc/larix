@@ -21,7 +21,7 @@ cdef extern int medianfilter_main_float(float *Input, float *Output, int radius,
 cdef extern int medianfilter_main_uint16(unsigned short *Input, unsigned short *Output, int radius, float mu_threshold, int ncores, int dimX, int dimY, int dimZ);
 cdef extern int Diffusion_Inpaint_CPU_main(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float sigmaPar, int iterationsNumb, float tau, int penaltytype, int dimX, int dimY, int dimZ);
 cdef extern int NonlocalMarching_Inpaint_main(float *Input, unsigned char *M, float *Output, unsigned char *M_upd, int SW_increment, int iterationsNumb, int trigger, int dimX, int dimY, int dimZ);
-cdef extern int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, unsigned char *M_upd, int iterations, int W_halfsize, int method_type, int ncores, int dimX, int dimY, int dimZ);
+cdef extern int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, int iterations, int W_halfsize, int method_type, int ncores, int dimX, int dimY, int dimZ);
 #################################################################
 ##########################Autocropper ###########################
 #################################################################
@@ -371,11 +371,8 @@ def INPAINT_EUC_WEIGHT_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] inputData,
     cdef np.ndarray[np.float32_t, ndim=2, mode="c"] outputData = \
             np.zeros([dims[0],dims[1]], dtype='float32')
 
-    cdef np.ndarray[np.uint8_t, ndim=2, mode="c"] maskData_upd = \
-            np.zeros([dims[0],dims[1]], dtype='uint8')
-
-    if (Inpaint_simple_CPU_main(&inputData[0,0], &maskData[0,0], &outputData[0,0], &maskData_upd[0,0], iterationsNumb, windowsize_half, method_type_int, ncores, dims[1], dims[0], 1)==0):
-        return (outputData, maskData_upd)
+    if (Inpaint_simple_CPU_main(&inputData[0,0], &maskData[0,0], &outputData[0,0], iterationsNumb, windowsize_half, method_type_int, ncores, dims[1], dims[0], 1)==0):
+        return outputData
     else:
         raise ValueError("2D CPU inpainting failed to return 0")
 def INPAINT_EUC_WEIGHT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData,
@@ -393,10 +390,7 @@ def INPAINT_EUC_WEIGHT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData,
     cdef np.ndarray[np.float32_t, ndim=3, mode="c"] outputData = \
             np.zeros([dims[0],dims[1],dims[2]], dtype='float32')
 
-    cdef np.ndarray[np.uint8_t, ndim=3, mode="c"] maskData_upd = \
-            np.zeros([dims[0],dims[1],dims[2]], dtype='uint8')
-
-    if (Inpaint_simple_CPU_main(&inputData[0,0,0], &maskData[0,0,0], &outputData[0,0,0], &maskData_upd[0,0,0], iterationsNumb, windowsize_half, method_type_int, ncores, dims[2], dims[1], dims[0])==0):
-        return (outputData, maskData_upd)
+    if (Inpaint_simple_CPU_main(&inputData[0,0,0], &maskData[0,0,0], &outputData[0,0,0], iterationsNumb, windowsize_half, method_type_int, ncores, dims[2], dims[1], dims[0])==0):
+        return outputData
     else:
         raise ValueError("3D CPU inpainting failed to return 0")

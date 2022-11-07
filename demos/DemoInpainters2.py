@@ -11,7 +11,7 @@ Testing the capability of some inpainting methods
 import matplotlib.pyplot as plt
 import numpy as np
 import timeit
-#from larix.methods.misc import INPAINT_NDF, INPAINT_EUCL_WEIGHTED
+from larix.methods.misc import INPAINT_NDF, INPAINT_EUCL_WEIGHTED
 
 ###############################################################################
 def printParametersToString(pars):
@@ -57,7 +57,6 @@ for i in range(np.size(grad_data,1)):
         mask3d_data[:,i,get_peaks_indices[0]] = 1  
     mask3d_data[:,i,:] = binary_dilation(mask3d_data[:,i,:], footprint)
     
-
 sliceno = 5    
 plt.figure()
 plt.subplot(121)
@@ -78,18 +77,18 @@ fig = plt.figure()
 plt.suptitle('Performance of ')
 a=fig.add_subplot(1,2,1)
 a.set_title('Missing data sinogram')
-imgplot = plt.imshow(proj3d_data[:,sliceno,:],cmap="gray")
+imgplot = plt.imshow(proj3d_data[:,sliceno,:],cmap="gray", vmin= 0.8, vmax=1.3)
 
 # set parameters
 pars = {'algorithm' : INPAINT_EUCL_WEIGHTED, 
         'input' : np.ascontiguousarray(proj3d_data[:,sliceno,:], dtype=np.float32),
         'maskData' : np.ascontiguousarray(mask3d_data[:,sliceno,:], dtype=np.uint8),
-        'number_of_iterations' : 1,
-        'windowsize_half' : 5,
+        'number_of_iterations' : 3,
+        'windowsize_half' : 4,
         'method_type' : 'random'}
         
 start_time = timeit.default_timer()
-(inp_simple, mask_upd) = INPAINT_EUCL_WEIGHTED(pars['input'],
+inp_simple = INPAINT_EUCL_WEIGHTED(pars['input'],
               pars['maskData'], 
               pars['number_of_iterations'],
               pars['windowsize_half'],
@@ -104,7 +103,7 @@ props = dict(boxstyle='round', facecolor='wheat', alpha=0.75)
 # place a text box in upper left in axes coords
 a.text(0.1, 0.1, txtstr, transform=a.transAxes, fontsize=14,
          verticalalignment='top', bbox=props)
-imgplot = plt.imshow(inp_simple, cmap="gray")
+imgplot = plt.imshow(inp_simple, cmap="gray", vmin= 0.8, vmax=1.3)
 plt.title('{}'.format('Extrapolation inpainting results'))
 #%%
 print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
@@ -122,12 +121,12 @@ imgplot = plt.imshow(proj3d_data[:,sliceno,:],cmap="gray", vmin= 0.8, vmax=1.3)
 pars = {'algorithm' : INPAINT_EUCL_WEIGHTED, 
         'input' : np.ascontiguousarray(proj3d_data, dtype=np.float32),
         'maskData' : np.ascontiguousarray(mask3d_data, dtype=np.uint8),
-        'number_of_iterations' : 1,
-        'windowsize_half' : 3,
+        'number_of_iterations' : 2,
+        'windowsize_half' : 5,
         'method_type' : 'random'}
         
 start_time = timeit.default_timer()
-(inp_simple, mask_upd) = INPAINT_EUCL_WEIGHTED(pars['input'],
+inp_simple = INPAINT_EUCL_WEIGHTED(pars['input'],
               pars['maskData'], 
               pars['number_of_iterations'],
               pars['windowsize_half'],
