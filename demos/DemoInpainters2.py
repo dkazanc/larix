@@ -11,7 +11,7 @@ Testing the capability of some inpainting methods
 import matplotlib.pyplot as plt
 import numpy as np
 import timeit
-from larix.methods.misc import INPAINT_NDF, INPAINT_EUCL_WEIGHTED
+#from larix.methods.misc import INPAINT_NDF, INPAINT_EUCL_WEIGHTED
 
 ###############################################################################
 def printParametersToString(pars):
@@ -32,7 +32,7 @@ def printParametersToString(pars):
 def _gradient(data, axis):
     return np.gradient(data, axis=axis)
 
-#%%
+
 # 3d projection data
 proj3d_data =  np.load('../data/sino_stripes_crop3D.npy')
 mask3d_data = np.zeros_like(proj3d_data,dtype="uint8")
@@ -57,7 +57,7 @@ for i in range(np.size(grad_data,1)):
         mask3d_data[:,i,get_peaks_indices[0]] = 1  
     mask3d_data[:,i,:] = binary_dilation(mask3d_data[:,i,:], footprint)
     
-sliceno = 5    
+sliceno = 5
 plt.figure()
 plt.subplot(121)
 plt.imshow(proj3d_data[:,sliceno,:])
@@ -67,6 +67,15 @@ plt.imshow(mask3d_data[:,sliceno,:])
 plt.title('Mask')
 plt.show()
 
+#%%
+
+from larix.methods.misc import STRIPES_DETECT
+
+stripe_weights = STRIPES_DETECT(np.ascontiguousarray(proj3d_data[:,5,:], dtype=np.float32), (1,7,1), "gradient")
+
+plt.figure()
+plt.imshow(stripe_weights)
+plt.show()
 #%%
 print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 print ("___Inpainting in 2D using boundaries exatrapolation___")

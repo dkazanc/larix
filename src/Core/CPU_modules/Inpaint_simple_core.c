@@ -259,7 +259,7 @@ void median_rand_inpainting_2D(unsigned char *M_upd, float *Output, float *Updat
   quicksort_float(_values, 0, counter_local-1); 
   median_val = (int)(counter_local/2);
   Updated[index] = _values[median_val];
-  }
+  } 
   else {
   /* inpainting based on a random neighbour */
   r = rand() % counter_local;

@@ -27,6 +27,7 @@ int signum(int i) {
     return (i>0)?1:((i<0)?-1:0);
 }
 
+
 /* Copy Image (float) */
 void copyIm(float *A, float *U, long dimX, long dimY, long dimZ)
 {
@@ -116,34 +117,6 @@ void sort_bubble_uint16(unsigned short *x, int n_size)
     return;
 }
 
-/*
-void sort_quick(float *x, int left_idx, int right_idx)
-{
-      float temp;
-      int i = left_idx, j = right_idx;
-      float pivot = x[(left_idx + right_idx) / 2];
-      while (i <= j)
-      {
-            while (x[i] < pivot)
-                  i++;
-            while (x[j] > pivot)
-                  j--;
-            if (i <= j) {
-                  temp = x[i];
-                  x[i] = x[j];
-                  x[j] = temp;
-                  i++;
-                  j--;
-            }
-      };
-      if (left_idx < j)
-            sort_quick(x, left_idx, j);
-      if (i < right_idx)
-            sort_quick(x, i, right_idx);
-    return;
-}
-*/
-
 void quicksort_float(float *x, int first, int last)
 {
    int i, j, pivot;
@@ -209,8 +182,6 @@ void quicksort_uint16(unsigned short *x, int first, int last)
 }
 
 
-
-
 void max_val_mask(float *Input, unsigned char *Mask, float *minmax_array, long dimX, long dimY, long dimZ)
 {
     /* ____ getting a maximum and minimum values of the input array defined by MASK____
@@ -239,4 +210,42 @@ void max_val_mask(float *Input, unsigned char *Mask, float *minmax_array, long d
     minmax_array[0] = min_val;
     minmax_array[1] = max_val;
     return;
+}
+
+
+void gradient2D(float *Input, float *Output, long dimX, long dimY, int axis)
+{  /*calculate gradient of the 2D input in the "axis" direction */
+    long i, j, i1, j1, index;
+    #pragma omp parallel for shared(Input, Output) private(i,j,i1,j1,index)
+
+    for(j=0; j<dimY; j++) {
+        for(i=0; i<dimX; i++) {
+            index = j*dimX+i;
+            /* Forward differences */
+            if (axis == 1) {
+                j1 = j + 1; if (j == dimY-1) j1 = j;                
+                Output[index] = Input[j1*dimX + i] - Input[index]; /* x+ */
+            }
+            else {
+                i1 = i + 1; if (i == dimX-1) i1 = i;    
+                Output[index] = Input[j*dimX + i1] - Input[index]; /* y+ */
+            }
+        }}
+}
+
+void fill_vector_with_neigbours2D(float *Input, float *_values, int W_halfsizeY, int W_halfsizeX, long dimX, long dimY, long i, long j)
+{  /*fill the given vector with the values in the neighbourhood of the pixel i,j */
+    long i_m, j_m, i1, j1, counter_local, index2;
+    
+    counter_local = 0;
+    for(i_m=-W_halfsizeX; i_m<=W_halfsizeX; i_m++) {
+        i1 = i+i_m;
+        for(j_m=-W_halfsizeY; j_m<=W_halfsizeY; j_m++) {
+            j1 = j+j_m;
+            if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
+                index2 = j1*dimX + i1;
+                _values[counter_local] = Input[index2];
+                counter_local++;                
+            }
+        }}
 }
