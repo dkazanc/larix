@@ -71,7 +71,7 @@ plt.show()
 
 from larix.methods.misc import STRIPES_DETECT
 
-stripe_weights = STRIPES_DETECT(np.ascontiguousarray(proj3d_data[:,5,:], dtype=np.float32), (1,7,1), "gradient")
+stripe_weights = STRIPES_DETECT(np.ascontiguousarray(proj3d_data[:,8,:], dtype=np.float32), (1,3,1), "gradient")
 
 plt.figure()
 plt.imshow(stripe_weights)
