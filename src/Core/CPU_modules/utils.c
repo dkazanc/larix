@@ -223,11 +223,11 @@ void gradient2D(float *Input, float *Output, long dimX, long dimY, int axis)
             index = j*dimX+i;
             /* Forward differences */
             if (axis == 1) {
-                j1 = j + 1; if (j == dimY-1) j1 = j;                
+                j1 = j + 1; if (j == dimY-1) j1 = j-1;                
                 Output[index] = Input[j1*dimX + i] - Input[index]; /* x+ */
             }
             else {
-                i1 = i + 1; if (i == dimX-1) i1 = i;    
+                i1 = i + 1; if (i == dimX-1) i1 = i-1;    
                 Output[index] = Input[j*dimX + i1] - Input[index]; /* y+ */
             }
         }}
@@ -235,17 +235,44 @@ void gradient2D(float *Input, float *Output, long dimX, long dimY, int axis)
 
 void fill_vector_with_neigbours2D(float *Input, float *_values, int W_halfsizeY, int W_halfsizeX, long dimX, long dimY, long i, long j)
 {  /*fill the given vector with the values in the neighbourhood of the pixel i,j */
-    long i_m, j_m, i1, j1, counter_local, index2;
-    
+    long i_m, j_m, i1, j1, counter_local, index, index2;
+    index = j*dimX + i;
+
     counter_local = 0;
     for(i_m=-W_halfsizeX; i_m<=W_halfsizeX; i_m++) {
         i1 = i+i_m;
         for(j_m=-W_halfsizeY; j_m<=W_halfsizeY; j_m++) {
             j1 = j+j_m;
             if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
-                index2 = j1*dimX + i1;
-                _values[counter_local] = Input[index2];
-                counter_local++;                
+                 index2 = j1*dimX + i1;
+                _values[counter_local] = Input[index2];                
             }
+            else _values[counter_local] = Input[index];
+            counter_local++; 
         }}
+}
+
+void mask_dilate2D(unsigned char *input, unsigned char *output, long dimX, long dimY)
+{
+   /* dilating mask */
+    long index, index2, j, i, i1, j1, i_m, j_m;
+
+#pragma omp parallel for shared (input, output) private(index, j, i, i1, j1, i_m, j_m)
+    for(j=0; j<dimY; j++) {
+        for(i=0; i<dimX; i++) {
+        index = j*dimX+i;
+
+        if (input[index] == 1) {
+          for(j_m=-1; j_m<=1; j_m++) {
+            for(i_m=-1; i_m<=1; i_m++) {
+                i1 = i+i_m;
+                j1 = j+j_m;
+                if (((i1 >= 0) && (i1 < dimX)) && ((j1 >= 0) && (j1 < dimY))) {
+                index2 = j1*dimX+i1; 
+                output[index2] = 1;
+                }
+        }}
+        }
+    }}
+    return;
 }

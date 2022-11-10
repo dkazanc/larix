@@ -23,6 +23,7 @@
  * Auto cropping for tomographic projections or reconstructed images when the object is within the FOV (**2D/3D CPU**)
  * Median filtration and median-based dezinger to remove broken pixels aka outliers  (**2D/3D CPU/GPU**)
  * Inpainting using linear/non-linear diffusion and non-local marching method  (**2D/3D CPU**)
+ * A stripes detection approach
 
  <div align="center">
    <img src="docs/images/demo_larix.png" width="650">

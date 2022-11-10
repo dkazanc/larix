@@ -17,38 +17,35 @@
 #include "Stripes_detect_core.h"
 #include "utils.h"
 
-/*
-* C module to detect stripes in sinograms (2D) and projection data (3D).
-The input could be a normal image or a gradient in orthogonal to stripes direction. 
-
-The sliding window orthogonal to stripes in which we calculate a measure which detects outlliers, e.g. median or
-Median absolute deviation. 
-
-The method should work for full and partial stripes as well with the changing intensity ones
-*
-* Input parameters:
-* 1. sinogram (2D) [angles x detectorsX] OR projection data (3D) [detectorsX x angles x detectorsY]
-* 2. detectors_window_height: (int) the half-height of the searching window parallel to detectors dimension
-* 3. detectors_window_width: (int) the half-width of the searching window parallel to detectors dimension, normally width >> height
-* 4. angles_window_depth: (int) for 3D data, the half-depth of the searching window parallel to angles dimension
-* 5. gradient_calc: (int) 1 - take a gradient (in detectorsX dim) of the input image, 0 - do not calculate
-* 6. ncores - number of CPU threads to use (if given), 0 is the default value - using all available cores
-
-* Output:
-* 1. output - estimated weights
-*/
-
-int StripeWeights_main(float *input, float *output, int detectors_window_height, int detectors_window_width, int angles_window_depth, int gradient_calc, int ncores, long angl_size, long det_X_size, long det_Y_size)
+int StripeWeights_main(float *input, float *output, int detectors_window_height, int detectors_window_width, int angles_window_depth, int vertical_mean_window, int ncores, long angl_size, long det_X_size, long det_Y_size)
 {
-    long i, j, k, DimTotal;
-    int detectors_window_height_full, detectors_window_width_full, angles_window_depth_full, full_window_size, midval_window_index, vertical1D_halfsize;
+    /*
+    C module to detect stripes in sinograms (2D) and in projection data (3D). The method involves 3 steps:
+    1. Taking first derrivative of the input in the direction orthogonal to stripes.
+    2. Slide horizontal rectangular window orthogonal to stripes direction to accenuate outliers (stripes) using median.
+    3. Slide the vertical thin (1 pixel) window to calculate a mean (further accenuates stripes).
+    
+    This method should work for full and partial stripes as well with the changing intensity ones. 
+    *
+    * Input parameters:
+    * 1. sinogram (2D) [angles x detectorsX] OR projection data (3D) [detectorsX x angles x detectorsY]
+    * 2. detectors_window_height: (int) the half-height of the searching window parallel to detectors dimension
+    * 3. detectors_window_width: (int) the half-width of the searching window parallel to detectors dimension, normally width >> height
+    * 4. angles_window_depth: (int) for 3D data, the half-depth of the searching window parallel to angles dimension
+    * 5. vertical_mean_window: (int) the half-size of the 1D vertical window to calculate mean inside
+    * 6. ncores - number of CPU threads to use (if given), 0 is the default value - using all available cores
+
+    * Output:
+    * 1. output - estimated weights (can be thresholded after with Otsu)
+    */
+
+    long i, j, DimTotal;
+    int detectors_window_height_full, detectors_window_width_full, angles_window_depth_full, full_window_size, midval_window_index;
     float *gradientX, *output_temp; 
-    vertical1D_halfsize = 5;
     
     DimTotal = angl_size*det_X_size*det_Y_size;
-    gradientX = calloc(1, sizeof(float));
-    output_temp = calloc(DimTotal, sizeof(float));
-    
+    gradientX = calloc(DimTotal, sizeof(float));
+    output_temp = calloc(DimTotal, sizeof(float));    
     
     /* define sizes of the searching window */
     detectors_window_height_full = (int)(2*detectors_window_height+1);
@@ -64,38 +61,87 @@ int StripeWeights_main(float *input, float *output, int detectors_window_height,
     }    
 
     if (det_Y_size == 1) {
-    /****************************2D INPUT*****************************/    
-    if (gradient_calc == 1) {
-    free(gradientX);
-    gradientX = calloc(DimTotal, sizeof(float));
+    /****************************2D INPUT*****************************/ 
     /* calculating the gradient in X direction (det_X_size) */        
     gradient2D(input, gradientX, angl_size, det_X_size, 0);        
-    }
 
     //printf("%ld %ld",  angl_size, det_X_size);
     /* We run a rectangular window where detectors_window_width >> detectors_window_height in which we identify the background (median value) and substract 
-    it from the current pixel. If there is a stripe (an outlier) it will be accenuated */
+    it from the current pixel. If there is a stripe (an outlier), it will be accenuated */
     #pragma omp parallel for shared(input, output_temp) private(i,j)
     for(i=0; i<angl_size; i++) {
         for(j=0; j<det_X_size; j++) {
-          if (gradient_calc == 1) horiz_median_stride2D(gradientX, output_temp, full_window_size, midval_window_index, detectors_window_height, detectors_window_width, angl_size, det_X_size, i, j);
-          else horiz_median_stride2D(input, output_temp, full_window_size, midval_window_index, detectors_window_height, detectors_window_width, angl_size, det_X_size, i, j);
+          horiz_median_stride2D(gradientX, output_temp, full_window_size, midval_window_index, detectors_window_height, detectors_window_width, angl_size, det_X_size, i, j);          
     }}
+
     /* Now we run a 1D vertical window which calculates the mean inside window, i.e. the stripe will be even more prounonced */
     #pragma omp parallel for shared(output, output_temp) private(i,j)
     for(i=0; i<angl_size; i++) {
         for(j=0; j<det_X_size; j++) {
-          vert_mean_stride2D(output_temp, output, vertical1D_halfsize, angl_size, det_X_size, i, j);          
+          vert_mean_stride2D(output_temp, output, vertical_mean_window, angl_size, det_X_size, i, j);          
     }}
-
     }
     else {
+    /****************************3D INPUT*****************************/         
 
     }   
     free(gradientX);
     free(output_temp);
     return 0;
 }
+
+
+
+int StripesMergeMask_main(unsigned char *input, unsigned char *output, int stripe_width_max, int dilate, int ncores, long angl_size, long det_X_size, long det_Y_size)
+{
+ /*
+    C module to merge stripes together into thicker stripes assuming that if there are two stripes in the vicinity of [stripe_width_max] it is probably a single stripe
+    *
+    * Input parameters:
+    * 1. 2D/3D uint8 image/volume: The result of the binary segmentation applied to method (StripeWeights_main). 
+    * 2. stripe_width_max: (int) the maximum width of a stripe acceptable
+    * 3. dilate (int) : the number of pixels/voxels to dilate obtained mask
+    * 4. ncores - number of CPU threads to use (if given), 0 is the default value - using all available cores
+
+    * Output:
+    * 1. output - merged mask with full stripes
+    */
+    long i, j, k, DimTotal;
+    unsigned char *output_temp; 
+    
+    DimTotal = angl_size*det_X_size*det_Y_size;
+    output_temp = calloc(DimTotal, sizeof(unsigned char));    
+   
+    /* copying input to output */
+    copyIm_unchar(input, output, angl_size, det_X_size, det_Y_size);
+    
+    if (ncores > 0) {
+    omp_set_dynamic(0);     // Explicitly disable dynamic teams
+    omp_set_num_threads(ncores); // Use a number of threads for all consecutive parallel regions 
+    }    
+
+    #pragma omp parallel for shared(input, output) private(i,j)
+    for(i=0; i<angl_size; i++) {
+        for(j=0; j<det_X_size; j++) {
+          stripes_merger2D(input, output, stripe_width_max, angl_size, det_X_size, i, j);          
+    }}
+
+    if (dilate > 0){
+        /* perform mask dilation */
+        for(k=0; k<dilate; k++) {
+        copyIm_unchar(output, output_temp, angl_size, det_X_size, det_Y_size);
+        mask_dilate2D(output, output_temp, angl_size, det_X_size);
+        copyIm_unchar(output_temp, output, angl_size, det_X_size, det_Y_size);
+    }
+    }
+    free(output_temp);
+    return 0;
+}
+
+
+
+
+
 /********************************************************************/
 /***************************2D Functions*****************************/
 /********************************************************************/
@@ -137,3 +183,34 @@ void vert_mean_stride2D(float *input, float *output, int vertical1D_halfsize, lo
 
     if (counter_local != 0) output[index] = sumval/counter_local;
 }
+
+void stripes_merger2D(unsigned char *input, unsigned char *output, int stripe_width_max, long angl_size, long det_X_size, long i, long j)
+{
+    /* the function that checks if two stripes are close to each other based on stripe_width_max and merge them together */    
+    long i_m, i1, i_m2, i2, index, index2; 
+    index = j*angl_size+i; 
+
+    if (input[index] == 1) {
+    /* one edge of the mask has found, lets look for another one */
+
+    for(i_m=stripe_width_max; i_m>=0; i_m--) {
+        i1 = i+i_m;
+            if ((i1 >= 0) && (i1 < angl_size)) {                      
+                index2 = j*angl_size + i1; 
+                if (input[index2] == 1) {
+                /* second edge of the mask has found, convert all values in-between to ones */
+                for(i_m2 = 0; i_m2 < i_m; i_m2++) {
+                i2 = i + i_m2;
+                output[j*angl_size + i2] = 1;
+                    }
+                break;
+                }
+            }
+        }
+    }    
+}
+
+
+/********************************************************************/
+/***************************3D Functions*****************************/
+/********************************************************************/

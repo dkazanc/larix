@@ -41,6 +41,7 @@ DLS_EXPORT void quicksort_uint16(unsigned short *x, int first, int last);
 DLS_EXPORT void max_val_mask(float *Input, unsigned char *Mask, float *minmax_array, long dimX, long dimY, long dimZ);
 DLS_EXPORT void gradient2D(float *Input, float *Output, long dimX, long dimY, int axis);
 DLS_EXPORT void fill_vector_with_neigbours2D(float *Input, float *_values, int W_halfsizeY, int W_halfsizeX, long dimX, long dimY, long i, long j);
+DLS_EXPORT void mask_dilate2D(unsigned char *input, unsigned char *output, long dimX, long dimY);
 #ifdef __cplusplus
 }
 #endif

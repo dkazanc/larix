@@ -22,7 +22,8 @@ cdef extern int medianfilter_main_uint16(unsigned short *Input, unsigned short *
 cdef extern int Diffusion_Inpaint_CPU_main(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float sigmaPar, int iterationsNumb, float tau, int penaltytype, int dimX, int dimY, int dimZ);
 cdef extern int NonlocalMarching_Inpaint_main(float *Input, unsigned char *M, float *Output, unsigned char *M_upd, int SW_increment, int iterationsNumb, int trigger, int dimX, int dimY, int dimZ);
 cdef extern int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, int iterations, int W_halfsize, int method_type, int ncores, int dimX, int dimY, int dimZ);
-cdef extern int StripeWeights_main(float *input, float *output, int detectors_window_height, int detectors_window_width, int angles_window_depth, int gradient_calc, int ncores, long angl_size, long det_X_size, long det_Y_size);
+cdef extern int StripeWeights_main(float *input, float *output, int detectors_window_height, int detectors_window_width, int angles_window_depth, int vertical_mean_window, int ncores, long angl_size, long det_X_size, long det_Y_size);
+cdef extern int StripesMergeMask_main(unsigned char *input, unsigned char *output, int stripe_width_max, int dilate, int ncores, long angl_size, long det_X_size, long det_Y_size);
 #################################################################
 ##########################Autocropper ###########################
 #################################################################
@@ -399,14 +400,16 @@ def INPAINT_EUC_WEIGHT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData,
 #****************************************************************#
 #*********************Stripes detection**************************#
 #****************************************************************#
-def STRIPES_DETECT(inputData, search_window_dims=(1,5,1), method_type="gradient", ncores=0):
-    """Method to detect stripes in sinograms (2D) OR projection data (3D). The sliding window orthogonal to 
-    stripes directions moves to calculate a stats measure with which one detects outlliers, e.g. median or Median absolute deviation. 
-    
+def STRIPES_DETECT(inputData, search_window_dims=(1,5,1), horiz_window_size = 5, ncores=0):
+    """Method to detect stripes in sinograms (2D) OR projection data (3D). The method involves 3 steps:
+    1. Taking first derrivative of the input in the direction orthogonal to stripes.
+    2. Slide horizontal rectangular window orthogonal to stripes direction to accenuate outliers (stripes) using median.
+    3. Slide the vertical thin (1 pixel) window to calculate a mean (further accenuates stripes).
+
     Args:
         inputData (array): sinogram (2D) [angles x detectorsX] OR projection data (3D) [detectorsX x angles x detectorsY]
-        search_window_dims (tuple, optional): (detectors_window_height, detectors_window_width, angles_window_depth). Defaults to (1,5,1).
-        method_type (str, optional): set to "None" if gradient is not required. Defaults to "gradient".
+        search_window_dims (tuple, optional): (detectors_window_height, detectors_window_width, angles_window_depth). Defaults to (1,5,1).        
+        horiz_window_size (int, optional): the half size of the horizontal 1D window to calculate mean
         ncores (int, optional): the number of CPU cores. Defaults to 0.
 
     Returns:
@@ -415,19 +418,15 @@ def STRIPES_DETECT(inputData, search_window_dims=(1,5,1), method_type="gradient"
     detectors_window_height = search_window_dims[0]
     detectors_window_width = search_window_dims[1]
     angles_window_depth = search_window_dims[2]
-    if (method_type == 'gradient'):
-        method_type_int = 1
-    else: 
-        method_type_int = 0
     if inputData.ndim == 2:
-        return STRIPES_DETECT_2D(inputData, detectors_window_height, detectors_window_width, 1, method_type_int, ncores)
+        return __STRIPES_DETECT_2D(inputData, detectors_window_height, detectors_window_width, 1, horiz_window_size, ncores)
     elif inputData.ndim == 3:
         return 0
-def STRIPES_DETECT_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] inputData,
+def __STRIPES_DETECT_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] inputData,
                int detectors_window_height,
                int detectors_window_width,
                int angles_window_depth,
-               int method_type_int, 
+               int horiz_window_size, 
                int ncores):
 
     cdef long dims[2]
@@ -437,7 +436,42 @@ def STRIPES_DETECT_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] inputData,
     cdef np.ndarray[np.float32_t, ndim=2, mode="c"] outputData = \
             np.zeros([dims[0],dims[1]], dtype='float32')
 
-    if (StripeWeights_main(&inputData[0,0], &outputData[0,0], detectors_window_height, detectors_window_width, angles_window_depth, method_type_int, ncores, dims[1], dims[0], 1)==0):
+    if (StripeWeights_main(&inputData[0,0], &outputData[0,0], detectors_window_height, detectors_window_width, angles_window_depth, horiz_window_size, ncores, dims[1], dims[0], 1)==0):
         return outputData
     else:
         raise ValueError("2D CPU stripe detection failed to return 0")
+
+def STRIPES_MERGE(inputData, stripe_width_max_perc=3, dilate=1, ncores=0):
+    """Method to merge two stripes in the distance defined by stripe_width_max
+
+    Args:
+        inputData (array): uint8 mask array where double stripes are present with ones
+        stripe_width_max_perc (float, optional): the maximum width of stripes in the data, given in percents relative to the size of the DetectorX
+        dilate (int, optional): the number of pixels/voxels to dilate the obtained mask
+        ncores (int, optional): the number of CPU cores. Defaults to 0.
+
+    Returns:
+        array: uint8 processed mask
+    """
+    det_sizeX = np.size(inputData,1)
+    stripe_width_max = (0.01*stripe_width_max_perc)*det_sizeX # the max strip width in pixels
+    if inputData.ndim == 2:
+        return __STRIPES_MERGE_2D(inputData, stripe_width_max, dilate, ncores)
+    elif inputData.ndim == 3:
+        return 0
+def __STRIPES_MERGE_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] inputData,
+               int stripe_width_max,
+               int dilate,
+               int ncores):
+
+    cdef long dims[2]
+    dims[0] = inputData.shape[0]
+    dims[1] = inputData.shape[1]
+
+    cdef np.ndarray[np.uint8_t, ndim=2, mode="c"] outputData = \
+            np.zeros([dims[0],dims[1]], dtype='uint8')
+
+    if (StripesMergeMask_main(&inputData[0,0], &outputData[0,0], stripe_width_max, dilate, ncores, dims[1], dims[0], 1)==0):
+        return outputData
+    else:
+        raise ValueError("2D CPU stripe merge failed to return 0")       

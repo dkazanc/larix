@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import timeit
 #from larix.methods.misc import INPAINT_NDF, INPAINT_EUCL_WEIGHTED
+#from larix.methods.misc import STRIPES_DETECT, STRIPES_MERGE
 
 ###############################################################################
 def printParametersToString(pars):
@@ -28,25 +29,13 @@ def printParametersToString(pars):
             txt += '\n'
         return txt
 ###############################################################################
-
-def _gradient(data, axis):
-    return np.gradient(data, axis=axis)
-
-
 # 3d projection data
 proj3d_data =  np.load('../data/sino_stripes_crop3D.npy')
 mask3d_data = np.zeros_like(proj3d_data,dtype="uint8")
 
-#detecting stripes to generate a mask
-grad_data = _gradient(proj3d_data,axis=1)
-sum_grad = np.zeros((np.size(grad_data,1),np.size(grad_data,2)))
-
-
-from scipy.signal import find_peaks
-from skimage.morphology import disk, binary_dilation
-footprint = disk(7)
-
-for i in range(np.size(grad_data,1)):
+#detecting stripes to generate a mask using detect stripes
+"""
+for i in range(np.size(proj3d_data,1)):
     sum_grad1d = np.sum(grad_data[:,i,:],0)
     sum_grad[i,:] = sum_grad1d/np.max(sum_grad1d)
     peaks = find_peaks(sum_grad[i,:], height = 0.1, distance = 1)
@@ -66,22 +55,39 @@ plt.subplot(122)
 plt.imshow(mask3d_data[:,sliceno,:])
 plt.title('Mask')
 plt.show()
-
+"""
 #%%
-
-from larix.methods.misc import STRIPES_DETECT
-
-stripe_weights = STRIPES_DETECT(np.ascontiguousarray(proj3d_data[:,8,:], dtype=np.float32), (1,3,1), "gradient")
+from larix.methods.misc import STRIPES_DETECT, STRIPES_MERGE
+# accenuate any stripes present in the data first 
+stripe_weights = STRIPES_DETECT(np.ascontiguousarray(proj3d_data[:,9,:], dtype=np.float32), (2,7,1), 11)
 
 plt.figure()
 plt.imshow(stripe_weights)
+plt.show()
+
+
+# perform otsu segmentation of the weights
+from skimage import filters
+val_intensity = filters.threshold_otsu(stripe_weights)
+mask_stripe = np.zeros_like(stripe_weights,dtype="uint8")
+mask_stripe[stripe_weights > val_intensity] = 1
+
+plt.figure()
+plt.imshow(mask_stripe)
+plt.show()
+
+from larix.methods.misc import STRIPES_MERGE
+mask_stripe_merged = STRIPES_MERGE(mask_stripe, stripe_width_max_perc=25, dilate=3)
+
+plt.figure()
+plt.imshow(mask_stripe_merged)
 plt.show()
 #%%
 print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 print ("___Inpainting in 2D using boundaries exatrapolation___")
 print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 ## plot 
-sliceno = 3  
+sliceno = 5  
 fig = plt.figure()
 plt.suptitle('Performance of ')
 a=fig.add_subplot(1,2,1)
@@ -91,7 +97,7 @@ imgplot = plt.imshow(proj3d_data[:,sliceno,:],cmap="gray", vmin= 0.8, vmax=1.3)
 # set parameters
 pars = {'algorithm' : INPAINT_EUCL_WEIGHTED, 
         'input' : np.ascontiguousarray(proj3d_data[:,sliceno,:], dtype=np.float32),
-        'maskData' : np.ascontiguousarray(mask3d_data[:,sliceno,:], dtype=np.uint8),
+        'maskData' : mask_stripe_merged,
         'number_of_iterations' : 3,
         'windowsize_half' : 4,
         'method_type' : 'random'}
