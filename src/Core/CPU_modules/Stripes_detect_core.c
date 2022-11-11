@@ -17,7 +17,7 @@
 #include "Stripes_detect_core.h"
 #include "utils.h"
 
-int StripeWeights_main(float *input, float *output, int detectors_window_height, int detectors_window_width, int angles_window_depth, int vertical_mean_window, int ncores, long angl_size, long det_X_size, long det_Y_size)
+int StripeWeights_main(float *input, float *output, float *grad_stats, int detectors_window_height, int detectors_window_width, int angles_window_depth, int vertical_mean_window, int gradient_gap, int ncores, long angl_size, long det_X_size, long det_Y_size)
 {
     /*
     C module to detect stripes in sinograms (2D) and in projection data (3D). The method involves 3 steps:
@@ -28,18 +28,19 @@ int StripeWeights_main(float *input, float *output, int detectors_window_height,
     This method should work for full and partial stripes as well with the changing intensity ones. 
     *
     * Input parameters:
-    * 1. sinogram (2D) [angles x detectorsX] OR projection data (3D) [detectorsX x angles x detectorsY]
+    * 1. sinogram (2D) [angles x detectorsX] OR projection data (3D) [angles x detectorsY x detectorsX]
     * 2. detectors_window_height: (int) the half-height of the searching window parallel to detectors dimension
     * 3. detectors_window_width: (int) the half-width of the searching window parallel to detectors dimension, normally width >> height
     * 4. angles_window_depth: (int) for 3D data, the half-depth of the searching window parallel to angles dimension
     * 5. vertical_mean_window: (int) the half-size of the 1D vertical window to calculate mean inside
-    * 6. ncores - number of CPU threads to use (if given), 0 is the default value - using all available cores
+    * 6. gradient_gap: (int) the gap in pixels with the neighbour while calculating a gradient (1 is the normal gradient)
+    * 7. ncores - number of CPU threads to use (if given), 0 is the default value - using all available cores
 
     * Output:
     * 1. output - estimated weights (can be thresholded after with Otsu)
     */
 
-    long i, j, DimTotal;
+    long i, j, k, DimTotal;
     int detectors_window_height_full, detectors_window_width_full, angles_window_depth_full, full_window_size, midval_window_index;
     float *gradientX, *output_temp; 
     
@@ -60,31 +61,47 @@ int StripeWeights_main(float *input, float *output, int detectors_window_height,
     omp_set_num_threads(ncores); // Use a number of threads for all consecutive parallel regions 
     }    
 
-    if (det_Y_size == 1) {
+    
     /****************************2D INPUT*****************************/ 
-    /* calculating the gradient in X direction (det_X_size) */        
-    gradient2D(input, gradientX, angl_size, det_X_size, 0);        
+    /* calculating the gradient in X direction (det_X_size) */
+    if (det_Y_size == 1) gradient2D(input, gradientX, angl_size, det_X_size, 0, gradient_gap); 
+    else gradient3D(input, gradientX, angl_size, det_X_size, det_Y_size, 0, gradient_gap); 
+    
+    /* calculating statistics for gradientX */       
+    stats_calc(gradientX, grad_stats, 1, angl_size, det_X_size, det_Y_size);
 
     //printf("%ld %ld",  angl_size, det_X_size);
     /* We run a rectangular window where detectors_window_width >> detectors_window_height in which we identify the background (median value) and substract 
     it from the current pixel. If there is a stripe (an outlier), it will be accenuated */
+    if (det_Y_size == 1) {
     #pragma omp parallel for shared(input, output_temp) private(i,j)
     for(i=0; i<angl_size; i++) {
         for(j=0; j<det_X_size; j++) {
           horiz_median_stride2D(gradientX, output_temp, full_window_size, midval_window_index, detectors_window_height, detectors_window_width, angl_size, det_X_size, i, j);          
-    }}
+        }}
 
     /* Now we run a 1D vertical window which calculates the mean inside window, i.e. the stripe will be even more prounonced */
     #pragma omp parallel for shared(output, output_temp) private(i,j)
     for(i=0; i<angl_size; i++) {
         for(j=0; j<det_X_size; j++) {
           vert_mean_stride2D(output_temp, output, vertical_mean_window, angl_size, det_X_size, i, j);          
-    }}
+        }}
     }
     else {
-    /****************************3D INPUT*****************************/         
+    #pragma omp parallel for shared(input, output_temp) private(i,j,k)
+    for(i=0; i<angl_size; i++) {
+        for(j=0; j<det_X_size; j++) {
+            for(k=0; k<det_Y_size; k++) {
+          horiz_median_stride3D(gradientX, output_temp, full_window_size, midval_window_index, detectors_window_height, detectors_window_width, angles_window_depth, angl_size, det_X_size, det_Y_size, i, j, k);
+        }}}
+    #pragma omp parallel for shared(output, output_temp) private(i,j,k)
+    for(i=0; i<angl_size; i++) {
+        for(j=0; j<det_X_size; j++) {
+            for(k=0; k<det_Y_size; k++) {            
+          vert_mean_stride3D(output_temp, output, vertical_mean_window, angl_size, det_X_size, det_Y_size, i, j, k);          
+        }}}
+    }    
 
-    }   
     free(gradientX);
     free(output_temp);
     return 0;
@@ -119,7 +136,9 @@ int StripesMergeMask_main(unsigned char *input, unsigned char *output, int strip
     omp_set_dynamic(0);     // Explicitly disable dynamic teams
     omp_set_num_threads(ncores); // Use a number of threads for all consecutive parallel regions 
     }    
-
+    
+    if (det_Y_size == 1) {
+    /* 2D version */
     #pragma omp parallel for shared(input, output) private(i,j)
     for(i=0; i<angl_size; i++) {
         for(j=0; j<det_X_size; j++) {
@@ -132,15 +151,16 @@ int StripesMergeMask_main(unsigned char *input, unsigned char *output, int strip
         copyIm_unchar(output, output_temp, angl_size, det_X_size, det_Y_size);
         mask_dilate2D(output, output_temp, angl_size, det_X_size);
         copyIm_unchar(output_temp, output, angl_size, det_X_size, det_Y_size);
+            }
+        }
     }
+    else {
+    /*3D version (just a 2D extended) */
+
     }
     free(output_temp);
     return 0;
 }
-
-
-
-
 
 /********************************************************************/
 /***************************2D Functions*****************************/
@@ -214,3 +234,42 @@ void stripes_merger2D(unsigned char *input, unsigned char *output, int stripe_wi
 /********************************************************************/
 /***************************3D Functions*****************************/
 /********************************************************************/
+
+void horiz_median_stride3D(float *input, float *output, int full_window_size, int midval_window_index, int detectors_window_height, int detectors_window_width, int angles_window_depth, long angl_size, long det_X_size, long det_Y_size, long i, long j, long k)
+{
+    long index; 
+    float *_values;
+    _values = (float*) calloc(full_window_size, sizeof(float));
+    
+    index = (angl_size*det_X_size)*k + j*angl_size+i;
+
+    /* get the values into the searching window allocated vector */
+    fill_vector_with_neigbours3D(input, _values, detectors_window_height, detectors_window_width, angles_window_depth, angl_size, det_X_size, det_Y_size, i, j, k);
+    quicksort_float(_values, 0, full_window_size-1); 
+    output[index] = fabs(input[index]) - fabs(_values[midval_window_index]);    
+    free(_values);
+}
+
+void vert_mean_stride3D(float *input, float *output, int vertical1D_halfsize, long angl_size, long det_X_size, long det_Y_size, long i, long j, long k)
+{
+    long k_m, k1, counter_local, index, index2;
+    float sumval;
+
+    index = (angl_size*det_X_size)*k + j*angl_size+i;  
+    
+    /* calculates mean along 1D vertical kernel */    
+    counter_local = 0; sumval = 0.0f;
+    for(k_m=-vertical1D_halfsize; k_m<=vertical1D_halfsize; k_m++) {
+        k1 = k+k_m;
+            if ((k1 >= 0) && (k1 < det_Y_size)) {
+                index2 = (angl_size*det_X_size)*k1 + j*angl_size + i;
+                if (input[index2] != 0.0f){
+                sumval += input[index2];
+                counter_local++;
+                }                
+            }
+        }
+
+    if (counter_local != 0) output[index] = sumval/counter_local;    
+
+}
