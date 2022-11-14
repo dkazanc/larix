@@ -39,7 +39,7 @@ plt.title('Cropped sinogram')
 plt.show()
 #%%
 # accenuate any stripes present in the data first (get weights)
-(stripe_weights, stats_vec) = STRIPES_DETECT(proj3d_data, search_window_dims=(1,9,1), horiz_window_size=21, gradient_gap=3)
+(stripe_weights, stats_vec) = STRIPES_DETECT(proj3d_data, search_window_dims=(1,7,1), vert_window_size=5, gradient_gap=3)
 
 # threshold weights to get a initialisation of the mask
 threshold = 0.5 #larger more sensitive to stripes
@@ -53,7 +53,7 @@ mask_stripe_merged = STRIPES_MERGE(np.ascontiguousarray(mask_stripe, dtype=np.ui
 plt.figure()
 plt.subplot(131)
 plt.imshow(stripe_weights[:,sliceno,:])
-plt.title('Stripe weights based on Grdient - X')
+plt.title('Stripe weights based on Gradient - X')
 plt.subplot(132)
 plt.imshow(mask_stripe[:,sliceno,:])
 plt.title('Thresholded weights')
