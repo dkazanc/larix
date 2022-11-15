@@ -36,10 +36,15 @@ DLS_EXPORT void copyIm_unshort(unsigned short *A, unsigned short *U, int dimX, i
 DLS_EXPORT void copyIm_roll(float *A, float *U, int dimX, int dimY, int roll_value, int switcher);
 DLS_EXPORT void sort_bubble_float(float *x, int n_size);
 DLS_EXPORT void sort_bubble_uint16(unsigned short *x, int n_size);
-//DLS_EXPORT void sort_quick(float *x, int left_idx, int right_idx);
 DLS_EXPORT void quicksort_float(float *x, int first, int last);
 DLS_EXPORT void quicksort_uint16(unsigned short *x, int first, int last);
 DLS_EXPORT void max_val_mask(float *Input, unsigned char *Mask, float *minmax_array, long dimX, long dimY, long dimZ);
+DLS_EXPORT void stats_calc(float *Input, float *Output, int take_abs, long dimX, long dimY, long dimZ);
+DLS_EXPORT void gradient2D(float *Input, float *Output, long dimX, long dimY, int axis, int gradient_gap);
+DLS_EXPORT void gradient3D(float *Input, float *Output, long dimX, long dimY, long dimZ, int axis, int gradient_gap);
+DLS_EXPORT void fill_vector_with_neigbours2D(float *Input, float *_values, int W_halfsizeY, int W_halfsizeX, long dimX, long dimY, long i, long j);
+DLS_EXPORT void fill_vector_with_neigbours3D(float *Input, float *_values, int W_halfsizeY, int W_halfsizeX, int W_halfsizeZ, long dimX, long dimY, long dimZ, long i, long j, long k);
+DLS_EXPORT void mask_dilate2D(unsigned char *input, unsigned char *output, long dimX, long dimY);
 #ifdef __cplusplus
 }
 #endif
