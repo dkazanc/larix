@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created August 2022
-
-Testing the capability of some morphological inpainting methods
+Testing the capability of stripe detection methods and also 
+morphological inpainting methods
 
 @author: Daniil Kazantsev
 """
@@ -11,7 +10,7 @@ Testing the capability of some morphological inpainting methods
 import matplotlib.pyplot as plt
 import numpy as np
 import timeit
-from larix.methods.misc import INPAINT_NDF, INPAINT_EUCL_WEIGHTED
+from larix.methods.misc import INPAINT_EUCL_WEIGHTED
 from larix.methods.misc import STRIPES_DETECT, STRIPES_MERGE
 
 ###############################################################################
@@ -30,37 +29,44 @@ def printParametersToString(pars):
         return txt
 ###############################################################################
 # 3d projection data
-proj3d_data =  np.load('../data/sino_stripes_crop3D.npy')
+data =  np.load('../data/proj3d_stripes.npz')
+proj3d = data['proj3d']
 
-sliceno = 6
+
+sliceno = 5
 plt.figure()
-plt.imshow(proj3d_data[:,sliceno,:], cmap="gray", vmin= 0.8, vmax=1.3)
-plt.title('Cropped sinogram')
+plt.imshow(proj3d[:,sliceno,:], cmap="gray", vmin= 0.5, vmax=1.75)
+plt.title('sinogram')
 plt.show()
 #%%
-# accenuate any stripes present in the data first (get weights)
-(stripe_weights, stats_vec) = STRIPES_DETECT(proj3d_data, search_window_dims=(1,7,1), vert_window_size=5, gradient_gap=3)
-
-# threshold weights to get a initialisation of the mask
-threshold = 0.5 #larger more sensitive to stripes
-mask_stripe = np.zeros_like(stripe_weights,dtype="uint8")
-mask_stripe = np.ascontiguousarray(mask_stripe, dtype=np.uint8)
-mask_stripe[stripe_weights > stats_vec[3]/threshold] = 1
-
-# merge edges that are close to each other
-mask_stripe_merged = STRIPES_MERGE(np.ascontiguousarray(mask_stripe, dtype=np.uint8), stripe_width_max_perc=25, dilate=3)
+# Detect stripes to calculate weights
+stripe_weights = STRIPES_DETECT(proj3d,
+                                vert_filter_size_perc=7,
+                                radius_size=3)
 
 plt.figure()
-plt.subplot(131)
-plt.imshow(stripe_weights[:,sliceno,:])
-plt.title('Stripe weights based on Gradient - X')
-plt.subplot(132)
-plt.imshow(mask_stripe[:,sliceno,:])
-plt.title('Thresholded weights')
-plt.subplot(133)
-plt.imshow(mask_stripe_merged[:,sliceno,:])
-plt.title('Processed mask')
+plt.imshow(stripe_weights[:,sliceno,:], cmap="gray", vmin= 0.0, vmax=0.6)
+plt.title('stripes sinogram')
 plt.show()
+#%%
+# Thresholding the obtained weight we can get a mask
+
+stripesmask = STRIPES_MERGE(stripe_weights,
+                             threshold=0.6,
+                             stripe_length_perc=30.0,
+                             stripe_depth_perc=100.0,
+                             stripe_width_perc= 0.5,
+                             sensitivity_perc=80.0)
+
+
+plt.figure()
+plt.imshow(stripesmask[:,sliceno,:], cmap="gray", vmin= 0.0, vmax=1)
+plt.title('generated mask')
+plt.show()
+#%%
+#remove data in proj3d where stripes are detected
+proj3d[stripesmask == 1] = 0
+
 #%%
 print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 print ("___Inpainting in 2D using boundaries exatrapolation___")
@@ -70,13 +76,13 @@ fig = plt.figure()
 plt.suptitle('Performance of ')
 a=fig.add_subplot(1,2,1)
 a.set_title('Missing data sinogram')
-imgplot = plt.imshow(proj3d_data[:,sliceno,:],cmap="gray", vmin= 0.8, vmax=1.3)
+imgplot = plt.imshow(proj3d[:,sliceno,:],cmap="gray", vmin= 0.5, vmax=1.75)
 
 # set parameters
 pars = {'algorithm' : INPAINT_EUCL_WEIGHTED, 
-        'input' : proj3d_data[:,sliceno,:],
-        'maskData' : mask_stripe_merged[:,sliceno,:],
-        'number_of_iterations' : 3,
+        'input' : proj3d[:,sliceno,:],
+        'maskData' : stripesmask[:,sliceno,:],
+        'number_of_iterations' : 5,
         'windowsize_half' : 4,
         'method_type' : 'random'}
         
@@ -96,7 +102,7 @@ props = dict(boxstyle='round', facecolor='wheat', alpha=0.75)
 # place a text box in upper left in axes coords
 a.text(0.1, 0.1, txtstr, transform=a.transAxes, fontsize=14,
          verticalalignment='top', bbox=props)
-imgplot = plt.imshow(inp_simple, cmap="gray", vmin= 0.8, vmax=1.3)
+imgplot = plt.imshow(inp_simple, cmap="gray", vmin= 0.5, vmax=1.75)
 plt.title('{}'.format('Extrapolation inpainting results'))
 #%%
 print ("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
@@ -107,12 +113,12 @@ fig = plt.figure()
 plt.suptitle('Performance of ')
 a=fig.add_subplot(1,2,1)
 a.set_title('Missing data sinogram')
-imgplot = plt.imshow(proj3d_data[:,sliceno,:],cmap="gray", vmin= 0.8, vmax=1.3)
+imgplot = plt.imshow(proj3d[:,sliceno,:],cmap="gray", vmin= 0.5, vmax=1.75)
 
 # set parameters
 pars = {'algorithm' : INPAINT_EUCL_WEIGHTED, 
-        'input' : proj3d_data,
-        'maskData' : mask_stripe_merged,
+        'input' : proj3d,
+        'maskData' : stripesmask,
         'number_of_iterations' : 2,
         'windowsize_half' : 5,
         'method_type' : 'random'}
@@ -133,7 +139,7 @@ props = dict(boxstyle='round', facecolor='wheat', alpha=0.75)
 # place a text box in upper left in axes coords
 a.text(0.1, 0.1, txtstr, transform=a.transAxes, fontsize=14,
          verticalalignment='top', bbox=props)
-imgplot = plt.imshow(inp_simple[:,sliceno,:], cmap="gray", vmin= 0.8, vmax=1.3)
-plt.title('{}'.format('Extrapolation inpainting results'))%
+imgplot = plt.imshow(inp_simple[:,sliceno,:], cmap="gray", vmin= 0.5, vmax=1.75)
+plt.title('{}'.format('Extrapolation inpainting results'))
 
 #%%

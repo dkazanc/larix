@@ -42,6 +42,7 @@ DLS_EXPORT void max_val_mask(float *Input, unsigned char *Mask, float *minmax_ar
 DLS_EXPORT void stats_calc(float *Input, float *Output, int take_abs, long dimX, long dimY, long dimZ);
 DLS_EXPORT void gradient2D(float *Input, float *Output, long dimX, long dimY, int axis, int gradient_gap);
 DLS_EXPORT void gradient3D(float *Input, float *Output, long dimX, long dimY, long dimZ, int axis, int gradient_gap);
+DLS_EXPORT void fill_vector_with_neigbours1D(float *Input, float *_values, int W_halfsizeY, long dimX, long dimY, long i, long j, long index);
 DLS_EXPORT void fill_vector_with_neigbours2D(float *Input, float *_values, int W_halfsizeY, int W_halfsizeX, long dimX, long dimY, long i, long j);
 DLS_EXPORT void fill_vector_with_neigbours3D(float *Input, float *_values, int W_halfsizeY, int W_halfsizeX, int W_halfsizeZ, long dimX, long dimY, long dimZ, long i, long j, long k);
 DLS_EXPORT void mask_dilate2D(unsigned char *input, unsigned char *output, long dimX, long dimY);

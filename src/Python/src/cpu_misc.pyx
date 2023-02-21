@@ -22,8 +22,8 @@ cdef extern int medianfilter_main_uint16(unsigned short *Input, unsigned short *
 cdef extern int Diffusion_Inpaint_CPU_main(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float sigmaPar, int iterationsNumb, float tau, int penaltytype, int dimX, int dimY, int dimZ);
 cdef extern int NonlocalMarching_Inpaint_main(float *Input, unsigned char *M, float *Output, unsigned char *M_upd, int SW_increment, int iterationsNumb, int trigger, int dimX, int dimY, int dimZ);
 cdef extern int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, int iterations, int W_halfsize, int method_type, int ncores, int dimX, int dimY, int dimZ);
-cdef extern int StripeWeights_main(float *input, float *output, float *grad_stats, int detectors_window_height, int detectors_window_width, int angles_window_depth, int vertical_mean_window, int gradient_gap, int ncores, long angl_size, long det_X_size, long det_Y_size);
-cdef extern int StripesMergeMask_main(unsigned char *input, unsigned char *output, int stripe_width_max, int dilate, int ncores, long angl_size, long det_X_size, long det_Y_size);
+cdef extern int stripesdetect3d_main_float(float* Input, float* Output, int window_halflength_vertical, int ratio_radius, int ncores, int dimX, int dimY, int dimZ);
+cdef extern int stripesmask3d_main_float(float* Input, unsigned char* Output, float threshold_val, int stripe_length_min, int stripe_depth_min, int stripe_width_min, float sensitivity, int ncores, int dimX, int dimY, int dimZ);
 #################################################################
 ##########################Autocropper ###########################
 #################################################################
@@ -400,117 +400,193 @@ def __INPAINT_EUC_WEIGHT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData
 #****************************************************************#
 #*********************Stripes detection**************************#
 #****************************************************************#
-def STRIPES_DETECT(inputData, search_window_dims=(1,5,1), vert_window_size=5, gradient_gap=1, ncores=0):
-    """Method to detect stripes in sinograms (2D) OR projection data (3D). The method involves 3 steps:
-    1. Taking first derrivative of the input in the direction orthogonal to stripes.
-    2. Slide horizontal rectangular window orthogonal to stripes direction to accenuate outliers (stripes) using median.
-    3. Slide the vertical thin (1 pixel) window to calculate a mean (further accenuates stripes).
+def STRIPES_DETECT(inputData, vert_filter_size_perc=5, radius_size=3, ncore=0):
+    """
+    Apply a stripes detection method to empasize their edges in a 3D array.
+    The input must be normalized projection data in range [0,1] and given in
+    the following axis orientation [angles, detY(depth), detX (horizontal)]. With 
+    this orientation, the stripes are the vertical features. The method works with
+    full and partial stripes of constant ot varying intensity. 
 
-    Args:
-        inputData (array): sinogram (2D) [angles x detectorsX] OR projection data (3D) [angles x detectorsY x detectorsX]
-        search_window_dims (tuple, optional): (detectors_window_height, detectors_window_width, angles_window_depth). Defaults to (1,5,1).        
-        vert_window_size (float, optional): the half size of the vertical 1D window to calculate mean. Given in percents relative to the size of the angle dimension
-        gradient_gap (int, optional):  the gap in pixels with the neighbour while calculating a gradient (1 is the normal gradient)
-        ncores (int, optional): the number of CPU cores. Defaults to 0.
+    Parameters
+    ----------
+    inputData : ndarray
+        3D tomographic data of float32 data type, normalized [0,1] and given in
+        [angles, detY(depth), detX (horizontal)] axis orientation.
+    vert_filter_size_perc : float, optional
+        The size (in percents relative to angular dimension) of the vertical 1D median filter to remove outliers.
+    radius_size : int, optional
+        The size of the filter to calculate the ratio. This will effect the width of the resulting mask.
+    ncore : int, optional
+        Number of cores that will be assigned to jobs. All cores will be used
+        if unspecified.
 
-    Returns:
-        array: Calculated weights
-    """    
-    detectors_window_height = search_window_dims[0]
-    detectors_window_width = search_window_dims[1]
-    angles_window_depth = search_window_dims[2]
-    
-    vert_window_size_pixels = (int)(0.01*vert_window_size*(np.size(inputData,0))) # the max stripe length
-    if inputData.ndim == 2:
-        return __STRIPES_DETECT_2D(np.ascontiguousarray(inputData, dtype=np.float32), detectors_window_height, detectors_window_width, 1, vert_window_size_pixels, gradient_gap, ncores)
-    elif inputData.ndim == 3:
-        return __STRIPES_DETECT_3D(np.ascontiguousarray(inputData, dtype=np.float32), detectors_window_height, detectors_window_width, angles_window_depth, vert_window_size_pixels, gradient_gap, ncores)
-def __STRIPES_DETECT_2D(np.ndarray[np.float32_t, ndim=2, mode="c"] inputData,
-               int detectors_window_height,
-               int detectors_window_width,
-               int angles_window_depth,
-               int vert_window_size_pixels, 
-               int gradient_gap,
-               int ncores):
+    Returns
+    -------
+    ndarray
+        Weights for stripe's edges as a 3D array of float32 data type. 
+        The weights can be thresholded or passed to stripes_mask3d function to obtain a binary mask.
 
-    cdef long dims[2]
-    dims[0] = inputData.shape[0]
-    dims[1] = inputData.shape[1]
-
-    cdef np.ndarray[np.float32_t, ndim=2, mode="c"] outputData = \
-            np.zeros([dims[0],dims[1]], dtype='float32')
-
-    # grad stats returns the statistics of the gradient of the input data as [min, max, mean, median]
-    cdef np.ndarray[np.float32_t, ndim=1, mode="c"] grad_stats = \
-            np.zeros([4], dtype='float32')
-
-    if (StripeWeights_main(&inputData[0,0], &outputData[0,0], &grad_stats[0], detectors_window_height, detectors_window_width, angles_window_depth, vert_window_size_pixels, gradient_gap, ncores, dims[1], dims[0], 1)==0):
-        return (outputData, grad_stats)
+    Raises
+    ------
+    ValueError
+        If the input array is not three dimensional.        
+    """ 
+ 
+    if inputData.ndim == 3:
+        dz, dy, dx = inputData.shape
+        if (dz == 0) or (dy == 0) or (dx == 0):
+            raise ValueError("The length of one of dimensions is equal to zero")
     else:
-        raise ValueError("2D CPU stripe detection failed to return 0")
+        raise ValueError("The input array must be a 3D array")
+
+    # calculate absolute values based on the provided percentages: 
+    if 0.0 < vert_filter_size_perc <= 100.0:
+        vertical_filter_size = (int)((0.01*vert_filter_size_perc)*dz)
+    else:
+        raise ValueError("vert_filter_size_perc value must be in (0, 100] percentage range ")
+    
+    if inputData.ndim == 2:
+        return 0
+    elif inputData.ndim == 3:
+        return __STRIPES_DETECT_3D(np.ascontiguousarray(inputData),
+                                   vertical_filter_size,
+                                   radius_size,
+                                   ncore,
+                                   dx, dy, dz)
+
 def __STRIPES_DETECT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData,
-               int detectors_window_height,
-               int detectors_window_width,
-               int angles_window_depth,
-               int vert_window_size_pixels, 
-               int gradient_gap,
-               int ncores):
+                       int vertical_filter_size,
+                       int radius_size,
+                       int ncore,
+                       int dx,
+                       int dy,
+                       int dz):
 
     cdef long dims[3]
-    dims[0] = inputData.shape[0]
-    dims[1] = inputData.shape[1]
-    dims[2] = inputData.shape[2]
+    dims[0] = dz
+    dims[1] = dy
+    dims[2] = dx
 
     cdef np.ndarray[np.float32_t, ndim=3, mode="c"] outputData = \
             np.zeros([dims[0],dims[1],dims[2]], dtype='float32')
 
-    # grad stats returns the statistics of the gradient of the input data as [min, max, mean, median]
-    cdef np.ndarray[np.float32_t, ndim=1, mode="c"] grad_stats = \
-            np.zeros([4], dtype='float32')
-
-    if (StripeWeights_main(&inputData[0,0,0], &outputData[0,0,0], &grad_stats[0], detectors_window_height, detectors_window_width, angles_window_depth, vert_window_size_pixels, gradient_gap, ncores, dims[2], dims[1], dims[0])==0):
-        return (outputData, grad_stats)
+    if (stripesdetect3d_main_float(&inputData[0,0,0], &outputData[0,0,0], vertical_filter_size, radius_size, ncore, dims[2], dims[1], dims[0])==0):
+        return (outputData)
     else:
-        raise ValueError("3D CPU stripe detection failed to return 0")        
-    
+        raise ValueError("3D CPU stripe detection failed to return 0")
 
-def STRIPES_MERGE(inputData, stripe_width_max_perc=3, dilate=1, ncores=0):
-    """Method to merge two stripes in the distance defined by stripe_width_max
+#****************************************************************#
+#****************Stripes mask generation*************************#
+#****************************************************************#
 
-    Args:
-        inputData (array): uint8 mask array where double stripes are present with ones
-        stripe_width_max_perc (float, optional): the maximum width of stripes in the data, given in percents relative to the size of the DetectorX
-        dilate (int, optional): the number of pixels/voxels to dilate the obtained mask
-        ncores (int, optional): the number of CPU cores. Defaults to 0.
-
-    Returns:
-        array: uint8 processed mask
+def STRIPES_MERGE(weights, 
+                  threshold = 0.7,
+                  stripe_length_perc = 20.0,
+                  stripe_depth_perc = 1.0,
+                  stripe_width_perc = 2.0,
+                  sensitivity_perc = 80.0,
+                  ncore=0):
     """
-    if inputData.ndim == 2:
-        det_sizeX = np.size(inputData,1)
-        stripe_width_max = (0.01*stripe_width_max_perc)*det_sizeX # the max strip width in pixels        
-        return __STRIPES_MERGE_2D(np.ascontiguousarray(inputData, dtype=np.uint8), stripe_width_max, dilate, ncores)
-    elif inputData.ndim == 3:
-        det_sizeX = np.size(inputData,2)
-        stripe_width_max = (0.01*stripe_width_max_perc)*det_sizeX # the max strip width in pixels 
-        slicesnum = np.size(inputData,1)
-        outputData = np.zeros_like(inputData,dtype="uint8")                
-        for n in range(slicesnum):
-            outputData[:,n,:] = __STRIPES_MERGE_2D(np.ascontiguousarray(inputData[:,n,:],dtype=np.uint8), stripe_width_max, dilate, ncores)
-        return outputData
-def __STRIPES_MERGE_2D(np.ndarray[np.uint8_t, ndim=2, mode="c"] inputData,
-               int stripe_width_max,
-               int dilate,
-               int ncores):
+    Takes the result of the stripes_detect3d module as an input and generates a 
+    binary 3D mask with ones where stripes present. The method tries to eliminate
+    non-stripe features in data by checking the weight consistency in three directions.
 
-    cdef long dims[2]
-    dims[0] = inputData.shape[0]
-    dims[1] = inputData.shape[1]
+    Parameters
+    ----------
+    weights : ndarray
+        3D weights array, a result of stripes_detect3d module given in
+        [angles, detY(depth), detX] axis orientation.
+    threshold : float, optional
+        Threshold for the given weights, the smaller values should correspond to the stripes
+    stripe_length_perc : float, optional
+        Parameter (in percents) that controls the minimum accepted length of a stripe relative to the full angular dimension.
+    stripe_depth_perc : float, optional
+        Parameter (in percents) that controls the minimum accepted depth of a stripe relative to the depth dimension.
+    stripe_width_perc : float, optional
+        Parameter (in percents) that controls the minimum accepted width of a stripe relative to the full horizontal dimension.
+    sensitivity_perc : float, optional
+        The value in percents to impose less strict conditions on length, depth and width of a stripe.
+    ncore : int, optional
+        Number of cores that will be assigned to jobs. All cores will be used
+        if unspecified.
 
-    cdef np.ndarray[np.uint8_t, ndim=2, mode="c"] outputData = \
-            np.zeros([dims[0],dims[1]], dtype='uint8')
+    Returns
+    -------
+    ndarray
+        A binary mask of uint8 data type with stripes highlighted.
 
-    if (StripesMergeMask_main(&inputData[0,0], &outputData[0,0], stripe_width_max, dilate, ncores, dims[1], dims[0], 1)==0):
-        return outputData
+    Raises
+    ------
+    ValueError
+        If the input array is not three dimensional.
+
+    """
+ 
+    if weights.ndim == 3:
+        dz, dy, dx = weights.shape
+        if (dz == 0) or (dy == 0) or (dx == 0):
+            raise ValueError("The length of one of dimensions is equal to zero")
     else:
-        raise ValueError("2D CPU stripe merge failed to return 0")       
+        raise ValueError("The input array must be a 3D array")
+
+    # calculate absolute values based on the provided percentages: 
+    if 0.0 < stripe_length_perc <= 100.0:
+        stripe_length_min = (int)((0.01*stripe_length_perc)*dz)
+    else:
+        raise ValueError("stripe_length_perc value must be in (0, 100] percentage range ")
+    if 0.0 <= stripe_depth_perc <= 100.0:
+        stripe_depth_min = (int)((0.01*stripe_depth_perc)*dy)
+    else:
+        raise ValueError("stripe_depth_perc value must be in [0, 100] percentage range ")
+    if 0.0 < stripe_width_perc <= 100.0:
+        stripe_width_min = (int)((0.01*stripe_width_perc)*dx)
+    else:
+        raise ValueError("stripe_width_perc value must be in (0, 100] percentage range ")    
+    if 0.0 < sensitivity_perc <= 100.0:
+        pass
+    else:
+        raise ValueError("sensitivity_perc value must be in (0, 100] percentage range ")
+    
+    if weights.ndim == 2:
+        return 0
+    elif weights.ndim == 3:
+        return __STRIPES_MERGE_3D(np.ascontiguousarray(weights), 
+                                  threshold,
+                                  stripe_length_min,
+                                  stripe_depth_min,
+                                  stripe_width_min,
+                                  sensitivity_perc,
+                                  ncore,
+                                  dx, dy, dz)
+
+def __STRIPES_MERGE_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData,
+                       float threshold,
+                       int stripe_length_min,
+                       int stripe_depth_min,
+                       int stripe_width_min,
+                       float sensitivity_perc,
+                       int ncore,
+                       int dx,
+                       int dy,
+                       int dz):
+
+    cdef long dims[3]
+    dims[0] = dz
+    dims[1] = dy
+    dims[2] = dx
+
+    cdef np.ndarray[np.uint8_t, ndim=3, mode="c"] outputData = \
+            np.zeros([dims[0],dims[1],dims[2]], dtype='uint8')
+
+    if (stripesmask3d_main_float(&inputData[0,0,0], 
+                                 &outputData[0,0,0],
+                                 threshold,
+                                 stripe_length_min,
+                                 stripe_depth_min,
+                                 stripe_width_min,
+                                 sensitivity_perc,
+                                 ncore, dims[2], dims[1], dims[0])==0):
+        return (outputData)
+    else:
+        raise ValueError("3D CPU stripe mask generation failed to return 0")
