@@ -223,7 +223,9 @@ void gradient2D(float *Input, float *Output, long dimX, long dimY, int axis, int
             index = j*dimX+i;
             /* Forward differences */
             if (axis == 1) {
-                j1 = j + gradient_gap; if (j1 >= dimY) j1 = j-gradient_gap;                
+                j1 = j + gradient_gap; 
+                if (j1 >= dimY) j1 = j - gradient_gap;
+                if (j1 < 0) j1 = j + gradient_gap;
                 Output[index] = Input[j1*dimX + i] - Input[index]; /* x+ */
             }
             else {
@@ -259,6 +261,25 @@ void gradient3D(float *Input, float *Output, long dimX, long dimY, long dimZ, in
         }}}
 }
 
+void fill_vector_with_neigbours1D(float *Input, float *_values, int W_halfsizeY, long dimX, long dimY, long i, long j, long index)
+{  /*fill the given vector with the values in the vertical neighbourhood of the pixel i,j */
+    long j_m, j1, counter_local, index2;
+
+    counter_local = 0;
+    for(j_m=-W_halfsizeY; j_m<=W_halfsizeY; j_m++) 
+    {
+        j1 = j+j_m;
+        if ((j1 >= 0) && (j1 < dimY)) 
+        {
+             index2 = j1*dimX + i;
+            _values[counter_local] = Input[index2];
+        }
+        else _values[counter_local] = Input[index];
+        counter_local++; 
+    }
+}
+
+
 void fill_vector_with_neigbours2D(float *Input, float *_values, int W_halfsizeY, int W_halfsizeX, long dimX, long dimY, long i, long j)
 {  /*fill the given vector with the values in the neighbourhood of the pixel i,j */
     long i_m, j_m, i1, j1, counter_local, index, index2;
@@ -279,7 +300,7 @@ void fill_vector_with_neigbours2D(float *Input, float *_values, int W_halfsizeY,
 }
 
 void fill_vector_with_neigbours3D(float *Input, float *_values,  int W_halfsizeZ, int W_halfsizeX, int W_halfsizeY, long dimX, long dimY, long dimZ, long i, long j, long k)
-{  /*fill the given vector with the values in the neighbourhood of the pixel i,j */
+{  /*fill the given vector with the values in the neighbourhood of the voxel i,j,k */
     long i_m, j_m, i1, j1, counter_local, index, index2;
     index = (dimX*dimY)*k + j*dimX + i;
 

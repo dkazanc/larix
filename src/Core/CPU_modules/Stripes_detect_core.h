@@ -25,16 +25,49 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-DLS_EXPORT int StripeWeights_main(float *input, float *output, float *grad_stats, int detectors_window_height, int detectors_window_width, int angles_window_depth, int vertical_mean_window, int gradient_gap, int ncores, long angl_size, long det_X_size, long det_Y_size);
-DLS_EXPORT int StripesMergeMask_main(unsigned char *input, unsigned char *output, int stripe_width_max, int dilate, int ncores, long angl_size, long det_X_size, long det_Y_size);
-/************2D functions ***********/
-DLS_EXPORT void horiz_median_stride2D(float *input, float *output, int full_window_size, int midval_window_index, int detectors_window_height, int detectors_window_width, long angl_size, long det_X_size, long i, long j);
-DLS_EXPORT void vert_mean_stride2D(float *input, float *output, int vertical1D_halfsize, long angl_size, long det_X_size, long i, long j);
-DLS_EXPORT void stripes_merger2D(unsigned char *input, unsigned char *output, int stripe_width_max, long angl_size, long det_X_size, long i, long j);
+DLS_EXPORT int stripesdetect3d_main_float(float* Input, float* Output, 
+                           int window_halflength_vertical,
+                           int ratio_radius,
+                           int ncores,
+                           int dimX, int dimY, int dimZ);
+DLS_EXPORT int stripesmask3d_main_float(float* Input, 
+                         unsigned char* Output,
+                         float threshold_val,
+                         int stripe_length_min,
+                         int stripe_depth_min,
+                         int stripe_width_min,
+                         float sensitivity,
+                         int ncores, int dimX, int dimY, int dimZ);
 /************3D functions ***********/
-DLS_EXPORT void horiz_median_stride3D(float *input, float *output, int full_window_size, int midval_window_index, int detectors_window_height, int detectors_window_width, int angles_window_depth, long angl_size, long det_X_size, long det_Y_size, long i, long j, long k);
-DLS_EXPORT void vert_mean_stride3D(float *input, float *output, int vertical1D_halfsize, long angl_size, long det_X_size, long det_Y_size, long i, long j, long k);
-
+DLS_EXPORT void gradient3D_local(float *input, float *output, long dimX, long dimY, long dimZ, int axis, int step_size);
+DLS_EXPORT void ratio_mean_stride3d(float* input, float* output,
+                    int radius,
+                    long i, long j, long k, long long index,
+                    long dimX, long dimY, long dimZ);
+DLS_EXPORT void vertical_median_stride3d(float* input, float* output,
+                        int window_halflength_vertical, 
+                        int window_fulllength,
+                        int midval_window_index,
+                        long i, long j, long k, long long index,
+                        long dimX, long dimY, long dimZ);
+DLS_EXPORT void remove_inconsistent_stripes(unsigned char* mask,
+                            unsigned char* out, 
+                            int stripe_length_min, 
+                            int stripe_depth_min, 
+                            float sensitivity,
+                            long i,
+                            long j,
+                            long k,
+                            long long index,
+                            long dimX, long dimY, long dimZ);
+DLS_EXPORT void merge_stripes(unsigned char* mask,
+              unsigned char* out, 
+              int stripe_width_min, 
+              long i,
+              long j,
+              long k,
+              long long index,
+              long dimX, long dimY, long dimZ);
 #ifdef __cplusplus
 }
 #endif
