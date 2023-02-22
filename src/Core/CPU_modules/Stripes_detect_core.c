@@ -23,22 +23,19 @@ int stripesdetect3d_main_float(float* Input, float* Output,
                            int ncores,
                            int dimX, int dimY, int dimZ)
 {
-    long      i;
-    long      j;
-    long      k;
-    long long index;
-    long long totalvoxels;
+    size_t      i;
+    size_t      j;
+    size_t      k;
+    size_t index;
+    size_t totalvoxels;
+    totalvoxels = (size_t) (dimX*dimY*dimZ);    
 
-    float* gradient3d_x_arr;
-    float* mean_ratio3d_arr;
-
-    totalvoxels = (long long) (dimX*dimY*dimZ);    
-
-    int window_fulllength = (int)(2*window_halflength_vertical + 1); 
+    int window_fulllength = (int)(2*window_halflength_vertical + 1);
     int midval_window_index = (int)(0.5f*window_fulllength) - 1;
-
-    gradient3d_x_arr = calloc(totalvoxels, sizeof(float));
-    mean_ratio3d_arr = calloc(totalvoxels, sizeof(float));
+    
+    float* mean_ratio3d_arr;      
+    mean_ratio3d_arr = malloc(totalvoxels * sizeof(float));
+    if (mean_ratio3d_arr == NULL) printf("Allocation of 'mean_ratio3d_arr' failed");
 
     /* dealing here with a custom given number of cpu threads */
     if(ncores > 0)
@@ -50,21 +47,21 @@ int stripesdetect3d_main_float(float* Input, float* Output,
     }
 
     /* Take the gradient in the horizontal direction, axis = 0*/
-    gradient3D_local(Input, gradient3d_x_arr, (long) (dimX), (long) (dimY), (long) (dimZ), 0, 1);
+    gradient3D_local(Input, Output, (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ), 0, 1);
     
     /* Here we calculate the ratio between the mean in a small 2D neighbourhood parallel to the stripe 
     and the mean orthogonal to the stripe. The gradient variation in the direction orthogonal to the
     stripe is expected to be large (a jump), while in parallel direction small. Therefore at the edges
     of a stripe we should get a ratio small/large or large/small. */
-#pragma omp parallel for shared(gradient3d_x_arr, mean_ratio3d_arr) private(i, j, k, index)
+#pragma omp parallel for shared(Output, mean_ratio3d_arr) private(i, j, k, index)
         for(k = 0; k < dimZ; k++)
         {
             for(j = 0; j < dimY; j++)
             {
                 for(i = 0; i < dimX; i++)
                 {
-                    index = ((dimX * dimY) * k + j * dimX + i);
-                    ratio_mean_stride3d(gradient3d_x_arr, mean_ratio3d_arr, ratio_radius, i, j, k, index, (long) (dimX), (long) (dimY), (long) (dimZ));
+                    index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
+                    ratio_mean_stride3d(Output, mean_ratio3d_arr, ratio_radius, i, j, k, index, (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ));
                 }
             }
         }
@@ -77,17 +74,16 @@ int stripesdetect3d_main_float(float* Input, float* Output,
             {
                 for(i = 0; i < dimX; i++)
                 {
-                    index = ((dimX * dimY) * k + j * dimX + i);
+                    index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
                     vertical_median_stride3d(mean_ratio3d_arr, Output, 
                                              window_halflength_vertical, 
                                              window_fulllength,
                                              midval_window_index,
-                                             i, j, k, index, (long) (dimX), (long) (dimY), (long) (dimZ));
+                                             i, j, k, index, (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ));
                 }
             }
         }
 
-    free(gradient3d_x_arr);
     free(mean_ratio3d_arr);
     return 0;
 }
@@ -101,15 +97,16 @@ int stripesmask3d_main_float(float* Input,
                          float sensitivity,
                          int ncores, int dimX, int dimY, int dimZ)
 {
-    long      i;
-    long      j;
-    long      k;
-    long long index;
-    long long totalvoxels;
-    totalvoxels = (long long) (dimX*dimY*dimZ);    
+    size_t      i;
+    size_t      j;
+    size_t      k;
+    size_t index;
+    size_t totalvoxels;
+    totalvoxels = (size_t) (dimX*dimY*dimZ);
 
-    unsigned char* mask;
-    mask = calloc(totalvoxels, sizeof(unsigned char));
+    unsigned char* mask;    
+    mask = malloc(totalvoxels * sizeof(unsigned char));
+    if (mask == NULL) printf("Allocation of 'mask' array failed");
 
     /* dealing here with a custom given number of cpu threads */
     if(ncores > 0)
@@ -129,7 +126,7 @@ int stripesmask3d_main_float(float* Input,
             {
                 for(i = 0; i < dimX; i++)
                 {
-                    index = ((dimX * dimY) * k + j * dimX + i);
+                    index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
                     if (Input[index] <= threshold_val) 
                     {
                         mask[index] = 1;
@@ -150,18 +147,18 @@ int stripesmask3d_main_float(float* Input,
             {
                 for(i = 0; i < dimX; i++)
                 {
-                    index = ((dimX * dimY) * k + j * dimX + i);
+                    index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
                     remove_inconsistent_stripes(mask, Output,
                                                 stripe_length_min,
                                                 stripe_depth_min,
                                                 sensitivity,
                                                 i, j, k, index,
-                                                (long) (dimX), (long) (dimY), (long) (dimZ));
+                                                (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ));
                 }
             }
         }
     /* Copy output to mask */
-   copyIm_unchar(Output, mask, (long) (dimX), (long) (dimY), (long) (dimZ));
+   copyIm_unchar(Output, mask, (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ));
 
     /* We can merge stripes together if they are relatively close to each other
      based on the stripe_width_min parameter */
@@ -172,11 +169,11 @@ int stripesmask3d_main_float(float* Input,
             {
                 for(i = 0; i < dimX; i++)
                 {
-                    index = ((dimX * dimY) * k + j * dimX + i);
+                    index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
                     merge_stripes(mask, Output,
                                   stripe_width_min,
                                   i, j, k, index,
-                                  (long) (dimX), (long) (dimY), (long) (dimZ));
+                                  (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ));
                 }
             }
         }
@@ -194,15 +191,15 @@ axis = 1: depth direction
 axis = 2: vertical direction
 */
 void 
-gradient3D_local(float *input, float *output, long dimX, long dimY, long dimZ, int axis, int step_size)
+gradient3D_local(float *input, float *output, size_t dimX, size_t dimY, size_t dimZ, int axis, int step_size)
 {  
-    long i;
-    long j;
-    long k;
-    long i1;
-    long j1;
-    long k1;
-    long index;
+    size_t i;
+    size_t j;
+    size_t k;
+    size_t i1;
+    size_t j1;
+    size_t k1;
+    size_t index;
    
 #pragma omp parallel for shared(input, output) private(i,j,k,i1,j1,k1,index)
     for(j=0; j<dimY; j++)     
@@ -211,7 +208,7 @@ gradient3D_local(float *input, float *output, long dimX, long dimY, long dimZ, i
         {
             for(k=0; k<dimZ; k++)             
             {
-            index = ((dimX * dimY) * k + j * dimX + i);
+            index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
                 /* Forward differences */
                 if (axis == 0) 
                 {
@@ -242,8 +239,8 @@ gradient3D_local(float *input, float *output, long dimX, long dimY, long dimZ, i
 void
 ratio_mean_stride3d(float* input, float* output,
                     int radius,
-                    long i, long j, long k, long long index,
-                    long dimX, long dimY, long dimZ)
+                    size_t i, size_t j, size_t k, size_t index,
+                    size_t dimX, size_t dimY, size_t dimZ)
 {
     float mean_plate;
     float mean_horiz;
@@ -251,12 +248,12 @@ ratio_mean_stride3d(float* input, float* output,
     float min_val;    
     int diameter = 2*radius + 1;
     int all_pixels_window = diameter*diameter;
-    long      i_m;
-    long      j_m;
-    long      k_m;
-    long      i1;
-    long      j1;
-    long      k1;
+    size_t      i_m;
+    size_t      j_m;
+    size_t      k_m;
+    size_t      i1;
+    size_t      j1;
+    size_t      k1;
     
     /* calculate mean of gradientX in a 2D plate parallel to stripes direction */
     mean_plate = 0.0f;
@@ -342,12 +339,12 @@ vertical_median_stride3d(float* input, float* output,
                         int window_halflength_vertical, 
                         int window_fulllength,
                         int midval_window_index,
-                        long i, long j, long k, long long index,
-                        long dimX, long dimY, long dimZ)
+                        size_t i, size_t j, size_t k, size_t index,
+                        size_t dimX, size_t dimY, size_t dimZ)
 {
     int       counter;
-    long      k_m;
-    long      k1;
+    size_t      k_m;
+    size_t      k1;
     float* _values;
     
     _values = (float*) calloc(window_fulllength, sizeof(float));    
@@ -373,21 +370,21 @@ remove_inconsistent_stripes(unsigned char* mask,
                             int stripe_length_min, 
                             int stripe_depth_min, 
                             float sensitivity,
-                            long i,
-                            long j,
-                            long k,
-                            long long index,
-                            long dimX, long dimY, long dimZ)
+                            size_t i,
+                            size_t j,
+                            size_t k,
+                            size_t index,
+                            size_t dimX, size_t dimY, size_t dimZ)
 {
     int       counter_vert_voxels;    
     int       counter_depth_voxels;
     int       halfstripe_length = (int)stripe_length_min/2;
     int       halfstripe_depth = (int)stripe_depth_min/2;
-    long      k_m;
-    long      k1;
-    long      y_m;
-    long      y1;
-    int threshold_verical = (int)((0.01f*sensitivity)*stripe_length_min);
+    size_t      k_m;
+    size_t      k1;
+    size_t      y_m;
+    size_t      y1;
+    int threshold_vertical = (int)((0.01f*sensitivity)*stripe_length_min);
     int threshold_depth = (int)((0.01f*sensitivity)*stripe_depth_min);
 
     counter_vert_voxels = 0;
@@ -402,12 +399,15 @@ remove_inconsistent_stripes(unsigned char* mask,
         }
     }
     
-    /* Here we decide to keep the currect voxel based on the number of vertical voxels bellow it */
-    if (counter_vert_voxels > threshold_verical)
+    /* Here we decide if to keep the currect voxel based on the number of vertical voxels bellow it */
+    if (counter_vert_voxels > threshold_vertical)
     {
-        /* The vertical non zero values seem consistent, so we asssume that this element might belong to a stripe. */
-        /* We do, however, need to check the depth consistency as well. Here we assume that the stripes are not very 
-        extended in the depth dimension compared to the features that are belong to a sample. */
+        /* 
+        If the vertical non-zero values are consistent then the voxel could belong to a stripe.
+        So we would like to check the depth consistency as well. Here we assume that the stripes 
+        normally do not extend far in the depth dimension compared to the features that belong to a 
+        sample. 
+        */
        
        if (stripe_depth_min != 0)
        {
@@ -446,17 +446,17 @@ void
 merge_stripes(unsigned char* mask,
               unsigned char* out, 
               int stripe_width_min, 
-              long i,
-              long j,
-              long k,
-              long long index,
-              long dimX, long dimY, long dimZ)
+              size_t i,
+              size_t j,
+              size_t k,
+              size_t index,
+              size_t dimX, size_t dimY, size_t dimZ)
 {
 
-    long        x_m;
-    long        x1;
-    long        x2;
-    long        x2_m;
+    size_t        x_m;
+    size_t        x1;
+    size_t        x2;
+    size_t        x2_m;
 
     if (mask[index] == 1)    
     {

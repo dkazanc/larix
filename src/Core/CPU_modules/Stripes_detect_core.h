@@ -39,35 +39,35 @@ DLS_EXPORT int stripesmask3d_main_float(float* Input,
                          float sensitivity,
                          int ncores, int dimX, int dimY, int dimZ);
 /************3D functions ***********/
-DLS_EXPORT void gradient3D_local(float *input, float *output, long dimX, long dimY, long dimZ, int axis, int step_size);
+DLS_EXPORT void gradient3D_local(float *input, float *output, size_t dimX, size_t dimY, size_t dimZ, int axis, int step_size);
 DLS_EXPORT void ratio_mean_stride3d(float* input, float* output,
                     int radius,
-                    long i, long j, long k, long long index,
-                    long dimX, long dimY, long dimZ);
+                    size_t i, size_t j, size_t k, size_t index,
+                    size_t dimX, size_t dimY, size_t dimZ);
 DLS_EXPORT void vertical_median_stride3d(float* input, float* output,
                         int window_halflength_vertical, 
                         int window_fulllength,
                         int midval_window_index,
-                        long i, long j, long k, long long index,
-                        long dimX, long dimY, long dimZ);
+                        size_t i, size_t j, size_t k, size_t index,
+                        size_t dimX, size_t dimY, size_t dimZ);
 DLS_EXPORT void remove_inconsistent_stripes(unsigned char* mask,
                             unsigned char* out, 
                             int stripe_length_min, 
                             int stripe_depth_min, 
                             float sensitivity,
-                            long i,
-                            long j,
-                            long k,
-                            long long index,
-                            long dimX, long dimY, long dimZ);
+                            size_t i,
+                            size_t j,
+                            size_t k,
+                            size_t index,
+                            size_t dimX, size_t dimY, size_t dimZ);
 DLS_EXPORT void merge_stripes(unsigned char* mask,
               unsigned char* out, 
               int stripe_width_min, 
-              long i,
-              long j,
-              long k,
-              long long index,
-              long dimX, long dimY, long dimZ);
+              size_t i,
+              size_t j,
+              size_t k,
+              size_t index,
+              size_t dimX, size_t dimY, size_t dimZ);
 #ifdef __cplusplus
 }
 #endif
