@@ -267,81 +267,86 @@ ratio_mean_stride3d(float* input, float* output,
     for(j_m = -radius; j_m <= radius; j_m++)
     {
         j1 = j + j_m;
-        if((j1 < 0) || (j1 >= dimY))
-            j1 = j - j_m;
+        // if ((j1 < 0) || (j1 >= dimY))
+        //     j1 = j - j_m;
+        if ((j1 < 0) || (j1 >= dimY)) 
+            j1 = j;
         for(k_m = -radius; k_m <= radius; k_m++)
         {
             k1 = k + k_m;
-            if((k1 < 0) || (k1 >= dimZ))
-                k1 = k - k_m;
+            //if((k1 < 0) || (k1 >= dimZ))
+            //    k1 = k - k_m;
+            if ((k1 < 0) || (k1 >= dimZ)) 
+                k1 = k;
             newindex = (size_t)(dimX * dimY * k1) + (size_t)(j1 * dimX + i);
             mean_plate += fabsf(input[newindex]);
         }
     }
     mean_plate /= (float)(all_pixels_window);
+    output[index] = mean_plate;
     
     /* calculate mean of gradientX in a 2D plate orthogonal to stripes direction */
-    mean_horiz = 0.0f;
-    for(j_m = -1; j_m <= 1; j_m++)
-    {
-        j1 = j + j_m;
-        if((j1 < 0) || (j1 >= dimY))
-            j1 = j - j_m;
-        for(i_m = 1; i_m <= radius; i_m++)
-        {
-            i1 = i + i_m;
-            if (i1 >= dimX) 
-                i1 = i - i_m;
-            newindex = (size_t)(dimX * dimY * k) + (size_t)(j1 * dimX + i1);
-            mean_horiz += fabsf(input[newindex]);
-        }
-    }
-    mean_horiz /= (float)(radius*3);
+    // mean_horiz = 0.0f;
+    // for(j_m = -1; j_m <= 1; j_m++)
+    // {
+    //     j1 = j + j_m;
+    //     if((j1 < 0) || (j1 >= dimY))
+    //         j1 = j - j_m;
+    //     for(i_m = 1; i_m <= radius; i_m++)
+    //     {
+    //         i1 = i + i_m;
+    //         if (i1 >= dimX) 
+    //             i1 = i - i_m;
+    //         newindex = (size_t)(dimX * dimY * k) + (size_t)(j1 * dimX + i1);
+    //         mean_horiz += fabsf(input[newindex]);
+    //     }
+    // }
+    // mean_horiz /= (float)(radius*3);
     
     /* Calculate another mean symmetrically */
-    mean_horiz2 = 0.0f;
-    for(j_m = -1; j_m <= 1; j_m++)
-    {
-        j1 = j + j_m;
-        if((j1 < 0) || (j1 >= dimY))
-            j1 = j - j_m;
-        for(i_m = -radius; i_m <= -1; i_m++)
-        {
-            i1 = i + i_m;
-            if (i1 < 0)
-                i1 = i - i_m;
-            newindex = (size_t)(dimX * dimY * k) + (size_t)(j1 * dimX + i1);
-            mean_horiz2 += fabsf(input[newindex]);
-        }
-    }
-    mean_horiz2 /= (float)(radius*3);
+    // mean_horiz2 = 0.0f;
+    // for(j_m = -1; j_m <= 1; j_m++)
+    // {
+    //     j1 = j + j_m;
+    //     if((j1 < 0) || (j1 >= dimY))
+    //         j1 = j - j_m;
+    //     for(i_m = -radius; i_m <= -1; i_m++)
+    //     {
+    //         i1 = i + i_m;
+    //         if (i1 < 0)
+    //             i1 = i - i_m;
+    //         newindex = (size_t)(dimX * dimY * k) + (size_t)(j1 * dimX + i1);
+    //         mean_horiz2 += fabsf(input[newindex]);
+    //     }
+    // }
+    // mean_horiz2 /= (float)(radius*3);
 
     /* calculate the ratio between two means assuming that the mean 
     orthogonal to stripes direction should be larger than the mean 
     parallel to it */
-    if ((mean_horiz > mean_plate) && (mean_horiz != 0.0f))
-    {        
-        output[index] = mean_plate/mean_horiz;
-    }
-    if ((mean_horiz < mean_plate) && (mean_plate != 0.0f))
-    {        
-        output[index] = mean_horiz/mean_plate;
-    }    
-    min_val = 0.0f;
-    if ((mean_horiz2 > mean_plate) && (mean_horiz2 != 0.0f))
-    {   
-        min_val = mean_plate/mean_horiz2;
-    }
-    if ((mean_horiz2 < mean_plate) && (mean_plate != 0.0f))
-    {
-        min_val = mean_horiz2/mean_plate;
-    }
+    // if ((mean_horiz > mean_plate) && (mean_horiz != 0.0f))
+    // {        
+    //     output[index] = mean_plate/mean_horiz;
+    // }
+    // if ((mean_horiz < mean_plate) && (mean_plate != 0.0f))
+    // {        
+    //     output[index] = mean_horiz/mean_plate;
+    // }    
+    // min_val = 0.0f;
+    // if ((mean_horiz2 > mean_plate) && (mean_horiz2 != 0.0f))
+    // {   
+    //     min_val = mean_plate/mean_horiz2;
+    // }
+    // if ((mean_horiz2 < mean_plate) && (mean_plate != 0.0f))
+    // {
+    //     min_val = mean_horiz2/mean_plate;
+    // }
 
-    /* accepting the smallest value */
-    if (output[index] > min_val)
-    {
-        output[index] = min_val;
-    }
+    // /* accepting the smallest value */
+    // if (output[index] > min_val)
+    // {
+    //     output[index] = min_val;
+    // }
 
     return;
 }
