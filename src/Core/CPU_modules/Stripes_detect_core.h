@@ -25,7 +25,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-DLS_EXPORT int stripesdetect3d_main_float(float* Input, float* Output, 
+DLS_EXPORT int stripesdetect3d_main_float(float* Input, 
+                           float* Output, 
                            int window_halflength_vertical,
                            int ratio_radius,
                            int ncores,

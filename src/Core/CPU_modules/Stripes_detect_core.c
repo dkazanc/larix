@@ -48,21 +48,21 @@ int stripesdetect3d_main_float(float* Input, float* Output,
     }
 
     /* Take the gradient in the horizontal direction, axis = 0*/
-    gradient3D_local(Input, Output, (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ), 0, 1);
+    // gradient3D_local(Input, Output, (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ), 0, 1);
     
     /* Here we calculate the ratio between the mean in a small 2D neighbourhood parallel to the stripe 
     and the mean orthogonal to the stripe. The gradient variation in the direction orthogonal to the
     stripe is expected to be large (a jump), while in parallel direction small. Therefore at the edges
     of a stripe we should get a ratio small/large or large/small. */
 
-#pragma omp parallel for shared(Output, mean_ratio3d_arr) private(i, j, k)
+#pragma omp parallel for shared(Input, Output) private(i, j, k)
         for(k = 0; k < dimZ; k++)
         {
             for(j = 0; j < dimY; j++)
             {
                 for(i = 0; i < dimX; i++)
                 {
-                    ratio_mean_stride3d(Output, mean_ratio3d_arr, ratio_radius, i, j, k, (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ));
+                    ratio_mean_stride3d(Input, Output, ratio_radius, i, j, k, (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ));
                 }
             }
         }
