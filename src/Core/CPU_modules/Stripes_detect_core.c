@@ -27,8 +27,8 @@ int stripesdetect3d_main_float(float* Input, float* Output,
     size_t      j;
     size_t      k;
     size_t index;
-    size_t totalvoxels;
-    totalvoxels = (size_t) (dimX*dimY*dimZ);    
+    long long totalvoxels;
+    totalvoxels = (long long) (dimX*dimY*dimZ);    
 
     int window_fulllength = (int)(2*window_halflength_vertical + 1);
     int midval_window_index = (int)(0.5f*window_fulllength) - 1;
@@ -55,14 +55,14 @@ int stripesdetect3d_main_float(float* Input, float* Output,
     stripe is expected to be large (a jump), while in parallel direction small. Therefore at the edges
     of a stripe we should get a ratio small/large or large/small. */
 
-#pragma omp parallel for shared(Input, Output) private(i, j, k)
+#pragma omp parallel for shared(Output, mean_ratio3d_arr) private(i, j, k)
         for(k = 0; k < dimZ; k++)
         {
             for(j = 0; j < dimY; j++)
             {
                 for(i = 0; i < dimX; i++)
                 {
-                    ratio_mean_stride3d(Input, Output, ratio_radius, i, j, k, (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ));
+                    ratio_mean_stride3d(Output, mean_ratio3d_arr, ratio_radius, (size_t)(i), (size_t) (j), (size_t)(k), (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ));
                 }
             }
         }
