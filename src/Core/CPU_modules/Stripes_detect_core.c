@@ -34,7 +34,8 @@ int stripesdetect3d_main_float(float* Input, float* Output,
     int midval_window_index = (int)(0.5f*window_fulllength) - 1;
     
     float* mean_ratio3d_arr;
-    mean_ratio3d_arr = malloc(totalvoxels * sizeof(float));
+    //mean_ratio3d_arr = malloc(totalvoxels * sizeof(float));
+    mean_ratio3d_arr = (float*)calloc(totalvoxels, sizeof(float));
     if (mean_ratio3d_arr == NULL) printf("Allocation of 'mean_ratio3d_arr' failed");
 
     /* dealing here with a custom given number of cpu threads */
@@ -54,15 +55,14 @@ int stripesdetect3d_main_float(float* Input, float* Output,
     stripe is expected to be large (a jump), while in parallel direction small. Therefore at the edges
     of a stripe we should get a ratio small/large or large/small. */
 
-#pragma omp parallel for shared(Output, mean_ratio3d_arr) private(i, j, k, index)
+#pragma omp parallel for shared(Output, mean_ratio3d_arr) private(i, j, k)
         for(k = 0; k < dimZ; k++)
         {
             for(j = 0; j < dimY; j++)
             {
                 for(i = 0; i < dimX; i++)
                 {
-                    index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
-                    ratio_mean_stride3d(Output, mean_ratio3d_arr, ratio_radius, i, j, k, index, (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ));
+                    ratio_mean_stride3d(Output, mean_ratio3d_arr, ratio_radius, i, j, k, (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ));
                 }
             }
         }
@@ -242,7 +242,7 @@ gradient3D_local(float *input, float *output, size_t dimX, size_t dimY, size_t d
 void
 ratio_mean_stride3d(float* input, float* output,
                     int radius,
-                    size_t i, size_t j, size_t k, size_t index,
+                    size_t i, size_t j, size_t k, 
                     size_t dimX, size_t dimY, size_t dimZ)
 {
     float mean_plate;
@@ -257,6 +257,9 @@ ratio_mean_stride3d(float* input, float* output,
     size_t      i1;
     size_t      j1;
     size_t      k1;
+    size_t      index;
+    
+    index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
     
     /* calculate mean of gradientX in a 2D plate parallel to stripes direction */
     mean_plate = 0.0f;
@@ -335,6 +338,8 @@ ratio_mean_stride3d(float* input, float* output,
     {
         output[index] = min_val;
     }
+
+    return;
 }
 
 void
