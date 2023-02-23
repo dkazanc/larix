@@ -27,15 +27,15 @@ int stripesdetect3d_main_float(float* Input, float* Output,
     size_t      j;
     size_t      k;
     size_t index;
-    long long totalvoxels;
-    totalvoxels = (long long) (dimX*dimY*dimZ);    
+    size_t totalvoxels;
+    totalvoxels = (size_t) ((size_t)(dimX)*(size_t)(dimY)*(size_t)(dimZ));
 
     int window_fulllength = (int)(2*window_halflength_vertical + 1);
     int midval_window_index = (int)(0.5f*window_fulllength) - 1;
     
     float* mean_ratio3d_arr;
-    //mean_ratio3d_arr = malloc(totalvoxels * sizeof(float));
-    mean_ratio3d_arr = (float*)calloc(totalvoxels, sizeof(float));
+    mean_ratio3d_arr = malloc(totalvoxels * sizeof(float));
+    //mean_ratio3d_arr = (float*)calloc(totalvoxels, sizeof(float));
     if (mean_ratio3d_arr == NULL) printf("Allocation of 'mean_ratio3d_arr' failed");
 
     /* dealing here with a custom given number of cpu threads */
