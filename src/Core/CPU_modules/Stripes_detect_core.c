@@ -53,7 +53,7 @@ int stripesdetect3d_main_float(float* Input, float* Output,
     and the mean orthogonal to the stripe. The gradient variation in the direction orthogonal to the
     stripe is expected to be large (a jump), while in parallel direction small. Therefore at the edges
     of a stripe we should get a ratio small/large or large/small. */
-/*
+
 #pragma omp parallel for shared(Output, mean_ratio3d_arr) private(i, j, k, index)
         for(k = 0; k < dimZ; k++)
         {
@@ -66,7 +66,7 @@ int stripesdetect3d_main_float(float* Input, float* Output,
                 }
             }
         }
-        */
+        
     /* We process the resulting ratio map with a vertical median filter which removes 
     small outliers of clusters */
     /*
