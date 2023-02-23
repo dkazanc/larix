@@ -42,7 +42,7 @@ DLS_EXPORT int stripesmask3d_main_float(float* Input,
 DLS_EXPORT void gradient3D_local(float *input, float *output, size_t dimX, size_t dimY, size_t dimZ, int axis, int step_size);
 DLS_EXPORT void ratio_mean_stride3d(float* input, float* output,
                     int radius,
-                    size_t i, size_t j, size_t k, size_t index,
+                    size_t i, size_t j, size_t k,
                     size_t dimX, size_t dimY, size_t dimZ);
 DLS_EXPORT void vertical_median_stride3d(float* input, float* output,
                         int window_halflength_vertical, 

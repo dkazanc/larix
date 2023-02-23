@@ -258,9 +258,10 @@ ratio_mean_stride3d(float* input, float* output,
     size_t      j1;
     size_t      k1;
     size_t      index;
+    size_t      newindex;
     
     index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
-    
+
     /* calculate mean of gradientX in a 2D plate parallel to stripes direction */
     mean_plate = 0.0f;
     for(j_m = -radius; j_m <= radius; j_m++)
@@ -273,7 +274,8 @@ ratio_mean_stride3d(float* input, float* output,
             k1 = k + k_m;
             if((k1 < 0) || (k1 >= dimZ))
                 k1 = k - k_m;
-            mean_plate += fabsf(input[((dimX * dimY) * k1 + j1 * dimX + i)]);
+            newindex = (size_t)(dimX * dimY * k1) + (size_t)(j1 * dimX + i);
+            mean_plate += fabsf(input[newindex]);
         }
     }
     mean_plate /= (float)(all_pixels_window);
@@ -290,7 +292,8 @@ ratio_mean_stride3d(float* input, float* output,
             i1 = i + i_m;
             if (i1 >= dimX) 
                 i1 = i - i_m;
-            mean_horiz += fabsf(input[((dimX * dimY) * k + j1 * dimX + i1)]);
+            newindex = (size_t)(dimX * dimY * k) + (size_t)(j1 * dimX + i1);
+            mean_horiz += fabsf(input[newindex]);
         }
     }
     mean_horiz /= (float)(radius*3);
@@ -307,7 +310,8 @@ ratio_mean_stride3d(float* input, float* output,
             i1 = i + i_m;
             if (i1 < 0)
                 i1 = i - i_m;
-        mean_horiz2 += fabsf(input[((dimX * dimY) * k + j1 * dimX + i1)]);
+            newindex = (size_t)(dimX * dimY * k) + (size_t)(j1 * dimX + i1);
+            mean_horiz2 += fabsf(input[newindex]);
         }
     }
     mean_horiz2 /= (float)(radius*3);
