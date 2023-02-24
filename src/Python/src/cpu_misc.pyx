@@ -23,7 +23,7 @@ cdef extern int Diffusion_Inpaint_CPU_main(float *Input, unsigned char *Mask, fl
 cdef extern int NonlocalMarching_Inpaint_main(float *Input, unsigned char *M, float *Output, unsigned char *M_upd, int SW_increment, int iterationsNumb, int trigger, int dimX, int dimY, int dimZ);
 cdef extern int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, int iterations, int W_halfsize, int method_type, int ncores, int dimX, int dimY, int dimZ);
 cdef extern int stripesdetect3d_main_float(float* Input, float* Output, int window_halflength_vertical, int ratio_radius, int ncores, long dimX, long dimY, long dimZ);
-cdef extern int stripesmask3d_main_float(float* Input, unsigned char* Output, float threshold_val, int stripe_length_min, int stripe_depth_min, int stripe_width_min, float sensitivity, int ncores, int dimX, int dimY, int dimZ);
+cdef extern int stripesmask3d_main_float(float* Input, unsigned char* Output, float threshold_val, int stripe_length_min, int stripe_depth_min, int stripe_width_min, float sensitivity, int ncores, long dimX, long dimY, long dimZ);
 #################################################################
 ##########################Autocropper ###########################
 #################################################################
@@ -478,11 +478,11 @@ def __STRIPES_DETECT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData,
 #****************************************************************#
 
 def STRIPES_MERGE(weights, 
-                  threshold = 0.7,
-                  stripe_length_perc = 20.0,
-                  stripe_depth_perc = 1.0,
-                  stripe_width_perc = 2.0,
-                  sensitivity_perc = 80.0,
+                  threshold = 0.6,
+                  min_stripe_length = 20,
+                  min_stripe_depth  = 10,
+                  min_stripe_width = 5,
+                  sensitivity_perc = 85.0,
                   ncore=0):
     """
     Takes the result of the stripes_detect3d module as an input and generates a 
@@ -495,13 +495,13 @@ def STRIPES_MERGE(weights,
         3D weights array, a result of stripes_detect3d module given in
         [angles, detY(depth), detX] axis orientation.
     threshold : float, optional
-        Threshold for the given weights, the smaller values should correspond to the stripes
-    stripe_length_perc : float, optional
-        Parameter (in percents) that controls the minimum accepted length of a stripe relative to the full angular dimension.
-    stripe_depth_perc : float, optional
-        Parameter (in percents) that controls the minimum accepted depth of a stripe relative to the depth dimension.
-    stripe_width_perc : float, optional
-        Parameter (in percents) that controls the minimum accepted width of a stripe relative to the full horizontal dimension.
+        Threshold for the given weights, the smaller values correspond to the stripes
+    min_stripe_length : int, optional
+        Minimum accepted length of a stripe in pixels. Can be large if there are full stripes in the data.
+    min_stripe_depth : int, optional
+        Minimum accepted depth of a stripe in pixels. The stripes do not extend very deep, with this parameter more non-stripe features can be removed. 
+    min_stripe_width : int, optional
+        Minimum accepted width of a stripe in pixels. The stripes can be merged together with this parameter.
     sensitivity_perc : float, optional
         The value in percents to impose less strict conditions on length, depth and width of a stripe.
     ncore : int, optional
@@ -527,19 +527,15 @@ def STRIPES_MERGE(weights,
     else:
         raise ValueError("The input array must be a 3D array")
 
-    # calculate absolute values based on the provided percentages: 
-    if 0.0 < stripe_length_perc <= 100.0:
-        stripe_length_min = (int)((0.01*stripe_length_perc)*dz)
-    else:
-        raise ValueError("stripe_length_perc value must be in (0, 100] percentage range ")
-    if 0.0 <= stripe_depth_perc <= 100.0:
-        stripe_depth_min = (int)((0.01*stripe_depth_perc)*dy)
-    else:
-        raise ValueError("stripe_depth_perc value must be in [0, 100] percentage range ")
-    if 0.0 < stripe_width_perc <= 100.0:
-        stripe_width_min = (int)((0.01*stripe_width_perc)*dx)
-    else:
-        raise ValueError("stripe_width_perc value must be in (0, 100] percentage range ")    
+    if min_stripe_length <= 0 or min_stripe_length >= dz:
+        raise ValueError("The minimum length of a stripe cannot be zero or exceed the size of the angular dimension")
+
+    if min_stripe_depth <= 0 or min_stripe_depth >= dy:
+        raise ValueError("The minimum depth of a stripe cannot be zero or exceed the size of the depth dimension")
+
+    if min_stripe_width <= 0 or min_stripe_width >= dx:
+        raise ValueError("The minimum width of a stripe cannot be zero or exceed the size of the horizontal dimension")
+
     if 0.0 < sensitivity_perc <= 100.0:
         pass
     else:
@@ -550,23 +546,23 @@ def STRIPES_MERGE(weights,
     elif weights.ndim == 3:
         return __STRIPES_MERGE_3D(np.ascontiguousarray(weights), 
                                   threshold,
-                                  stripe_length_min,
-                                  stripe_depth_min,
-                                  stripe_width_min,
+                                  min_stripe_length,
+                                  min_stripe_depth,
+                                  min_stripe_width,
                                   sensitivity_perc,
                                   ncore,
                                   dx, dy, dz)
 
 def __STRIPES_MERGE_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData,
                        float threshold,
-                       int stripe_length_min,
-                       int stripe_depth_min,
-                       int stripe_width_min,
+                       int min_stripe_length,
+                       int min_stripe_depth,
+                       int min_stripe_width,
                        float sensitivity_perc,
                        int ncore,
-                       int dx,
-                       int dy,
-                       int dz):
+                       long dx,
+                       long dy,
+                       long dz):
 
     cdef long dims[3]
     dims[0] = dz
@@ -579,9 +575,9 @@ def __STRIPES_MERGE_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData,
     if (stripesmask3d_main_float(&inputData[0,0,0], 
                                  &outputData[0,0,0],
                                  threshold,
-                                 stripe_length_min,
-                                 stripe_depth_min,
-                                 stripe_width_min,
+                                 min_stripe_length,
+                                 min_stripe_depth,
+                                 min_stripe_width,
                                  sensitivity_perc,
                                  ncore, dims[2], dims[1], dims[0])==0):
         return (outputData)

@@ -38,7 +38,8 @@ DLS_EXPORT int stripesmask3d_main_float(float* Input,
                          int stripe_depth_min,
                          int stripe_width_min,
                          float sensitivity,
-                         int ncores, int dimX, int dimY, int dimZ);
+                         int ncores, 
+                         long dimX, long dimY, long dimZ);
 /************3D functions ***********/
 DLS_EXPORT void gradient3D_local(float *input, float *output, long dimX, long dimY, long dimZ, int axis, int step_size);
 DLS_EXPORT void ratio_mean_stride3d(float* input, float* output,
@@ -59,19 +60,17 @@ DLS_EXPORT void remove_inconsistent_stripes(unsigned char* mask,
                             int stripe_length_min, 
                             int stripe_depth_min, 
                             float sensitivity,
-                            size_t i,
-                            size_t j,
-                            size_t k,
-                            size_t index,
-                            size_t dimX, size_t dimY, size_t dimZ);
+                            long i,
+                            long j,
+                            long k,                            
+                            long dimX, long dimY, long dimZ);
 DLS_EXPORT void merge_stripes(unsigned char* mask,
               unsigned char* out, 
               int stripe_width_min, 
-              size_t i,
-              size_t j,
-              size_t k,
-              size_t index,
-              size_t dimX, size_t dimY, size_t dimZ);
+              long i,
+              long j,
+              long k,
+              long dimX, long dimY, long dimZ);
 #ifdef __cplusplus
 }
 #endif

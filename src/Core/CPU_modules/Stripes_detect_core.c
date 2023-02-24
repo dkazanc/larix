@@ -17,6 +17,9 @@
 #include "Stripes_detect_core.h"
 #include "utils.h"
 
+/********************************************************************/
+/*************************stripesdetect3d****************************/
+/********************************************************************/
 int stripesdetect3d_main_float(float* Input, float* Output, 
                            int window_halflength_vertical,
                            int ratio_radius,
@@ -26,8 +29,7 @@ int stripesdetect3d_main_float(float* Input, float* Output,
     long      i;
     long      j;
     long      k;
-    long long totalvoxels;
-    //totalvoxels = (size_t) ((size_t)(dimX)*(size_t)(dimY)*(size_t)(dimZ));
+    long long totalvoxels;    
     totalvoxels = (long long)(dimX*dimY*dimZ);
 
     int window_fulllength = (int)(2*window_halflength_vertical + 1);
@@ -35,8 +37,8 @@ int stripesdetect3d_main_float(float* Input, float* Output,
     
     float* temp3d_arr;
     temp3d_arr = malloc(totalvoxels * sizeof(float));
-    //mean_ratio3d_arr = (float*)calloc((long long)(dimX)*(long long )(dimY)*(long long )(dimZ), sizeof(float));    
-
+    if (temp3d_arr == NULL) printf("Allocation of the 'temp3d_arr' array failed");
+    
     /* dealing here with a custom given number of cpu threads */
     if(ncores > 0)
     {
@@ -46,6 +48,7 @@ int stripesdetect3d_main_float(float* Input, float* Output,
         omp_set_num_threads(ncores);
     }
 
+/* Perform a gentle (6-stencil) 3d mean smoothing of the data to ensure more stability in the gradient calculation */
 #pragma omp parallel for shared(temp3d_arr) private(i, j, k)
         for(k = 0; k < dimZ; k++)
         {
@@ -60,15 +63,15 @@ int stripesdetect3d_main_float(float* Input, float* Output,
             }
         }
 
-
     /* Take the gradient in the horizontal direction, axis = 0, step = 2*/
-    gradient3D_local(temp3d_arr, Output, dimX, dimY, dimZ, 0, 2);
+    gradient3D_local(Input, Output, dimX, dimY, dimZ, 0, 2);
     
-    /* Here we calculate the ratio between the mean in a small 2D neighbourhood parallel to the stripe 
+    /*
+    Here we calculate a ratio between the mean in a small 2D neighbourhood parallel to the stripe 
     and the mean orthogonal to the stripe. The gradient variation in the direction orthogonal to the
     stripe is expected to be large (a jump), while in parallel direction small. Therefore at the edges
-    of a stripe we should get a ratio small/large or large/small. */
-
+    of a stripe we should get a ratio small/large or large/small. 
+    */
 #pragma omp parallel for shared(Output, temp3d_arr) private(i, j, k)
         for(k = 0; k < dimZ; k++)
         {
@@ -84,8 +87,10 @@ int stripesdetect3d_main_float(float* Input, float* Output,
             }
         }
         
-    /* We process the resulting ratio map with a vertical median filter which removes 
-    small outliers of clusters */
+    /* 
+    We process the resulting ratio map with a vertical median filter which removes 
+    inconsistent from longer stripes features
+    */
 #pragma omp parallel for shared(temp3d_arr, Output) private(i, j, k)
         for(k = 0; k < dimZ; k++)
         {
@@ -107,25 +112,29 @@ int stripesdetect3d_main_float(float* Input, float* Output,
     return 0;
 }
 
+
+/********************************************************************/
+/*************************stripesmask3d******************************/
+/********************************************************************/
 int stripesmask3d_main_float(float* Input,
-                         unsigned char* Output,
-                         float threshold_val,
-                         int stripe_length_min,
-                         int stripe_depth_min,
-                         int stripe_width_min,
-                         float sensitivity,
-                         int ncores, int dimX, int dimY, int dimZ)
+                             unsigned char* Output,
+                             float threshold_val,
+                             int stripe_length_min,
+                             int stripe_depth_min,
+                             int stripe_width_min,
+                             float sensitivity,
+                             int ncores, long dimX, long dimY, long dimZ)
 {
-    size_t      i;
-    size_t      j;
-    size_t      k;
+    long      i;
+    long      j;
+    long      k;
     size_t index;
-    size_t totalvoxels;
-    totalvoxels = (size_t) (dimX*dimY*dimZ);
+    long long totalvoxels;
+    totalvoxels = (long long)(dimX*dimY*dimZ);
 
     unsigned char* mask;    
     mask = malloc(totalvoxels * sizeof(unsigned char));
-    if (mask == NULL) printf("Allocation of 'mask' array failed");
+    if (mask == NULL) printf("Allocation of the 'mask' array failed");
 
     /* dealing here with a custom given number of cpu threads */
     if(ncores > 0)
@@ -136,8 +145,10 @@ int stripesmask3d_main_float(float* Input,
         omp_set_num_threads(ncores);
     }
 
-    /* First step is to mask all the values in the given weights input image    
-       that are bellow a given "threshold_val" parameter */
+    /* 
+    First step is to mask all the values in the given weights input image    
+    that are bellow a given "threshold_val" parameter 
+    */
 #pragma omp parallel for shared(Input, mask) private(i, j, k, index)
         for(k = 0; k < dimZ; k++)
         {
@@ -154,45 +165,46 @@ int stripesmask3d_main_float(float* Input,
                 }
             }
         }
-    /* Then we need to remove stripes that are shorter than "stripe_length_min" parameter
+    /* 
+    Now we need to remove stripes that are shorter than "stripe_length_min" parameter
     or inconsistent otherwise. For every pixel we will run a 1D vertical window to count 
     nonzero values in the mask. We also check for the depth of the mask's value, 
     assuming that the stripes are normally shorter in depth compare to the features that 
-    belong to true data */
-#pragma omp parallel for shared(mask, Output) private(i, j, k, index)
+    belong to true data.
+    */
+#pragma omp parallel for shared(mask, Output) private(i, j, k)
         for(k = 0; k < dimZ; k++)
         {
             for(j = 0; j < dimY; j++)
             {
                 for(i = 0; i < dimX; i++)
                 {
-                    index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
+                    
                     remove_inconsistent_stripes(mask, Output,
                                                 stripe_length_min,
                                                 stripe_depth_min,
                                                 sensitivity,
-                                                i, j, k, index,
-                                                (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ));
+                                                i, j, k,
+                                                dimX, dimY, dimZ);
                 }
             }
         }
     /* Copy output to mask */
-   copyIm_unchar(Output, mask, (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ));
+   copyIm_unchar(Output, mask, dimX, dimY, dimZ);
 
     /* We can merge stripes together if they are relatively close to each other
      based on the stripe_width_min parameter */
-#pragma omp parallel for shared(mask, Output) private(i, j, k, index)
+#pragma omp parallel for shared(mask, Output) private(i, j, k)
         for(k = 0; k < dimZ; k++)
         {
             for(j = 0; j < dimY; j++)
             {
                 for(i = 0; i < dimX; i++)
                 {
-                    index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
                     merge_stripes(mask, Output,
                                   stripe_width_min,
-                                  i, j, k, index,
-                                  (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ));
+                                  i, j, k, 
+                                  dimX, dimY, dimZ);
                 }
             }
         }
@@ -455,20 +467,22 @@ remove_inconsistent_stripes(unsigned char* mask,
                             int stripe_length_min, 
                             int stripe_depth_min, 
                             float sensitivity,
-                            size_t i,
-                            size_t j,
-                            size_t k,
-                            size_t index,
-                            size_t dimX, size_t dimY, size_t dimZ)
+                            long i,
+                            long j,
+                            long k,                            
+                            long dimX, long dimY, long dimZ)
 {
     int       counter_vert_voxels;    
     int       counter_depth_voxels;
     int       halfstripe_length = (int)stripe_length_min/2;
     int       halfstripe_depth = (int)stripe_depth_min/2;
-    size_t      k_m;
-    size_t      k1;
-    size_t      y_m;
-    size_t      y1;
+    long      k_m;
+    long      k1;
+    long      y_m;
+    long      y1;
+    size_t    index;
+    index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
+
     int threshold_vertical = (int)((0.01f*sensitivity)*stripe_length_min);
     int threshold_depth = (int)((0.01f*sensitivity)*stripe_depth_min);
 
@@ -478,7 +492,7 @@ remove_inconsistent_stripes(unsigned char* mask,
         k1 = k + k_m;
          if((k1 < 0) || (k1 >= dimZ))
             k1 = k - k_m;
-        if (mask[((dimX * dimY) * k1 + j * dimX + i)] == 1)
+        if (mask[(size_t)(dimX * dimY * k1) + (size_t)(j * dimX + i)] == 1)
         {
             counter_vert_voxels++;
         }
@@ -502,7 +516,7 @@ remove_inconsistent_stripes(unsigned char* mask,
                 y1 = j + y_m;
                 if((y1 < 0) || (y1 >= dimY))
                     y1 = j - y_m;
-                if (mask[((dimX * dimY) * k + y1 * dimX + i)] == 1)
+                if (mask[(size_t)(dimX * dimY * k) + (size_t)(y1 * dimX + i)] == 1)
                 {
                     counter_depth_voxels++;
                 }        
@@ -531,17 +545,18 @@ void
 merge_stripes(unsigned char* mask,
               unsigned char* out, 
               int stripe_width_min, 
-              size_t i,
-              size_t j,
-              size_t k,
-              size_t index,
-              size_t dimX, size_t dimY, size_t dimZ)
+              long i,
+              long j,
+              long k,
+              long dimX, long dimY, long dimZ)
 {
 
-    size_t        x_m;
-    size_t        x1;
-    size_t        x2;
-    size_t        x2_m;
+    long        x_m;
+    long        x1;
+    long        x2;
+    long        x2_m;
+    size_t    index;
+    index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);    
 
     if (mask[index] == 1)    
     {
@@ -550,13 +565,13 @@ merge_stripes(unsigned char* mask,
             x1 = i + x_m;
             if (x1 >= dimX)
                 x1 = i - x_m;
-            if (mask[((dimX * dimY) * k + j * dimX + x1)] == 1)
+            if (mask[(size_t)(dimX * dimY * k) + (size_t)(j * dimX + x1)] == 1)
             /*the other end of the mask has been found, merge all values inbetween */
             {
               for(x2 = 0; x2 <= x_m; x2++) 
               {
                 x2_m = i + x2;
-                out[((dimX * dimY) * k + j * dimX + x2_m)] = 1;
+                out[(size_t)(dimX * dimY * k) + (size_t)(j * dimX + x2_m)] = 1;
               }
               break;
             }
