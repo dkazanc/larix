@@ -22,7 +22,7 @@ cdef extern int medianfilter_main_uint16(unsigned short *Input, unsigned short *
 cdef extern int Diffusion_Inpaint_CPU_main(float *Input, unsigned char *Mask, float *Output, float lambdaPar, float sigmaPar, int iterationsNumb, float tau, int penaltytype, int dimX, int dimY, int dimZ);
 cdef extern int NonlocalMarching_Inpaint_main(float *Input, unsigned char *M, float *Output, unsigned char *M_upd, int SW_increment, int iterationsNumb, int trigger, int dimX, int dimY, int dimZ);
 cdef extern int Inpaint_simple_CPU_main(float *Input, unsigned char *Mask, float *Output, int iterations, int W_halfsize, int method_type, int ncores, int dimX, int dimY, int dimZ);
-cdef extern int stripesdetect3d_main_float(float* Input, float* Output, int window_halflength_vertical, int ratio_radius, int ncores, int dimX, int dimY, int dimZ);
+cdef extern int stripesdetect3d_main_float(float* Input, float* Output, int window_halflength_vertical, int ratio_radius, int ncores, long dimX, long dimY, long dimZ);
 cdef extern int stripesmask3d_main_float(float* Input, unsigned char* Output, float threshold_val, int stripe_length_min, int stripe_depth_min, int stripe_width_min, float sensitivity, int ncores, int dimX, int dimY, int dimZ);
 #################################################################
 ##########################Autocropper ###########################
@@ -400,7 +400,7 @@ def __INPAINT_EUC_WEIGHT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData
 #****************************************************************#
 #*********************Stripes detection**************************#
 #****************************************************************#
-def STRIPES_DETECT(inputData, vert_filter_size_perc=5, radius_size=3, ncore=0):
+def STRIPES_DETECT(inputData, size=10, radius=3, ncore=0):
     """
     Apply a stripes detection method to empasize their edges in a 3D array.
     The input must be normalized projection data in range [0,1] and given in
@@ -413,10 +413,10 @@ def STRIPES_DETECT(inputData, vert_filter_size_perc=5, radius_size=3, ncore=0):
     inputData : ndarray
         3D tomographic data of float32 data type, normalized [0,1] and given in
         [angles, detY(depth), detX (horizontal)] axis orientation.
-    vert_filter_size_perc : float, optional
-        The size (in percents relative to angular dimension) of the vertical 1D median filter to remove outliers.
-    radius_size : int, optional
-        The size of the filter to calculate the ratio. This will effect the width of the resulting mask.
+    size : int, optional
+        The pixel size of the vertical 1D median filter to minimise false detections. Increase it if you have longer or full stripes in the data. 
+    radius : int, optional
+        The pixel size of the stencil to calculate the mean ratio between vertical and horizontal orientations. The larger values will enlarge the mask width.
     ncore : int, optional
         Number of cores that will be assigned to jobs. All cores will be used
         if unspecified.
@@ -440,28 +440,25 @@ def STRIPES_DETECT(inputData, vert_filter_size_perc=5, radius_size=3, ncore=0):
     else:
         raise ValueError("The input array must be a 3D array")
 
-    # calculate absolute values based on the provided percentages: 
-    if 0.0 < vert_filter_size_perc <= 100.0:
-        vertical_filter_size = (int)((0.01*vert_filter_size_perc)*dz)
-    else:
-        raise ValueError("vert_filter_size_perc value must be in (0, 100] percentage range ")
+    if size <= 0 or size > dz //  2:
+        raise ValueError("The size of the filter should be larger than zero and smaller than the half of the vertical dimension")
     
     if inputData.ndim == 2:
         return 0
     elif inputData.ndim == 3:
         return __STRIPES_DETECT_3D(np.ascontiguousarray(inputData),
-                                   vertical_filter_size,
-                                   radius_size,
+                                   size,
+                                   radius,
                                    ncore,
                                    dx, dy, dz)
 
 def __STRIPES_DETECT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData,
-                       int vertical_filter_size,
-                       int radius_size,
+                       int size,
+                       int radius,
                        int ncore,
-                       int dx,
-                       int dy,
-                       int dz):
+                       long dx,
+                       long dy,
+                       long dz):
 
     cdef long dims[3]
     dims[0] = dz
@@ -471,7 +468,7 @@ def __STRIPES_DETECT_3D(np.ndarray[np.float32_t, ndim=3, mode="c"] inputData,
     cdef np.ndarray[np.float32_t, ndim=3, mode="c"] outputData = \
             np.zeros([dims[0],dims[1],dims[2]], dtype='float32')
 
-    if (stripesdetect3d_main_float(&inputData[0,0,0], &outputData[0,0,0], vertical_filter_size, radius_size, ncore, dims[2], dims[1], dims[0])==0):
+    if (stripesdetect3d_main_float(&inputData[0,0,0], &outputData[0,0,0], size, radius, ncore, dims[2], dims[1], dims[0])==0):
         return (outputData)
     else:
         raise ValueError("3D CPU stripe detection failed to return 0")

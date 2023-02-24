@@ -21,22 +21,21 @@ int stripesdetect3d_main_float(float* Input, float* Output,
                            int window_halflength_vertical,
                            int ratio_radius,
                            int ncores,
-                           int dimX, int dimY, int dimZ)
+                           long dimX, long dimY, long dimZ)
 {
-    size_t      i;
-    size_t      j;
-    size_t      k;
-    size_t index;
-    size_t totalvoxels;
-    totalvoxels = (size_t) ((size_t)(dimX)*(size_t)(dimY)*(size_t)(dimZ));
+    long      i;
+    long      j;
+    long      k;
+    long long totalvoxels;
+    //totalvoxels = (size_t) ((size_t)(dimX)*(size_t)(dimY)*(size_t)(dimZ));
+    totalvoxels = (long long)(dimX*dimY*dimZ);
 
     int window_fulllength = (int)(2*window_halflength_vertical + 1);
     int midval_window_index = (int)(0.5f*window_fulllength) - 1;
     
-    float* mean_ratio3d_arr;
-    mean_ratio3d_arr = malloc(totalvoxels * sizeof(float));
-    //mean_ratio3d_arr = (float*)calloc(totalvoxels, sizeof(float));
-    if (mean_ratio3d_arr == NULL) printf("Allocation of 'mean_ratio3d_arr' failed");
+    float* temp3d_arr;
+    temp3d_arr = malloc(totalvoxels * sizeof(float));
+    //mean_ratio3d_arr = (float*)calloc((long long)(dimX)*(long long )(dimY)*(long long )(dimZ), sizeof(float));    
 
     /* dealing here with a custom given number of cpu threads */
     if(ncores > 0)
@@ -47,47 +46,64 @@ int stripesdetect3d_main_float(float* Input, float* Output,
         omp_set_num_threads(ncores);
     }
 
-    /* Take the gradient in the horizontal direction, axis = 0*/
-    // gradient3D_local(Input, Output, (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ), 0, 1);
+#pragma omp parallel for shared(temp3d_arr) private(i, j, k)
+        for(k = 0; k < dimZ; k++)
+        {
+            for(j = 0; j < dimY; j++)
+            {
+                for(i = 0; i < dimX; i++)
+                {
+                    mean_stride3d(Input, temp3d_arr,
+                                  i, j, k, 
+                                  dimX, dimY, dimZ);
+                }
+            }
+        }
+
+
+    /* Take the gradient in the horizontal direction, axis = 0, step = 2*/
+    gradient3D_local(temp3d_arr, Output, dimX, dimY, dimZ, 0, 2);
     
     /* Here we calculate the ratio between the mean in a small 2D neighbourhood parallel to the stripe 
     and the mean orthogonal to the stripe. The gradient variation in the direction orthogonal to the
     stripe is expected to be large (a jump), while in parallel direction small. Therefore at the edges
     of a stripe we should get a ratio small/large or large/small. */
 
-#pragma omp parallel for shared(Output, mean_ratio3d_arr) private(i, j, k)
+#pragma omp parallel for shared(Output, temp3d_arr) private(i, j, k)
         for(k = 0; k < dimZ; k++)
         {
             for(j = 0; j < dimY; j++)
             {
                 for(i = 0; i < dimX; i++)
                 {
-                    ratio_mean_stride3d(Output, mean_ratio3d_arr, ratio_radius, (size_t)(i), (size_t) (j), (size_t)(k), (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ));
+                    ratio_mean_stride3d(Output, temp3d_arr, 
+                                        ratio_radius, 
+                                        i, j, k,
+                                        dimX, dimY, dimZ);
                 }
             }
         }
         
     /* We process the resulting ratio map with a vertical median filter which removes 
     small outliers of clusters */
-    /*
-#pragma omp parallel for shared(mean_ratio3d_arr, Output) private(i, j, k, index)
+#pragma omp parallel for shared(temp3d_arr, Output) private(i, j, k)
         for(k = 0; k < dimZ; k++)
         {
             for(j = 0; j < dimY; j++)
             {
                 for(i = 0; i < dimX; i++)
                 {
-                    index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
-                    vertical_median_stride3d(mean_ratio3d_arr, Output, 
+                    vertical_median_stride3d(temp3d_arr, Output, 
                                              window_halflength_vertical, 
                                              window_fulllength,
                                              midval_window_index,
-                                             i, j, k, index, (size_t) (dimX), (size_t) (dimY), (size_t) (dimZ));
+                                             i, j, k, 
+                                             dimX, dimY, dimZ);
                 }
             }
         }
-*/
-    free(mean_ratio3d_arr);
+
+    free(temp3d_arr);
     return 0;
 }
 
@@ -194,14 +210,14 @@ axis = 1: depth direction
 axis = 2: vertical direction
 */
 void 
-gradient3D_local(float *input, float *output, size_t dimX, size_t dimY, size_t dimZ, int axis, int step_size)
+gradient3D_local(float *input, float *output, long dimX, long dimY, long dimZ, int axis, int step_size)
 {  
-    size_t i;
-    size_t j;
-    size_t k;
-    size_t i1;
-    size_t j1;
-    size_t k1;
+    long i;
+    long j;
+    long k;
+    long i1;
+    long j1;
+    long k1;
     size_t index;
    
 #pragma omp parallel for shared(input, output) private(i,j,k,i1,j1,k1,index)
@@ -218,21 +234,21 @@ gradient3D_local(float *input, float *output, size_t dimX, size_t dimY, size_t d
                     i1 = i + step_size; 
                     if (i1 >= dimX) 
                         i1 = i - step_size;
-                    output[index] = input[(dimX*dimY)*k + j*dimX+i1] - input[index];
+                    output[index] = input[(size_t)(dimX * dimY * k) + (size_t)(j * dimX + i1)] - input[index];
                 }
                 else if (axis == 1) 
                 {
                     j1 = j + step_size; 
                     if (j1 >= dimY) 
                         j1 = j - step_size;
-                    output[index] = input[(dimX*dimY)*k + j1*dimX+i] - input[index];
+                    output[index] = input[(size_t)(dimX * dimY * k) + (size_t)(j1 * dimX + i)] - input[index];
                 }
                 else 
                 {
                     k1 = k + step_size; 
                     if (k1 >= dimZ) 
                         k1 = k-step_size;
-                    output[index] = input[(dimX*dimY)*k1 + j*dimX+i] - input[index];
+                    output[index] = input[(size_t)(dimX * dimY * k1) + (size_t)(j * dimX + i)] - input[index];
                 }
             }
         }
@@ -242,8 +258,8 @@ gradient3D_local(float *input, float *output, size_t dimX, size_t dimY, size_t d
 void
 ratio_mean_stride3d(float* input, float* output,
                     int radius,
-                    size_t i, size_t j, size_t k, 
-                    size_t dimX, size_t dimY, size_t dimZ)
+                    long i, long j, long k, 
+                    long dimX, long dimY, long dimZ)
 {
     float mean_plate;
     float mean_horiz;
@@ -251,12 +267,12 @@ ratio_mean_stride3d(float* input, float* output,
     float min_val;    
     int diameter = 2*radius + 1;
     int all_pixels_window = diameter*diameter;
-    size_t      i_m;
-    size_t      j_m;
-    size_t      k_m;
-    size_t      i1;
-    size_t      j1;
-    size_t      k1;
+    long      i_m;
+    long      j_m;
+    long      k_m;
+    long      i1;
+    long      j1;
+    long      k1;
     size_t      index;
     size_t      newindex;
     
@@ -267,17 +283,13 @@ ratio_mean_stride3d(float* input, float* output,
     for(j_m = -radius; j_m <= radius; j_m++)
     {
         j1 = j + j_m;
-        // if ((j1 < 0) || (j1 >= dimY))
-        //     j1 = j - j_m;
-        if ((j1 < 0) || (j1 >= dimY)) 
-            j1 = j;
+        if ((j1 < 0) || (j1 >= dimY))
+            j1 = j - j_m;
         for(k_m = -radius; k_m <= radius; k_m++)
         {
             k1 = k + k_m;
-            //if((k1 < 0) || (k1 >= dimZ))
-            //    k1 = k - k_m;
-            if ((k1 < 0) || (k1 >= dimZ)) 
-                k1 = k;
+            if((k1 < 0) || (k1 >= dimZ))
+               k1 = k - k_m;
             newindex = (size_t)(dimX * dimY * k1) + (size_t)(j1 * dimX + i);
             mean_plate += fabsf(input[newindex]);
         }
@@ -286,84 +298,87 @@ ratio_mean_stride3d(float* input, float* output,
     output[index] = mean_plate;
     
     /* calculate mean of gradientX in a 2D plate orthogonal to stripes direction */
-    // mean_horiz = 0.0f;
-    // for(j_m = -1; j_m <= 1; j_m++)
-    // {
-    //     j1 = j + j_m;
-    //     if((j1 < 0) || (j1 >= dimY))
-    //         j1 = j - j_m;
-    //     for(i_m = 1; i_m <= radius; i_m++)
-    //     {
-    //         i1 = i + i_m;
-    //         if (i1 >= dimX) 
-    //             i1 = i - i_m;
-    //         newindex = (size_t)(dimX * dimY * k) + (size_t)(j1 * dimX + i1);
-    //         mean_horiz += fabsf(input[newindex]);
-    //     }
-    // }
-    // mean_horiz /= (float)(radius*3);
+    mean_horiz = 0.0f;
+    for(j_m = -1; j_m <= 1; j_m++)
+    {
+        j1 = j + j_m;
+        if((j1 < 0) || (j1 >= dimY))
+            j1 = j - j_m;
+        for(i_m = 1; i_m <= radius; i_m++)
+        {
+            i1 = i + i_m;
+            if (i1 >= dimX) 
+                i1 = i - i_m;
+            newindex = (size_t)(dimX * dimY * k) + (size_t)(j1 * dimX + i1);
+            mean_horiz += fabsf(input[newindex]);
+        }
+    }
+    mean_horiz /= (float)(radius*3);
     
     /* Calculate another mean symmetrically */
-    // mean_horiz2 = 0.0f;
-    // for(j_m = -1; j_m <= 1; j_m++)
-    // {
-    //     j1 = j + j_m;
-    //     if((j1 < 0) || (j1 >= dimY))
-    //         j1 = j - j_m;
-    //     for(i_m = -radius; i_m <= -1; i_m++)
-    //     {
-    //         i1 = i + i_m;
-    //         if (i1 < 0)
-    //             i1 = i - i_m;
-    //         newindex = (size_t)(dimX * dimY * k) + (size_t)(j1 * dimX + i1);
-    //         mean_horiz2 += fabsf(input[newindex]);
-    //     }
-    // }
-    // mean_horiz2 /= (float)(radius*3);
+    mean_horiz2 = 0.0f;
+    for(j_m = -1; j_m <= 1; j_m++)
+    {
+        j1 = j + j_m;
+        if((j1 < 0) || (j1 >= dimY))
+            j1 = j - j_m;
+        for(i_m = -radius; i_m <= -1; i_m++)
+        {
+            i1 = i + i_m;
+            if (i1 < 0)
+                i1 = i - i_m;
+            newindex = (size_t)(dimX * dimY * k) + (size_t)(j1 * dimX + i1);
+            mean_horiz2 += fabsf(input[newindex]);
+        }
+    }
+    mean_horiz2 /= (float)(radius*3);
 
     /* calculate the ratio between two means assuming that the mean 
     orthogonal to stripes direction should be larger than the mean 
     parallel to it */
-    // if ((mean_horiz > mean_plate) && (mean_horiz != 0.0f))
-    // {        
-    //     output[index] = mean_plate/mean_horiz;
-    // }
-    // if ((mean_horiz < mean_plate) && (mean_plate != 0.0f))
-    // {        
-    //     output[index] = mean_horiz/mean_plate;
-    // }    
-    // min_val = 0.0f;
-    // if ((mean_horiz2 > mean_plate) && (mean_horiz2 != 0.0f))
-    // {   
-    //     min_val = mean_plate/mean_horiz2;
-    // }
-    // if ((mean_horiz2 < mean_plate) && (mean_plate != 0.0f))
-    // {
-    //     min_val = mean_horiz2/mean_plate;
-    // }
+    if ((mean_horiz > mean_plate) && (mean_horiz != 0.0f))
+    {        
+        output[index] = mean_plate/mean_horiz;
+    }
+    if ((mean_horiz < mean_plate) && (mean_plate != 0.0f))
+    {        
+        output[index] = mean_horiz/mean_plate;
+    }    
+    min_val = 0.0f;
+    if ((mean_horiz2 > mean_plate) && (mean_horiz2 != 0.0f))
+    {   
+        min_val = mean_plate/mean_horiz2;
+    }
+    if ((mean_horiz2 < mean_plate) && (mean_plate != 0.0f))
+    {
+        min_val = mean_horiz2/mean_plate;
+    }
 
-    // /* accepting the smallest value */
-    // if (output[index] > min_val)
-    // {
-    //     output[index] = min_val;
-    // }
+    /* accepting the smallest value */
+    if (output[index] > min_val)
+    {
+        output[index] = min_val;
+    }
 
     return;
 }
 
 void
 vertical_median_stride3d(float* input, float* output,
-                        int window_halflength_vertical, 
+                        int window_halflength_vertical,
                         int window_fulllength,
                         int midval_window_index,
-                        size_t i, size_t j, size_t k, size_t index,
-                        size_t dimX, size_t dimY, size_t dimZ)
+                        long i, long j, long k,
+                        long dimX, long dimY, long dimZ)
 {
     int       counter;
-    size_t      k_m;
-    size_t      k1;
-    float* _values;
+    long      k_m;
+    long      k1;
+    size_t    index;
+
+    index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
     
+    float*    _values;
     _values = (float*) calloc(window_fulllength, sizeof(float));    
     
     counter = 0;
@@ -372,13 +387,66 @@ vertical_median_stride3d(float* input, float* output,
         k1 = k + k_m;
         if((k1 < 0) || (k1 >= dimZ))
             k1 = k-k_m;
-        _values[counter] = input[((dimX * dimY) * k1 + j * dimX + i)];
+        _values[counter] = input[(size_t)(dimX * dimY * k1) + (size_t)(j * dimX + i)];
         counter++;
     }
     quicksort_float(_values, 0, window_fulllength-1);
     output[index] = _values[midval_window_index];
 
     free (_values);
+}
+
+
+void
+mean_stride3d(float* input, float* output,
+                        long i, long j, long k,
+                        long dimX, long dimY, long dimZ)
+{
+    /* a 3d mean to enusre a more stable gradient */
+    long      i1;
+    long      i2;
+    long      j1;
+    long      j2;
+    long      k1;
+    long      k2;    
+    float     val1;
+    float     val2;
+    float     val3;
+    float     val4;
+    float     val5;
+    float     val6;
+    size_t    index;
+  
+    index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
+
+    i1 = i - 1;
+    i2 = i + 1;
+    j1 = j - 1;
+    j2 = j + 1;
+    k1 = k - 1;
+    k2 = k + 1;
+
+    if (i1 < 0)
+        i1 = i2;
+    if (i2 >= dimX)
+        i2 = i1;
+    if (j1 < 0)
+        j1 = j2;
+    if (j2 >= dimY)
+        j2 = j1;  
+    if (k1 < 0)
+        k1 = k2;
+    if (k2 >= dimZ)
+        k2 = k1;
+
+    val1 = input[(size_t)(dimX * dimY * k) + (size_t)(j * dimX + i1)];
+    val2 = input[(size_t)(dimX * dimY * k) + (size_t)(j * dimX + i2)];
+    val3 = input[(size_t)(dimX * dimY * k) + (size_t)(j1 * dimX + i)];
+    val4 = input[(size_t)(dimX * dimY * k) + (size_t)(j2 * dimX + i)];
+    val5 = input[(size_t)(dimX * dimY * k1) + (size_t)(j * dimX + i)];
+    val6 = input[(size_t)(dimX * dimY * k2) + (size_t)(j * dimX + i)];
+    
+    output[index] = 0.1428f*(input[index] + val1 + val2 + val3 + val4 + val5 + val6);
 }
 
 void
