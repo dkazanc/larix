@@ -530,7 +530,7 @@ def STRIPES_MERGE(weights,
     if min_stripe_length <= 0 or min_stripe_length >= dz:
         raise ValueError("The minimum length of a stripe cannot be zero or exceed the size of the angular dimension")
 
-    if min_stripe_depth <= 0 or min_stripe_depth >= dy:
+    if min_stripe_depth < 0 or min_stripe_depth >= dy:
         raise ValueError("The minimum depth of a stripe cannot be zero or exceed the size of the depth dimension")
 
     if min_stripe_width <= 0 or min_stripe_width >= dx:

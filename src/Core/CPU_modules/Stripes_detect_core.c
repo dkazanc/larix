@@ -128,6 +128,8 @@ int stripesmask3d_main_float(float* Input,
     long      i;
     long      j;
     long      k;
+    int       iter_merge;
+    int       switch_dim;
     size_t index;
     long long totalvoxels;
     totalvoxels = (long long)(dimX*dimY*dimZ);
@@ -161,17 +163,18 @@ int stripesmask3d_main_float(float* Input,
                     {
                         mask[index] = 1;
                     }
-                    
+                    else
+                    {
+                        mask[index] = 0;
+                    }                    
                 }
             }
         }
-    /* 
-    Now we need to remove stripes that are shorter than "stripe_length_min" parameter
-    or inconsistent otherwise. For every pixel we will run a 1D vertical window to count 
-    nonzero values in the mask. We also check for the depth of the mask's value, 
-    assuming that the stripes are normally shorter in depth compare to the features that 
-    belong to true data.
-    */
+
+    copyIm_unchar(mask, Output, dimX, dimY, dimZ);
+    
+    /* the depth consistency for features  */
+    switch_dim = 1; 
 #pragma omp parallel for shared(mask, Output) private(i, j, k)
         for(k = 0; k < dimZ; k++)
         {
@@ -184,6 +187,7 @@ int stripesmask3d_main_float(float* Input,
                                                 stripe_length_min,
                                                 stripe_depth_min,
                                                 sensitivity,
+                                                switch_dim,
                                                 i, j, k,
                                                 dimX, dimY, dimZ);
                 }
@@ -192,8 +196,64 @@ int stripesmask3d_main_float(float* Input,
     /* Copy output to mask */
    copyIm_unchar(Output, mask, dimX, dimY, dimZ);
 
-    /* We can merge stripes together if they are relatively close to each other
-     based on the stripe_width_min parameter */
+    /* 
+    Now we need to remove stripes that are shorter than "stripe_length_min" parameter
+    or inconsistent otherwise. For every pixel we will run a 1D vertical window to count 
+    nonzero values in the mask. We also check for the depth of the mask's value, 
+    assuming that the stripes are normally shorter in depth compare to the features that 
+    belong to true data.
+    */
+
+/*continue by including long vertical features and discarding shorter ones */
+    switch_dim = 0; 
+#pragma omp parallel for shared(mask, Output) private(i, j, k)
+        for(k = 0; k < dimZ; k++)
+        {
+            for(j = 0; j < dimY; j++)
+            {
+                for(i = 0; i < dimX; i++)
+                {
+                    
+                    remove_inconsistent_stripes(mask, Output,
+                                                stripe_length_min,
+                                                stripe_depth_min,
+                                                sensitivity,
+                                                switch_dim,
+                                                i, j, k,
+                                                dimX, dimY, dimZ);
+                }
+            }
+        }
+    /* Copy output to mask */
+    copyIm_unchar(Output, mask, dimX, dimY, dimZ);
+
+    /* now we clean the obtained mask if the features do not hold our assumptions about the lengths */
+
+#pragma omp parallel for shared(mask, Output) private(i, j, k)
+        for(k = 0; k < dimZ; k++)
+        {
+            for(j = 0; j < dimY; j++)
+            {
+                for(i = 0; i < dimX; i++)
+                {
+                    
+                    remove_short_stripes(mask, Output,
+                                            stripe_length_min,
+                                            i, j, k,
+                                            dimX, dimY, dimZ);
+                }
+            }
+        }
+
+    /* Copy output to mask */
+    copyIm_unchar(Output, mask, dimX, dimY, dimZ);
+
+    /* 
+    We can merge stripes together if they are relatively close to each other
+    horizontally and vertically. We do that iteratively. 
+    */
+    for(iter_merge = 0; iter_merge < stripe_width_min; iter_merge++)
+    {
 #pragma omp parallel for shared(mask, Output) private(i, j, k)
         for(k = 0; k < dimZ; k++)
         {
@@ -202,18 +262,22 @@ int stripesmask3d_main_float(float* Input,
                 for(i = 0; i < dimX; i++)
                 {
                     merge_stripes(mask, Output,
+                                  stripe_length_min,
                                   stripe_width_min,
                                   i, j, k, 
                                   dimX, dimY, dimZ);
                 }
             }
-        }
+        }    
+    /* Copy output to mask */
+    copyIm_unchar(Output, mask, dimX, dimY, dimZ);
+    }
 
     free(mask);
     return 0;
 }
 /********************************************************************/
-/***************************3D Functions*****************************/
+/**********************Supporting Functions**************************/
 /********************************************************************/
 /* Calculate the forward difference derrivative of the 3D input in the direction of the "axis" parameter 
 using the step_size in pixels to skip pixels (i.e. step_size = 1 is the classical gradient)
@@ -467,12 +531,13 @@ remove_inconsistent_stripes(unsigned char* mask,
                             int stripe_length_min, 
                             int stripe_depth_min, 
                             float sensitivity,
+                            int switch_dim,
                             long i,
                             long j,
-                            long k,                            
+                            long k,
                             long dimX, long dimY, long dimZ)
 {
-    int       counter_vert_voxels;    
+    int       counter_vert_voxels;
     int       counter_depth_voxels;
     int       halfstripe_length = (int)stripe_length_min/2;
     int       halfstripe_depth = (int)stripe_depth_min/2;
@@ -486,30 +551,36 @@ remove_inconsistent_stripes(unsigned char* mask,
     int threshold_vertical = (int)((0.01f*sensitivity)*stripe_length_min);
     int threshold_depth = (int)((0.01f*sensitivity)*stripe_depth_min);
 
-    counter_vert_voxels = 0;
-    for(k_m = -halfstripe_length; k_m <= halfstripe_length; k_m++)
+    /* start by considering vertical features */
+    if (switch_dim == 0)
     {
-        k1 = k + k_m;
-         if((k1 < 0) || (k1 >= dimZ))
-            k1 = k - k_m;
-        if (mask[(size_t)(dimX * dimY * k1) + (size_t)(j * dimX + i)] == 1)
+        if (mask[index] == 1)
         {
-            counter_vert_voxels++;
+            counter_vert_voxels = 0;
+            for(k_m = -halfstripe_length; k_m <= halfstripe_length; k_m++)
+            {
+                k1 = k + k_m;
+                if((k1 < 0) || (k1 >= dimZ))
+                    k1 = k - k_m;
+                if (mask[(size_t)(dimX * dimY * k1) + (size_t)(j * dimX + i)] == 1)            
+                    counter_vert_voxels++;
+            }       
+            if (counter_vert_voxels < threshold_vertical)
+                out[index] = 0;
         }
     }
-    
-    /* Here we decide if to keep the currect voxel based on the number of vertical voxels bellow it */
-    if (counter_vert_voxels > threshold_vertical)
+    else 
     {
-        /* 
-        If the vertical non-zero values are consistent then the voxel could belong to a stripe.
-        So we would like to check the depth consistency as well. Here we assume that the stripes 
-        normally do not extend far in the depth dimension compared to the features that belong to a 
+       /*
+        Considering the depth of features an removing the deep ones 
+        Here we assume that the stripes do not normally extend far 
+        in the depth dimension compared to the features that belong to a 
         sample. 
-        */
-       
-       if (stripe_depth_min != 0)
-       {
+       */
+        if (mask[index] == 1)
+        {
+            if (stripe_depth_min != 0)
+            {
             counter_depth_voxels = 0;
             for(y_m = -halfstripe_depth; y_m <= halfstripe_depth; y_m++)
             {
@@ -517,66 +588,137 @@ remove_inconsistent_stripes(unsigned char* mask,
                 if((y1 < 0) || (y1 >= dimY))
                     y1 = j - y_m;
                 if (mask[(size_t)(dimX * dimY * k) + (size_t)(y1 * dimX + i)] == 1)
-                {
                     counter_depth_voxels++;
-                }        
             }
-            if (counter_depth_voxels < threshold_depth)
-            {
-            out[index] = 1;
+            if (counter_depth_voxels > threshold_depth)
+                out[index] = 0;         
             }
-            else
-            {
-            out[index] = 0;
-            }
-        }
-        else 
-        {
-            out[index] = 1;
         }
     }
-    else
+}
+
+void
+remove_short_stripes(unsigned char* mask,
+                        unsigned char* out, 
+                        int stripe_length_min, 
+                        long i,
+                        long j,
+                        long k,
+                        long dimX, long dimY, long dimZ)
+{
+    int       counter_vert_voxels;
+    int       halfstripe_length = (int)stripe_length_min/2;
+    long      k_m;
+    long      k1;
+    size_t    index;
+    index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
+
+    if (mask[index] == 1)
     {
-        out[index] = 0;
+        counter_vert_voxels = 0;
+        for(k_m = -halfstripe_length; k_m <= halfstripe_length; k_m++)
+        {
+            k1 = k + k_m;
+            if((k1 < 0) || (k1 >= dimZ))
+                k1 = k - k_m;
+            if (mask[(size_t)(dimX * dimY * k1) + (size_t)(j * dimX + i)] == 1)            
+                counter_vert_voxels++;
+        }       
+        if (counter_vert_voxels < halfstripe_length) 
+            out[index] = 0;
     }
-}                            
+}
 
 void
 merge_stripes(unsigned char* mask,
-              unsigned char* out, 
+              unsigned char* out,
+              int stripe_length_min,
               int stripe_width_min, 
               long i,
               long j,
               long k,
               long dimX, long dimY, long dimZ)
-{
+{    
+    int       halfstripe_width = (int)stripe_width_min/2;
+    int       vertical_length = 2*stripe_width_min;
 
-    long        x_m;
-    long        x1;
-    long        x2;
-    long        x2_m;
-    size_t    index;
+    long        x;
+    long        x_l;
+    long        x_r;
+    long        k_u;
+    long        k_d;
+    int         mask_left;
+    int         mask_right;
+    int         mask_up;
+    int         mask_down;
+    size_t      index;
     index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);    
 
-    if (mask[index] == 1)    
-    {
-        /* merging stripes in the horizontal direction */
-        for(x_m=stripe_width_min; x_m>=0; x_m--) {
-            x1 = i + x_m;
-            if (x1 >= dimX)
-                x1 = i - x_m;
-            if (mask[(size_t)(dimX * dimY * k) + (size_t)(j * dimX + x1)] == 1)
-            /*the other end of the mask has been found, merge all values inbetween */
+    if (mask[index] == 0)    
+    {        
+        /* checking if there is a mask to the left of zero */
+        mask_left = 0;
+        for(x = -halfstripe_width; x <=0; x++) 
+        {
+            x_l = i + x;
+            if (x_l < 0)
+                x_l = i - x;
+            if (mask[(size_t)(dimX * dimY * k) + (size_t)(j * dimX + x_l)] == 1)
             {
-              for(x2 = 0; x2 <= x_m; x2++) 
-              {
-                x2_m = i + x2;
-                out[(size_t)(dimX * dimY * k) + (size_t)(j * dimX + x2_m)] = 1;
-              }
-              break;
+                mask_left = 1;
+                break;
             }
-        }            
+        }
+        /* checking if there is a mask to the right of zero */
+        mask_right = 0;
+        for(x = 0; x <= halfstripe_width; x++) 
+        {
+            x_r = i + x;
+            if (x_r >= dimX)
+                x_r = i - x;
+            if (mask[(size_t)(dimX * dimY * k) + (size_t)(j * dimX + x_r)] == 1)
+            {
+                mask_right = 1;
+                break;
+            }
+        }
+        /* now if there is a mask from the left and from the right side of the zero value make it one */ 
+        if ((mask_left == 1) && (mask_right == 1))
+            out[index] = 1;
 
+        /* perform vertical merging */
+        if (out[index] != 1) 
+        {
+            /* checking if there is a mask up of zero */
+            mask_up = 0;
+            for(x = -vertical_length; x <=0; x++) 
+            {
+                k_u = k + x;
+                if (k_u < 0)
+                    k_u = k - x;
+                if (mask[(size_t)(dimX * dimY * k_u) + (size_t)(j * dimX + i)] == 1)
+                {
+                    mask_up = 1;
+                    break;
+                }
+            }
+            /* checking if there is a mask down of zero */
+            mask_down = 0;
+            for(x = 0; x <= vertical_length; x++) 
+            {
+                k_d = k + x;
+                if (k_d >= dimZ)
+                    k_d = k - x;
+                if (mask[(size_t)(dimX * dimY * k_d) + (size_t)(j * dimX + i)] == 1)
+                {
+                    mask_down = 1;
+                    break;
+                }
+            }
+            /* now if there is a mask above and bellow of the zero value make it one */ 
+            if ((mask_up == 1) && (mask_down == 1))
+                out[index] = 1;            
+        }
     }
 }
 

@@ -54,23 +54,32 @@ DLS_EXPORT void vertical_median_stride3d(float* input, float* output,
                         long dimX, long dimY, long dimZ);
 DLS_EXPORT void mean_stride3d(float* input, float* output,
                         long i, long j, long k,
-                        long dimX, long dimY, long dimZ);                      
+                        long dimX, long dimY, long dimZ);
 DLS_EXPORT void remove_inconsistent_stripes(unsigned char* mask,
                             unsigned char* out, 
                             int stripe_length_min, 
                             int stripe_depth_min, 
                             float sensitivity,
+                            int switch_dim,
                             long i,
                             long j,
                             long k,                            
                             long dimX, long dimY, long dimZ);
+DLS_EXPORT void remove_short_stripes(unsigned char* mask,
+                        unsigned char* out, 
+                        int stripe_length_min, 
+                        long i,
+                        long j,
+                        long k,
+                        long dimX, long dimY, long dimZ);
 DLS_EXPORT void merge_stripes(unsigned char* mask,
-              unsigned char* out, 
-              int stripe_width_min, 
-              long i,
-              long j,
-              long k,
-              long dimX, long dimY, long dimZ);
+                        unsigned char* out, 
+                        int stripe_length_min,
+                        int stripe_width_min, 
+                        long i,
+                        long j,
+                        long k,
+                        long dimX, long dimY, long dimZ);
 #ifdef __cplusplus
 }
 #endif
