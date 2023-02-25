@@ -159,19 +159,16 @@ int stripesmask3d_main_float(float* Input,
                 for(i = 0; i < dimX; i++)
                 {
                     index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
-                    if (Input[index] <= threshold_val) 
-                    {
+                    if (Input[index] <= threshold_val)
                         mask[index] = 1;
-                    }
                     else
-                    {
-                        mask[index] = 0;
-                    }                    
+                        mask[index] = 0; 
                 }
             }
         }
-
-    copyIm_unchar(mask, Output, dimX, dimY, dimZ);
+        
+    /* Copy mask to output */
+    copyIm_unchar_long(mask, Output, totalvoxels);
     
     /* the depth consistency for features  */
     switch_dim = 1; 
@@ -193,8 +190,8 @@ int stripesmask3d_main_float(float* Input,
                 }
             }
         }
-    /* Copy output to mask */
-   copyIm_unchar(Output, mask, dimX, dimY, dimZ);
+    /* Copy output to mask */     
+    copyIm_unchar_long(Output, mask, totalvoxels);
 
     /* 
     Now we need to remove stripes that are shorter than "stripe_length_min" parameter
@@ -225,7 +222,7 @@ int stripesmask3d_main_float(float* Input,
             }
         }
     /* Copy output to mask */
-    copyIm_unchar(Output, mask, dimX, dimY, dimZ);
+    copyIm_unchar_long(Output, mask, totalvoxels);
 
     /* now we clean the obtained mask if the features do not hold our assumptions about the lengths */
 
@@ -246,7 +243,7 @@ int stripesmask3d_main_float(float* Input,
         }
 
     /* Copy output to mask */
-    copyIm_unchar(Output, mask, dimX, dimY, dimZ);
+    copyIm_unchar_long(Output, mask, totalvoxels);
 
     /* 
     We can merge stripes together if they are relatively close to each other
@@ -270,7 +267,7 @@ int stripesmask3d_main_float(float* Input,
             }
         }    
     /* Copy output to mask */
-    copyIm_unchar(Output, mask, dimX, dimY, dimZ);
+    copyIm_unchar_long(Output, mask, totalvoxels);
     }
 
     free(mask);
@@ -329,6 +326,7 @@ gradient3D_local(float *input, float *output, long dimX, long dimY, long dimZ, i
             }
         }
     }
+    return;
 }
 
 void
@@ -349,11 +347,12 @@ ratio_mean_stride3d(float* input, float* output,
     long      i1;
     long      j1;
     long      k1;
-    size_t      index;
-    size_t      newindex;
+    size_t    index;
+    size_t    newindex;
     
     index = (size_t)(dimX * dimY * k) + (size_t)(j * dimX + i);
 
+    min_val = 0.0f;
     /* calculate mean of gradientX in a 2D plate parallel to stripes direction */
     mean_plate = 0.0f;
     for(j_m = -radius; j_m <= radius; j_m++)
@@ -371,7 +370,6 @@ ratio_mean_stride3d(float* input, float* output,
         }
     }
     mean_plate /= (float)(all_pixels_window);
-    output[index] = mean_plate;
     
     /* calculate mean of gradientX in a 2D plate orthogonal to stripes direction */
     mean_horiz = 0.0f;
@@ -412,30 +410,18 @@ ratio_mean_stride3d(float* input, float* output,
     /* calculate the ratio between two means assuming that the mean 
     orthogonal to stripes direction should be larger than the mean 
     parallel to it */
-    if ((mean_horiz > mean_plate) && (mean_horiz != 0.0f))
-    {        
+    if ((mean_horiz >= mean_plate) && (mean_horiz != 0.0f))
         output[index] = mean_plate/mean_horiz;
-    }
     if ((mean_horiz < mean_plate) && (mean_plate != 0.0f))
-    {        
         output[index] = mean_horiz/mean_plate;
-    }    
-    min_val = 0.0f;
-    if ((mean_horiz2 > mean_plate) && (mean_horiz2 != 0.0f))
-    {   
-        min_val = mean_plate/mean_horiz2;
-    }
+    if ((mean_horiz2 >= mean_plate) && (mean_horiz2 != 0.0f))
+        min_val = mean_plate/mean_horiz2;    
     if ((mean_horiz2 < mean_plate) && (mean_plate != 0.0f))
-    {
         min_val = mean_horiz2/mean_plate;
-    }
 
     /* accepting the smallest value */
     if (output[index] > min_val)
-    {
         output[index] = min_val;
-    }
-
     return;
 }
 
@@ -470,6 +456,7 @@ vertical_median_stride3d(float* input, float* output,
     output[index] = _values[midval_window_index];
 
     free (_values);
+    return;
 }
 
 
@@ -523,6 +510,7 @@ mean_stride3d(float* input, float* output,
     val6 = input[(size_t)(dimX * dimY * k2) + (size_t)(j * dimX + i)];
     
     output[index] = 0.1428f*(input[index] + val1 + val2 + val3 + val4 + val5 + val6);
+    return;
 }
 
 void
@@ -595,6 +583,7 @@ remove_inconsistent_stripes(unsigned char* mask,
             }
         }
     }
+    return;
 }
 
 void
@@ -627,6 +616,7 @@ remove_short_stripes(unsigned char* mask,
         if (counter_vert_voxels < halfstripe_length) 
             out[index] = 0;
     }
+    return;
 }
 
 void
@@ -720,6 +710,7 @@ merge_stripes(unsigned char* mask,
                 out[index] = 1;            
         }
     }
+    return;
 }
 
 
