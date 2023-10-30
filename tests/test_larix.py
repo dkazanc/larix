@@ -2,20 +2,20 @@ import unittest
 import pytest
 import numpy as np
 
+
 class TestLarix(unittest.TestCase):
-    
     def test_import_cpu_modules(self):
         try:
             from larix.methods.segmentation import REGION_GROW, MORPH_PROC_LINE
         except NameError:
-            print('____! Larix has not been installed properly (import error) !____')
+            print("____! Larix has not been installed properly (import error) !____")
             raise
-    
+
     def test_import_gpu_modules(self):
         try:
             from larix.methods.misc_gpu import MEDIAN_FILT_GPU, MEDIAN_DEZING_GPU
         except NameError:
-            print('____! GPU modules of Larix have not been installed !____')
+            print("____! GPU modules of Larix have not been installed !____")
             raise
         """
         # enable if there is a GPU available
@@ -30,5 +30,6 @@ class TestLarix(unittest.TestCase):
         self.assertLessEqual(np.max(gpu_dezingered) , 1.0)
         """
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
