@@ -707,7 +707,7 @@ merge_stripes(unsigned char* mask,
             }
             /* now if there is a mask above and bellow of the zero value make it one */ 
             if ((mask_up == 1) && (mask_down == 1))
-                out[index] = 1;            
+                out[index] = 1;
         }
     }
     return;
